@@ -25,5 +25,5 @@ $settings = New-ScheduledTaskSettingsSet -MultipleInstances IgnoreNew -StartWhen
 $principal = New-ScheduledTaskPrincipal -UserId "$env:USERDOMAIN\$env:USERNAME" -LogonType Interactive -RunLevel Limited
 Register-ScheduledTask -TaskName $name -Action $action -Trigger $trigger -Settings $settings -Principal $principal `
     -Description 'Builds Pixel Workbench [Feature] issues with the Copilot CLI and publishes them (automation\builder.py).' -Force | Out-Null
-Write-Host "Installed $name: runs every $EveryMinutes minutes while you're signed in."
+Write-Host "Installed ${name}: runs every $EveryMinutes minutes while you're signed in."
 Write-Host "Logs: $env:LOCALAPPDATA\PixelWorkbenchBuilder\logs\builder.log"
