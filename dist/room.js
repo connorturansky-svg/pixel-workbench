@@ -1,6 +1,6 @@
-import {ensureScene,entities,pixelPoints,makeProp,PALETTE,clampPosition} from './layout-model.mjs';
-import {ensureInstallation,exposedPorts,perimeterAnchor,deleteRoute} from './installation-model.mjs';
-import {routeLayer,routeControls,routeInspector,installRoutes,refreshRoutes} from './installation-room.mjs';
+import {ensureScene,entities,pixelPoints,makeProp,PALETTE,clampPosition} from './layout-model.mjs?v=0.6.1';
+import {ensureInstallation,exposedPorts,perimeterAnchor,deleteRoute} from './installation-model.mjs?v=0.6.1';
+import {routeLayer,routeControls,routeInspector,installRoutes,refreshRoutes} from './installation-room.mjs?v=0.6.1';
 let api,chosen='',propId='prop-smiley',showGrid=true,showPixelLines=true,zoom=1,drag=null,roomWire=null;
 const E=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const b=(t,a,c='btn')=>`<button type="button" class="${c}" data-room="${a}">${t}</button>`;

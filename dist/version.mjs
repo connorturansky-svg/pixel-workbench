@@ -1,6 +1,7 @@
 // Every change: bump APP_VERSION, add a CHANGELOG entry at the top (date DD/MM/YYYY), and review HOW_TO_USE, ARCHITECTURE_NOTES / the info.mjs diagram and SHORTCUTS.
-export const APP_VERSION='0.6.0';
+export const APP_VERSION='0.6.1';
 export const CHANGELOG=[
+ {version:'0.6.1',date:'02/10/2026',items:['Fixed the page failing to load after an update when the browser still held cached copies of older files. Every script and stylesheet is now versioned, so each release loads as one consistent set.']},
  {version:'0.6.0',date:'02/10/2026',items:['Info / Help moves from the sidebar into a single i button (top bar) that opens a fixed-size dialog with How to use, What’s new, Architecture and Shortcuts tabs.','Added an About summary, an architecture diagram with technical notes, and a keyboard shortcut reference. Press ? anywhere outside a text field to open it.','The sidebar version label now opens What’s new. Changelog entries now show their release date.']},
  {version:'0.5.0',items:['Controller boxes now anchor the room layout, with coloured rectangular component sections and exposed component-port nodes. Existing loose infrastructure moves into an Unassigned infrastructure box.','Added field devices, port-to-device wiring, combined route warnings on the map, connection deletion and catalog search/category filters.','Added a disposable demo project with real boxes, cables, capacity, warnings and Save demo as project.']},
  {version:'0.4.1',items:['Added separate How to Use and What’s New tabs, duplicate box parts and clearer capacity bands.','Added port-to-room targets, clearer internal port routing, custom resources and operating limits.','Added a measured physical cable schedule to the wiring guide.']},

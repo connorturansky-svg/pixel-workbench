@@ -40,7 +40,7 @@ Generic box-port links are permissive and warn on mismatches. They are documenta
 
 ## Versioning
 
-Every change bumps `APP_VERSION` in `dist/version.mjs` and adds a `CHANGELOG` entry at the top with its date in DD/MM/YYYY format. On each change, also review `HOW_TO_USE`, `SHORTCUTS`, `ARCHITECTURE_NOTES` and the diagram in `dist/info.mjs`. When CSS or JS changes, bump the `?v=` query strings in `dist/index.html`. Pushing to `main` publishes `dist/` to GitHub Pages.
+Every change bumps `APP_VERSION` in `dist/version.mjs` and adds a `CHANGELOG` entry at the top with its date in DD/MM/YYYY format. On each change, also review `HOW_TO_USE`, `SHORTCUTS`, `ARCHITECTURE_NOTES` and the diagram in `dist/info.mjs`. When CSS or JS changes, run `node stamp-version.mjs`. It stamps `?v=<APP_VERSION>` onto every module import and asset link so browsers don't mix cached and new files. Pushing to `main` publishes `dist/` to GitHub Pages.
 
 ## Checks
 

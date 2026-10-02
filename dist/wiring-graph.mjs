@@ -1,5 +1,5 @@
-import {BOARDS} from './model.mjs';
-import {ensureWiring,connectWire} from './wiring-model.mjs';
+import {BOARDS} from './model.mjs?v=0.6.1';
+import {ensureWiring,connectWire} from './wiring-model.mjs?v=0.6.1';
 
 let api,pending=null,dragging=false;
 const E=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
