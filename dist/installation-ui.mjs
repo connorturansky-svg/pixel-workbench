@@ -1,5 +1,6 @@
 import {
   PORT_TYPES,
+  BUTTON_COLOURS,
   RESOURCE_LABELS,
   ensureInstallation,
   makeBox,
@@ -20,7 +21,7 @@ import {
   componentSizeGuides,
   deleteRoute,
   portTypeColour
-} from './installation-model.mjs?v=0.57.0';
+} from './installation-model.mjs?v=0.58.0';
 
 const SCHEMATIC_MIN_WIDTH = 1400,
   SCHEMATIC_MIN_HEIGHT = 700;
@@ -271,7 +272,7 @@ export function boxBuilderView(p, lib) {
 function buttonBoxesView(p) {
   ensureInstallation(p);
   const boxes = p.installation.boxes.filter(box => box.kind === 'button');
-  return `<div class="install-intro">Build a custom enclosure with 1–5 buttons. Each button has its own exposed digital-input port for room routing and can be Small, Medium or Large.</div><div class="section-heading"><h2>Button boxes <span>${boxes.length}</span></h2>${B('+ New button box', 'new-button-box', 'btn primary')}</div><div class="standards-grid button-box-grid">${
+  return `<div class="install-intro">Build a custom enclosure with 1–5 buttons. Each button has its own colour, size and exposed digital-input port for room routing.</div><div class="section-heading"><h2>Button boxes <span>${boxes.length}</span></h2>${B('+ New button box', 'new-button-box', 'btn primary')}</div><div class="standards-grid button-box-grid">${
     boxes
       .map(
         box =>
@@ -283,7 +284,12 @@ function buttonBoxesView(p) {
           )}<div class="button-box-controls">${box.components
             .map(
               (button, index) =>
-                `<div class="button-box-control"><span class="button-size-preview ${E(button.buttonSize || 'medium')}" aria-hidden="true"></span><div>${F('Button label', button.subname || `Button ${index + 1}`, 'button:' + box.id + ':' + button.id + ':label')}${S(
+                `<div class="button-box-control"><span class="button-size-preview ${E(button.buttonSize || 'medium')}" style="background:${E(button.snapshot.color)}" aria-hidden="true"></span><div>${F('Button label', button.subname || `Button ${index + 1}`, 'button:' + box.id + ':' + button.id + ':label')}${S(
+                  'Button colour',
+                  button.buttonColour || 'Amber',
+                  'button:' + box.id + ':' + button.id + ':colour',
+                  BUTTON_COLOURS.map(([name]) => [name, name])
+                )}${S(
                   'Button size',
                   button.buttonSize || 'medium',
                   'button:' + box.id + ':' + button.id + ':size',
@@ -1224,7 +1230,11 @@ export function installInstallation(a) {
         const buttonBox = p.installation.boxes.find(box => box.id === id && box.kind === 'button'),
           button = buttonBox?.components.find(button => button.id === field);
         if (!button) return;
-        if (sub === 'size') {
+        if (sub === 'colour') {
+          const colour = BUTTON_COLOURS.find(([name]) => name === t.value);
+          if (!colour) return;
+          [button.buttonColour, button.snapshot.color] = colour;
+        } else if (sub === 'size') {
           const mm = { small: 30, medium: 45, large: 60 }[t.value];
           button.buttonSize = t.value;
           button.snapshot.physical.widthMm = mm;

@@ -6,7 +6,7 @@ import {
   SHORTCUTS,
   ARCHITECTURE_NOTES,
   SUGGEST_GUIDE
-} from './version.mjs?v=0.57.0';
+} from './version.mjs?v=0.58.0';
 
 const E = s =>
   String(s ?? '').replace(

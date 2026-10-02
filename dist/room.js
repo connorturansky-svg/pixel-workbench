@@ -5,21 +5,22 @@ import {
   makeProp,
   PALETTE,
   clampPosition
-} from './layout-model.mjs?v=0.57.0';
+} from './layout-model.mjs?v=0.58.0';
 import {
   ensureInstallation,
+  BUTTON_COLOURS,
   exposedPorts,
   perimeterAnchor,
   deleteRoute,
   portTypeColour
-} from './installation-model.mjs?v=0.57.0';
+} from './installation-model.mjs?v=0.58.0';
 import {
   routeLayer,
   routeControls,
   routeInspector,
   installRoutes,
   refreshRoutes
-} from './installation-room.mjs?v=0.57.0';
+} from './installation-room.mjs?v=0.58.0';
 let api,
   chosen = '',
   propId = 'prop-smiley',
@@ -156,14 +157,6 @@ function fieldVisual(device, w, h) {
     `<rect x="18" y="20" width="64" height="64" rx="10" fill="${E(device.snapshot.color || '#4b8a76')}" stroke="#244d43" stroke-width="4"/><circle cx="50" cy="52" r="17" fill="#e8f1ec" stroke="#34594d" stroke-width="4"/><path d="M50 35v34M33 52h34" stroke="#6a8f82" stroke-width="3"/>`
   );
 }
-const BUTTON_COLOURS = [
-  ['Red', '#dc654f'],
-  ['Amber', '#f1c75b'],
-  ['Green', '#55a66f'],
-  ['Blue', '#4d8fd1'],
-  ['White', '#e8eeeb'],
-  ['Black', '#29322f']
-];
 function fieldConnectionLabel(p, device) {
   const key = 'field:' + device.id,
     link = p.installation.connections.find(x => x.fromKey === key || x.toKey === key);

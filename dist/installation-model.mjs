@@ -16,6 +16,14 @@ export const PORT_TYPES = [
   'gpio',
   'generic'
 ];
+export const BUTTON_COLOURS = [
+  ['Red', '#dc654f'],
+  ['Amber', '#f1c75b'],
+  ['Green', '#55a66f'],
+  ['Blue', '#4d8fd1'],
+  ['White', '#e8eeeb'],
+  ['Black', '#29322f']
+];
 export function portTypeColour(type) {
   if (type === 'pixel_output' || type === 'pixel_data') return '#55c978';
   if (type === 'digital_input' || type === 'analogue_input' || type === 'gpio') return '#4da3ff';
@@ -517,10 +525,18 @@ export function ensureInstallation(p) {
   for (const device of a.fieldDevices) {
     if (device.snapshot.name.toLowerCase().includes('button')) {
       device.buttonColour ??= device.snapshot.name.includes('Illuminated') ? 'Amber' : 'Red';
-      device.buttonColor ??= device.buttonColour === 'Amber' ? '#f1c75b' : '#dc654f';
+      device.buttonColor ??= BUTTON_COLOURS.find(([name]) => name === device.buttonColour)?.[1] || '#dc654f';
     }
   }
-  for (const box of a.boxes) syncInterfacePorts(box);
+  for (const box of a.boxes) {
+    if (box.kind === 'button')
+      for (const button of box.components) {
+        button.buttonColour ??= 'Amber';
+        button.snapshot.color =
+          BUTTON_COLOURS.find(([name]) => name === button.buttonColour)?.[1] || '#f1c75b';
+      }
+    syncInterfacePorts(box);
+  }
   return p;
 }
 export function addFieldDevice(p, def, name = def.name) {
@@ -533,7 +549,9 @@ export function addFieldDevice(p, def, name = def.name) {
     definitionId: def.id,
     definitionVersion: def.version,
     snapshot: copy(def),
-    ...(isButton ? { buttonColour, buttonColor: buttonColour === 'Amber' ? '#f1c75b' : '#dc654f' } : {})
+    ...(isButton
+      ? { buttonColour, buttonColor: BUTTON_COLOURS.find(([name]) => name === buttonColour)[1] }
+      : {})
   };
   p.installation.fieldDevices.push(device);
   return device;
@@ -569,7 +587,7 @@ const makeButtonInstance = number => {
       name: 'Push button',
       category: 'Sensor',
       icon: '○',
-      color: '#4b8a76',
+      color: '#f1c75b',
       manufacturer: '',
       model: '',
       notes: 'Custom button-box control.',
@@ -581,6 +599,7 @@ const makeButtonInstance = number => {
     sourceKey: '',
     subname: 'Button ' + number,
     buttonSize: 'medium',
+    buttonColour: 'Amber',
     x: 10 + ((number - 1) % 3) * 30,
     y: 15 + Math.floor((number - 1) / 3) * 45,
     rotation: 0,
@@ -1537,7 +1556,7 @@ export function billOfMaterials(p, boxId = null) {
       add(
         'Hardware',
         b.kind === 'button'
-          ? `${BUTTON_SIZES[c.buttonSize]?.label || 'Medium'} ${c.snapshot.name.toLowerCase()}`
+          ? `${c.buttonColour || 'Amber'} ${BUTTON_SIZES[c.buttonSize]?.label || 'Medium'} ${c.snapshot.name.toLowerCase()}`
           : c.snapshot.name
       );
       if (c.sourceKey) linked.add(c.sourceKey);
