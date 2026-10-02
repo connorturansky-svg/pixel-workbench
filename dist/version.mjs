@@ -1,6 +1,7 @@
 // Every change: bump APP_VERSION, add a CHANGELOG entry at the top (date DD/MM/YYYY), and review HOW_TO_USE, ARCHITECTURE_NOTES / the info.mjs diagram and SHORTCUTS.
-export const APP_VERSION='0.10.0';
+export const APP_VERSION='0.11.0';
 export const CHANGELOG=[
+ {version:'0.11.0',date:'02/10/2026',items:['The sidebar is shorter and easier to scan now that project actions appear only in the top bar and the promotional tagline has been removed. (suggested in #3)']},
  {version:'0.10.0',date:'02/10/2026',items:['Suggest a feature now submits from inside the app. Select Submit and the request is filed in the background, with your screenshots attached. GitHub no longer opens in a new tab.','Connect GitHub once with a token that is kept only in this browser, so requests are filed under your own account. Disconnect at any time.']},
  {version:'0.9.0',date:'02/10/2026',items:['Shipped feature requests now show the version they were released in, linked to that release on GitHub.','Only requests from approved GitHub accounts (J-Turansky and connorturansky-svg) are built. Requests from other accounts are closed with an explanation and no longer appear in the status list.']},
  {version:'0.8.0',date:'02/10/2026',items:['The Suggest a feature page now shows the total number of requests beside the build-status heading. The total updates whenever the request list loads or refreshes. (suggested in #1)']},
