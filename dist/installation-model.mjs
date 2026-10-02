@@ -1,6 +1,6 @@
 // Physical installation planning. Definitions live in the device-local library;
 // projects retain snapshots so later library edits never rewrite old plans.
-export const PORT_TYPES=['pixel_data','pixel_output','digital_input','analogue_input','relay_output','ethernet','dmx','audio','usb','low_voltage_power','mains_power','gpio','generic'];
+export const PORT_TYPES=['pixel_data','pixel_output','digital_input','analogue_input','relay_output','ethernet','dmx','audio','usb','low_voltage_power','low_voltage_ac_power','mains_power','gpio','generic'];
 export const RESOURCE_LABELS={pixels:'Pixels',pixelOutputs:'Pixel outputs',distroOutputs:'Distro outputs',digitalInputs:'Digital inputs',analogueInputs:'Analogue inputs',relayOutputs:'Relay outputs',dmxOutputs:'DMX outputs',ethernetPorts:'Ethernet ports',audioOutputs:'Audio outputs',amplifierChannels:'Amplifier channels',psuWatts:'PSU watts',psuAmps:'PSU amps'};
 export function componentPlacement(def){if(['internal','field','both'].includes(def.placement))return def.placement;return ['Controller','Power','Input board','DMX','Relay board','Signal board','Computer','Audio','Network'].includes(def.category)?'internal':'field';}
 export function componentSearch(def){return [def.name,def.category,def.manufacturer,def.model,def.notes,...(def.tags||[])].join(' ').toLowerCase();}
@@ -8,12 +8,14 @@ const copy=x=>structuredClone(x),id=()=>Math.random().toString(36).slice(2,10);
 const out=(type,n,prefix)=>Array.from({length:n},(_,i)=>({id:prefix+(i+1),label:prefix.toUpperCase()+' '+(i+1),type,direction:'out'}));
 const inp=(type,n,prefix)=>Array.from({length:n},(_,i)=>({id:prefix+(i+1),label:prefix.toUpperCase()+' '+(i+1),type,direction:'in'}));
 function definition(name,category,icon,ports=[],resources={},notes='',physical=null){return {id:'def-'+id(),version:1,name,category,icon,color:'#4b8a76',manufacturer:'',model:'',notes,ports,resources,operatingLimits:{},physical:physical||{widthMm:null,depthMm:null,heightMm:null}};}
+const stepDownTransformer=()=>definition('Step-down transformer','Power','ϟ',[...inp('mains_power',1,'primary'),...out('low_voltage_ac_power',1,'secondary')],{},'Generic AC planning component. Confirm the primary and secondary voltages, VA rating, isolation, earthing and protection against the actual transformer before use.');
 export function defaultLibrary(){
  const cable=(name,type,lengthM,pins,color)=>({id:'cable-'+id(),version:1,name,type,lengthM,pins,color,connector:'',notes:''});
  const components=[
   definition('Baldrick8','Controller','▦',[...out('pixel_output',8,'p'),...inp('digital_input',3,'in'),...inp('low_voltage_power',2,'bank')],{pixelOutputs:8,pixels:6000,digitalInputs:3},'750 pixels per output is the current planning reference.'),
   definition('Baldrick17','Controller','▦',[...out('pixel_output',17,'p'),...inp('digital_input',3,'in'),...inp('low_voltage_power',5,'bank')],{pixelOutputs:17,pixels:12750,digitalInputs:3},'750 pixels per output is the current planning reference.'),
   definition('12 V PSU','Power','ϟ',out('low_voltage_power',3,'dc'),{},'Enter the actual PSU rating before using power capacity.'),
+  stepDownTransformer(),
   definition('Fused distro','Power','▤',[...inp('low_voltage_power',1,'in'),...out('low_voltage_power',6,'f')],{distroOutputs:6},'Set the actual output count on the placed component.'),
   definition('BaldrickInput','Input board','◎',inp('digital_input',1,'in'),{digitalInputs:1}),
   definition('BaldrickDMX','DMX','◇',out('dmx',1,'dmx'),{dmxOutputs:1}),
@@ -28,9 +30,9 @@ export function defaultLibrary(){
  const effects=['Relay','Solenoid','Electromagnet','Maglock','Servo','DC motor','Stepper motor','Linear actuator','Fan','Speaker','Projector','Display','DMX fixture','Moving light','Smoke / fog machine','Haze machine','Bubble machine','Snow / effect machine'];
  for(const name of sensors)components.push(definition(name,'Sensor','○',out(['Load cell / weight sensor','FSR / force sensor','Potentiometer','Light sensor'].includes(name)?'analogue_input':'digital_input',1,'signal')));
  for(const name of effects)components.push(definition(name,'Output / effect','◆',inp(name.includes('DMX')||name==='Moving light'?'dmx':name==='Speaker'?'audio':'relay_output',1,'control')));
- return {version:1,cables:[cable('Grey 3m 4 pin EXT','Extension',3,4,'#899096'),cable('Blue 3m 3 pin EXT','Extension',3,3,'#5288c4'),cable('Yellow 5m 3 pin EXT','Extension',5,3,'#deb83f'),cable('Red 5m 4 pin EXT','Extension',5,4,'#cc5b58'),cable('Orange Dual Inject 4 pin','Dual injection',1,4,'#e1944d'),cable('Green 1m 4 pin EXT','Extension',1,4,'#539c6c')],components,boxTemplates:[]};
+ return {version:2,cables:[cable('Grey 3m 4 pin EXT','Extension',3,4,'#899096'),cable('Blue 3m 3 pin EXT','Extension',3,3,'#5288c4'),cable('Yellow 5m 3 pin EXT','Extension',5,3,'#deb83f'),cable('Red 5m 4 pin EXT','Extension',5,4,'#cc5b58'),cable('Orange Dual Inject 4 pin','Dual injection',1,4,'#e1944d'),cable('Green 1m 4 pin EXT','Extension',1,4,'#539c6c')],components,boxTemplates:[]};
 }
-export function ensureLibrary(lib){lib.components??=[];for(const d of lib.components)d.physical??={widthMm:null,depthMm:null,heightMm:null};return lib;}
+export function ensureLibrary(lib){lib.components??=[];if((lib.version||1)<2){if(!lib.components.some(d=>d.name==='Step-down transformer'))lib.components.push(stepDownTransformer());lib.version=2;}for(const d of lib.components)d.physical??={widthMm:null,depthMm:null,heightMm:null};return lib;}
 export function ensureInstallation(p){p.installation??={slack:{mode:'off',value:0},routes:{},boxes:[],connections:[],fieldDevices:[],animate:false,autoRoute:true,showLabels:true,filters:{data:true,power:true,inject:true,other:true}};const a=p.installation;a.slack??={mode:'off',value:0};a.routes??={};a.boxes??=[];a.connections??=[];a.fieldDevices??=[];a.animate??=false;a.autoRoute??=true;a.showLabels??=true;a.filters??={data:true,power:true,inject:true,other:true};return p;}
 export function addFieldDevice(p,def,name=def.name){ensureInstallation(p);const device={id:'field-'+id(),name,definitionId:def.id,definitionVersion:def.version,snapshot:copy(def)};p.installation.fieldDevices.push(device);return device;}
 export function makeBox(name='Controller box'){return {id:'box-'+id(),name,description:'',templateRef:null,components:[],width:4,height:2.5,physicalWidthMm:400,physicalDepthMm:250};}
