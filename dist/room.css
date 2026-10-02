@@ -308,6 +308,19 @@
   stroke-width: 2.5;
   pointer-events: none;
 }
+#room-wire-preview {
+  fill: none;
+  stroke: #d9982d;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 9 6;
+  pointer-events: none;
+}
+.room-object.wire-target .selection-ring {
+  stroke: #d9982d;
+  stroke-width: 5;
+  filter: drop-shadow(0 0 6px #f1bd64);
+}
 @media (max-width: 1250px) {
   .room-workspace {
     grid-template-columns: minmax(0, 1fr);
