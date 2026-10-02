@@ -1,4 +1,4 @@
-import {APP_VERSION} from './version.mjs?v=0.14.0';
+import {APP_VERSION} from './version.mjs?v=0.15.0';
 
 // Suggest a feature: submits a `[Feature]` GitHub issue in the background under the requester's own GitHub account
 // (a token they connect once, kept only in this browser and sent only to api.github.com). Screenshots are uploaded
@@ -107,13 +107,37 @@ function imagesHtml(){
  return `<div class="sg-thumbs">${draft.images.map((im,i)=>`<figure class="sg-thumb"><img src="${im.url}" alt="${E(im.name)}"><figcaption><span title="${E(im.name)}">${E(im.name)}</span><span class="sg-thumb-actions"><button type="button" class="text-btn" data-sg="remove:${i}" aria-label="Remove ${E(im.name)}">Remove</button></span></figcaption></figure>`).join('')}</div>`;
 }
 
+const fmtTok=n=>n>=1e6?(n/1e6).toFixed(n>=1e7?0:1)+'M':n>=1e3?Math.round(n/1e3)+'k':String(Math.round(n));
+const fmtCredits=c=>Math.round(c).toLocaleString('en-GB');
+const fmtTime=s=>s>=60?`${Math.floor(s/60)}m ${s%60}s`:`${s}s`;
+export function costSummary(data){
+ const rate=Number(data?.creditUsd)||0.01,by={},tot={credits:0,tokens:0,builds:0,shipped:0};
+ for(const b of Array.isArray(data?.builds)?data.builds:[]){
+  const c=Number(b.credits)||0,ti=Number(b.tokensIn)||0,to=Number(b.tokensOut)||0,x=by[b.issue]||(by[b.issue]={credits:0,tokensIn:0,tokensCached:0,tokensOut:0,seconds:0,attempts:0,model:''});
+  x.credits+=c;x.tokensIn+=ti;x.tokensOut+=to;x.tokensCached+=Number(b.tokensCached)||0;x.seconds+=Number(b.seconds)||0;x.attempts++;if(b.model)x.model=b.model;
+  tot.credits+=c;tot.tokens+=ti+to;tot.builds++;if(b.outcome==='shipped')tot.shipped++;
+ }
+ return {rate,by,tot};
+}
+const usd=(c,rate)=>'$'+(Math.round(c)*rate).toFixed(2);
+function costHtml(n){
+ const s=list.cost,x=s?.by?.[n];if(!x)return '';
+ const help=`Model: ${x.model||'unknown'}\nTokens: ${fmtTok(x.tokensIn)} in (${fmtTok(x.tokensCached)} cached) + ${fmtTok(x.tokensOut)} out\nAgent time: ${fmtTime(x.seconds)}${x.attempts>1?`\nIncludes ${x.attempts} build attempts`:''}\n1 AI credit = $${s.rate} (GitHub’s rate)`;
+ return `<span class="sg-cost" title="${E(help)}">Est. ${fmtTok(x.tokensIn+x.tokensOut)} tokens · ${fmtCredits(x.credits)} credits · ${usd(x.credits,s.rate)}</span>`;
+}
+function spendHtml(){
+ const s=list.cost;if(!s?.tot?.builds)return '';
+ const t=s.tot,other=t.builds-t.shipped;
+ return `<div class="sg-spend" title="AI usage of every automatic build, read from build-costs.json. 1 AI credit = $${s.rate} (GitHub’s rate).">
+<div><b>${fmtCredits(t.credits)}</b><span>AI credits</span></div><div><b>${usd(t.credits,s.rate)}</b><span>est. cost</span></div><div><b>${fmtTok(t.tokens)}</b><span>tokens</span></div><div><b>${t.builds}</b><span>build${t.builds===1?'':'s'}${other?` (${other} not shipped)`:''}</span></div></div>`;
+}
 function listHtml(){
  if(list.state==='loading'&&!list.items.length)return '<p class="empty">Loading requests…</p>';
  if(list.state==='error'&&!list.items.length)return `<p class="empty">Couldn't load the request list (${E(list.error)}). <a href="https://github.com/${REPO}/issues?q=%5BFeature%5D" target="_blank" rel="noopener">See them on GitHub</a>.</p>`;
  if(!list.items.length)return '<p class="empty">No feature requests yet. Be the first.</p>';
  const [,stageLabel,match]=stageOf(stage),shown=list.items.filter(i=>match(statusOf(i)));
  if(!shown.length)return `<p class="empty">Nothing is ${stage==='attention'?'waiting for attention':stageLabel.toLowerCase()} right now.</p>`;
- return `<ul class="sg-list">${shown.map(i=>{const s=statusOf(i),[label,help]=STATUS[s];return `<li class="sg-item"><span class="sg-state"><span class="sg-pill sg-${s}" title="${E(help)}">${label}</span>${s==='shipped'&&list.versions?.[i.number]?`<a class="sg-ver" href="https://github.com/${REPO}/releases/tag/v${E(list.versions[i.number])}" target="_blank" rel="noopener" title="Released in this version">v${E(list.versions[i.number])}</a>`:''}</span><div class="sg-item-main"><a href="${E(i.html_url)}" target="_blank" rel="noopener">${E(i.title.replace(/^\[Feature\]\s*/i,''))}</a><small>#${i.number} · ${E(i.user?.login||'')} · ${date(i.created_at)}${s==='shipped'&&i.closed_at?` · shipped ${date(i.closed_at)}`:''}${i.comments?` · ${i.comments} comment${i.comments>1?'s':''}`:''}</small></div></li>`;}).join('')}</ul>`;
+ return `<ul class="sg-list">${shown.map(i=>{const s=statusOf(i),[label,help]=STATUS[s];return `<li class="sg-item"><span class="sg-state"><span class="sg-pill sg-${s}" title="${E(help)}">${label}</span>${s==='shipped'&&list.versions?.[i.number]?`<a class="sg-ver" href="https://github.com/${REPO}/releases/tag/v${E(list.versions[i.number])}" target="_blank" rel="noopener" title="Released in this version">v${E(list.versions[i.number])}</a>`:''}</span><div class="sg-item-main"><a href="${E(i.html_url)}" target="_blank" rel="noopener">${E(i.title.replace(/^\[Feature\]\s*/i,''))}</a><small>#${i.number} · ${E(i.user?.login||'')} · ${date(i.created_at)}${s==='shipped'&&i.closed_at?` · shipped ${date(i.closed_at)}`:''}${i.comments?` · ${i.comments} comment${i.comments>1?'s':''}`:''}</small>${s==='shipped'?costHtml(i.number):''}</div></li>`;}).join('')}</ul>`;
 }
 
 export function suggestView(){
@@ -128,22 +152,24 @@ ${connectHtml()}
 ${resultHtml()}
 </section>
 <section class="panel sg-status"><div class="sg-status-head"><h3>Requests and build status <span data-sg-count>(${list.items.length})</span></h3><button type="button" class="text-btn" data-sg="refresh">Refresh</button></div>
+<div data-sg-spend>${spendHtml()}</div>
 <div class="sg-stages" role="tablist" aria-label="Filter requests by build stage" data-sg-stages>${stagesHtml()}</div>
 <div data-sg-list>${listHtml()}</div></section></div>`;
 }
 
 function paint(){const root=document.querySelector('.sg-grid');if(!root)return;const focus=document.activeElement?.dataset?.sgField,pos=document.activeElement?.selectionStart;root.outerHTML=suggestView();if(focus){const el=document.querySelector(`[data-sg-field="${focus}"]`);el?.focus();try{el.setSelectionRange(pos,pos);}catch{}}}
-function paintList(){const el=document.querySelector('[data-sg-list]'),count=document.querySelector('[data-sg-count]'),st=document.querySelector('[data-sg-stages]');if(st)st.innerHTML=stagesHtml();if(el)el.innerHTML=listHtml();if(count)count.textContent=`(${list.items.length})`;}
+function paintList(){const el=document.querySelector('[data-sg-list]'),count=document.querySelector('[data-sg-count]'),st=document.querySelector('[data-sg-stages]');if(st)st.innerHTML=stagesHtml();const sp=document.querySelector('[data-sg-spend]');if(sp)sp.innerHTML=spendHtml();if(el)el.innerHTML=listHtml();if(count)count.textContent=`(${list.items.length})`;}
 
 export async function loadRequests(force=false){
  if(testing)return;
- try{const c=JSON.parse(sessionStorage.getItem(KEY)||'null');if(!force&&c&&Date.now()-c.at<CACHE_MS){list={state:'ok',items:c.items,versions:c.versions||{},error:'',at:c.at};paintList();return;}}catch{}
+ try{const c=JSON.parse(sessionStorage.getItem(KEY)||'null');if(!force&&c&&Date.now()-c.at<CACHE_MS){list={state:'ok',items:c.items,versions:c.versions||{},cost:costSummary(c.costs),error:'',at:c.at};paintList();return;}}catch{}
  list.state='loading';paintList();
  try{const r=await fetch(`https://api.github.com/repos/${REPO}/issues?state=all&per_page=50&sort=created&direction=desc`,{headers:{Accept:'application/vnd.github+json'}});
   if(!r.ok)throw new Error(r.status===403?'GitHub rate limit, try again later':'GitHub returned '+r.status);
   const items=(await r.json()).filter(i=>!i.pull_request&&/^\[Feature\]/i.test(i.title)&&allowed(i.user?.login));
   let versions={};try{const cr=await fetch(`https://api.github.com/repos/${REPO}/commits?sha=main&per_page=100`,{headers:{Accept:'application/vnd.github+json'}});if(cr.ok)versions=versionsFrom(await cr.json());}catch{}
-  list={state:'ok',items,versions,error:'',at:Date.now()};try{sessionStorage.setItem(KEY,JSON.stringify({at:list.at,items,versions}));}catch{}
+  let costs=null;try{const k=await fetch(`./build-costs.json?t=${Date.now()}`,{cache:'no-store'});if(k.ok)costs=await k.json();}catch{}
+  list={state:'ok',items,versions,cost:costSummary(costs),error:'',at:Date.now()};try{sessionStorage.setItem(KEY,JSON.stringify({at:list.at,items,versions,costs}));}catch{}
  }catch(e){list={...list,state:'error',error:e.message||'network error'};}
  paintList();
 }

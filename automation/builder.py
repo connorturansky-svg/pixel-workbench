@@ -43,7 +43,7 @@ LABELS = {"feature-request": ("1e755d", "Suggested from the app"), "in-progress"
           "shipped": ("0e8a16", "Built and live"), "build-failed": ("d73a4a", "The automatic build failed"),
           "needs-info": ("1d76db", "The builder asked a question"), "declined": ("cfd3d7", "Not built")}
 ALLOWED = re.compile(r"^(dist/[\w./-]+|README\.md)$")
-FORBIDDEN = re.compile(r"^(\.github/|automation/|AGENTS\.md$|stamp-version\.mjs$|verify[\w-]*\.mjs$|\.gitignore$)", re.I)
+FORBIDDEN = re.compile(r"^(\.github/|automation/|dist/build-costs\.json$|AGENTS\.md$|stamp-version\.mjs$|verify[\w-]*\.mjs$|\.gitignore$)", re.I)
 NET = re.compile(r"\bfetch\s*\(|XMLHttpRequest|WebSocket|sendBeacon|EventSource|\beval\s*\(|new\s+Function\b|"
                  r"<script[^>]+src\s*=\s*['\"]?https?:|<iframe|importScripts|navigator\.connection", re.I)
 BUILD_TIMEOUT = 60 * 60
@@ -55,6 +55,9 @@ ALLOWED_AUTHORS = {"j-turansky", "connorturansky-svg"}
 MAX_IMAGES, MAX_IMAGE_BYTES = 6, 10 * 1024 * 1024
 NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 DRY = "--dry-run" in sys.argv
+COSTS = "dist/build-costs.json"   # per-build AI usage, published with each release for the Suggest a feature page
+CREDIT_USD = 0.01                 # GitHub bills 1 AI credit as $0.01
+USAGE = []                        # Copilot CLI runs in the current build
 
 
 def log(text):
@@ -335,9 +338,61 @@ def copilot(prompt, name, images=()):
     out = (r.stdout or "") + ("\n" + r.stderr if (r.stderr or "").strip() else "")
     with open(os.path.join(LOG_DIR, f"build-{name}.log"), "w", encoding="utf-8") as f:
         f.write(out)
+    USAGE.append(usage(out))
     if r.returncode:
         raise RuntimeError(f"the Copilot CLI exited with code {r.returncode}: {out.strip()[-300:]}")
     return out
+
+
+def tokens(s):
+    m = re.match(r"([\d.]+)\s*([kKmM]?)", s or "")
+    return round(float(m.group(1)) * {"k": 1e3, "m": 1e6}.get(m.group(2).lower(), 1)) if m else 0
+
+
+def usage(out):
+    """Read the Copilot CLI usage footer (AI Credits, Tokens, Resume) and the session's model."""
+    u = {"credits": 0.0, "tokensIn": 0, "tokensCached": 0, "tokensOut": 0, "seconds": 0, "model": ""}
+    m = re.search(r"AI Credits\s+([\d.,]+)(?:\s*\(([^)]*)\))?", out)
+    if m:
+        u["credits"] = float(m.group(1).replace(",", ""))
+        for v, unit in re.findall(r"(\d+)\s*([hms])", m.group(2) or ""):
+            u["seconds"] += int(v) * {"h": 3600, "m": 60, "s": 1}[unit]
+    m = re.search(r"Tokens\s+\u2191\s*([\d.]+[kKmM]?)(?:\s*\(([\d.]+[kKmM]?) cached)?.*?\u2193\s*([\d.]+[kKmM]?)", out)
+    if m:
+        u["tokensIn"], u["tokensCached"], u["tokensOut"] = tokens(m.group(1)), tokens(m.group(2)), tokens(m.group(3))
+    m = re.search(r"--resume=([0-9a-f-]{36})", out)
+    if m:
+        try:
+            ev = os.path.join(os.path.expanduser("~"), ".copilot", "session-state", m.group(1), "events.jsonl")
+            with open(ev, encoding="utf-8", errors="replace") as f:
+                found = re.findall(r'"(?:model|selectedModel)"\s*:\s*"([^"]+)"', f.read())
+            u["model"] = found[-1] if found else ""
+        except OSError:
+            pass
+    return u
+
+
+def spend(n, version, title, outcome):
+    """One build's AI usage, summed over the main Copilot run and any fix rounds."""
+    rec = {"issue": n, "version": version, "title": title, "outcome": outcome,
+           "at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "runs": len(USAGE),
+           "model": next((u["model"] for u in reversed(USAGE) if u["model"]), "")}
+    for k in ("credits", "tokensIn", "tokensCached", "tokensOut", "seconds"):
+        rec[k] = round(sum(u[k] for u in USAGE), 2) if k == "credits" else sum(u[k] for u in USAGE)
+    return rec
+
+
+def write_costs(records):
+    path = os.path.join(BUILD_DIR, *COSTS.split("/"))
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, ValueError):
+        data = {}
+    builds = (data.get("builds") or []) + records
+    body = ",\n".join("  " + json.dumps(b, ensure_ascii=False, separators=(",", ":")) for b in builds)
+    with open(path, "w", encoding="utf-8", newline="\n") as f:
+        f.write('{\n "creditUsd": %s,\n "builds": [\n%s\n ]\n}\n' % (CREDIT_USD, body))
 
 
 def answer(out):
@@ -484,6 +539,8 @@ def build(issue, state):
                "10 to 30 minutes. Follow progress on the app's Suggest a feature page.")
     log(f"#{n} building v{version}: {title} (by {author})")
     result = {"number": n, "author": author, "version": version, "at": datetime.now(timezone.utc).isoformat()}
+    USAGE.clear()
+    pending = state.setdefault("costs_pending", [])
     try:
         texts = [issue.get("body")] + [c.get("body") for c in issue.get("comments") or []
                                        if c["author"]["login"] == author]
@@ -502,6 +559,7 @@ def build(issue, state):
                 if not DRY:
                     gh("issue", "close", str(n), "-R", REPO, "--reason", "not planned", check=False)
             log(f"#{n} {kind.lower()}: {text[:200]}")
+            pending.append(spend(n, version, title, kind.lower()))
             return dict(result, ok=None, outcome=kind.lower())
         summary = text
         for attempt in range(FIX_ROUNDS + 1):
@@ -518,7 +576,13 @@ def build(issue, state):
             rollback()
             return dict(result, ok=None, outcome="dry-run")
         label(n, add=["tested"], remove=["in-progress"])
+        rec = spend(n, version, title, "shipped")
+        write_costs(pending + [rec])
         sha = push(version, title, n)
+        pending.clear()
+        USAGE.clear()             # already published; don't count it again if a later step fails
+        save_state(state)
+        log(f"#{n} used {rec['credits']:.0f} AI credits, {rec['tokensIn'] + rec['tokensOut']:,} tokens ({rec['model'] or 'model unknown'})")
         log(f"#{n} pushed v{version} ({sha[:8]}); waiting for the live site")
         live = wait_live(sha, version)
         note = f"\n\n_Note: {live}; it will appear after the next successful deploy._" if live else ""
@@ -533,6 +597,8 @@ def build(issue, state):
         rollback()
         label(n, remove=["in-progress", "tested"])
         state["attempts"][str(n)] -= 1
+        if USAGE:
+            pending.append(spend(n, version, title, "retry"))
         log(f"#{n} will retry: {e}")
         return dict(result, ok=None, outcome="retry")
     except Exception as e:  # noqa: BLE001
@@ -541,6 +607,8 @@ def build(issue, state):
         comment(n, f"The automatic build didn't go through, so nothing was released.\n\n```\n{reason}\n```\n\n"
                    "Reply on this issue (for example with more detail) to try again.")
         label(n, add=["build-failed"], remove=["in-progress", "tested"])
+        if USAGE:
+            pending.append(spend(n, version, title, "failed"))
         log(f"#{n} FAILED: {reason[:300]}")
         return dict(result, ok=False, outcome="failed", reason=reason[:300])
 
