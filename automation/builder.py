@@ -344,8 +344,18 @@ def answer(out):
 # ---------------------------------------------------------------- checks
 
 def changed():
-    out = git("status", "--porcelain", "--untracked-files=all")
-    return [l[3:].strip().strip('"').replace("\\", "/").split(" -> ")[-1] for l in out.splitlines() if l.strip()]
+    out = run(["git", "status", "--porcelain", "-z", "--untracked-files=all"], cwd=BUILD_DIR).stdout
+    files, parts = [], out.split("\0")
+    i = 0
+    while i < len(parts):
+        e = parts[i]
+        if len(e) > 3:
+            files.append(e[3:].replace("\\", "/"))
+            if e[0] in "RC":
+                files.append(parts[i + 1].replace("\\", "/"))
+                i += 1
+        i += 1
+    return files
 
 
 def new_network_code():
