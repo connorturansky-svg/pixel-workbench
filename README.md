@@ -44,7 +44,7 @@ Every change bumps `APP_VERSION` in `dist/version.mjs` and adds a `CHANGELOG` en
 
 ## Feature requests (automatic builds)
 
-The **Suggest a feature** page lets anyone describe an idea and add screenshots. The issue title is generated from the first sentence. The page opens a prefilled `[Feature]` GitHub issue that the requester creates under their own GitHub account. The same page lists every request and its build status from the public GitHub issues API.
+The **Suggest a feature** page lets anyone describe an idea and add screenshots. The issue title is generated from the first sentence. The page opens a prefilled `[Feature]` GitHub issue that the requester creates under their own GitHub account. The same page lists every request and its build status from the public GitHub issues API, with the total request count shown in the heading.
 
 Every request is built with no approval step, by `automation/builder.py` on the build PC:
 

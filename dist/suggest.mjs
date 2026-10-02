@@ -1,4 +1,4 @@
-import {APP_VERSION} from './version.mjs?v=0.7.0';
+import {APP_VERSION} from './version.mjs?v=0.8.0';
 
 // Suggest a feature: drafts a `[Feature]` GitHub issue that the requester submits under their own GitHub account,
 // and lists every request with its build status (read from the public GitHub API; nothing is sent anywhere else).
@@ -55,13 +55,13 @@ ${imagesHtml()}
 <div class="sg-actions"><button type="button" class="btn primary" data-sg="open" ${ready()?'':'disabled'}>Create the GitHub issue</button><small>${ready()?'Opens GitHub in a new tab with your request filled in.':'Describe your idea in a sentence or more. The issue title is taken from your first sentence.'}</small></div>
 ${draft.opened?`<div class="sg-next"><strong>Finish on GitHub</strong><ol><li>Check the issue that opened in the new tab.</li>${draft.images.length?`<li>Add your screenshots: select <b>Copy</b> on an image above, then click under <i>Screenshots</i> on GitHub and press Ctrl+V. Repeat for each image.</li>`:''}<li>Select <b>Create</b> on GitHub. Your request appears below within a minute.</li></ol><button type="button" class="text-btn" data-sg="reset">Start a new request</button></div>`:''}
 </section>
-<section class="panel sg-status"><div class="sg-status-head"><h3>Requests and build status</h3><button type="button" class="text-btn" data-sg="refresh">Refresh</button></div>
+<section class="panel sg-status"><div class="sg-status-head"><h3>Requests and build status <span data-sg-count>(${list.items.length})</span></h3><button type="button" class="text-btn" data-sg="refresh">Refresh</button></div>
 <ol class="sg-pipeline" aria-label="How a request is built"><li>Queued</li><li>Building</li><li>Tested</li><li>Shipped</li></ol>
 <div data-sg-list>${listHtml()}</div></section></div>`;
 }
 
 function paint(){const root=document.querySelector('.sg-grid');if(!root)return;const focus=document.activeElement?.dataset?.sgField,pos=document.activeElement?.selectionStart;root.outerHTML=suggestView();if(focus){const el=document.querySelector(`[data-sg-field="${focus}"]`);el?.focus();try{el.setSelectionRange(pos,pos);}catch{}}}
-function paintList(){const el=document.querySelector('[data-sg-list]');if(el)el.innerHTML=listHtml();}
+function paintList(){const el=document.querySelector('[data-sg-list]'),count=document.querySelector('[data-sg-count]');if(el)el.innerHTML=listHtml();if(count)count.textContent=`(${list.items.length})`;}
 
 export async function loadRequests(force=false){
  if(testing)return;

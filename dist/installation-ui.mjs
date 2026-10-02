@@ -1,4 +1,4 @@
-import {PORT_TYPES,RESOURCE_LABELS,ensureInstallation,makeBox,makeInstance,addBoxFromTemplate,saveBoxTemplate,updateBoxFromTemplate,connectionWarnings,boxCapacity,projectCapacity,billOfMaterials,componentPlacement,componentSearch,deleteRoute} from './installation-model.mjs?v=0.7.0';
+import {PORT_TYPES,RESOURCE_LABELS,ensureInstallation,makeBox,makeInstance,addBoxFromTemplate,saveBoxTemplate,updateBoxFromTemplate,connectionWarnings,boxCapacity,projectCapacity,billOfMaterials,componentPlacement,componentSearch,deleteRoute} from './installation-model.mjs?v=0.8.0';
 
 let api,boxId='',partId='',wireFrom=null,drag=null,bomScope='';
 const E=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
