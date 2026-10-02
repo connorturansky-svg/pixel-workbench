@@ -341,6 +341,7 @@ export function makeBox(name = 'Controller box') {
     description: '',
     templateRef: null,
     components: [],
+    interfacePorts: [],
     width: 4,
     height: 2.5,
     physicalWidthMm: 400,
@@ -440,6 +441,22 @@ export function migrateInfrastructure(p, lib) {
   return !!keys.length;
 }
 export function exposedPorts(box) {
+  if (box.interfacePorts?.length)
+    return box.interfacePorts
+      .filter(x => x.visible && x.componentId && x.portId)
+      .map(x => {
+        const component = box.components.find(c => c.id === x.componentId),
+          source = component?.snapshot.ports.find(port => port.id === x.portId);
+        return component && source
+          ? { component, port: { ...source, label: x.label || source.label }, edge: x.edge }
+          : null;
+      })
+      .filter(Boolean)
+      .map((entry, _, all) => {
+        const same = all.filter(x => x.edge === entry.edge),
+          i = same.indexOf(entry);
+        return { ...entry, t: (i + 1) / (same.length + 1) };
+      });
   const entries = box.components.flatMap(c => c.snapshot.ports.map(port => ({ component: c, port })));
   const groups = { top: [], right: [], bottom: [], left: [] };
   let pixelIndex = 0;
@@ -489,6 +506,14 @@ export function addBoxFromTemplate(p, t) {
   box.physicalDepthMm = t.physicalDepthMm || box.physicalDepthMm;
   box.templateRef = { id: t.id, version: t.version };
   box.components = t.components.map(c => ({ ...copy(c), id: 'part-' + id(), sourceKey: '' }));
+  if (Array.isArray(t.interfacePorts)) {
+    const componentIds = new Map(t.components.map((c, i) => [c.id, box.components[i].id]));
+    box.interfacePorts = copy(t.interfacePorts).map(x => ({
+      ...x,
+      id: 'interface-' + id(),
+      componentId: componentIds.get(x.componentId) || ''
+    }));
+  }
   p.installation.boxes.push(box);
   return box;
 }
@@ -501,6 +526,7 @@ export function saveBoxTemplate(lib, box) {
     existing.physicalWidthMm = box.physicalWidthMm;
     existing.physicalDepthMm = box.physicalDepthMm;
     existing.components = copy(box.components).map(c => ({ ...c, sourceKey: '' }));
+    existing.interfacePorts = copy(box.interfacePorts || []);
     box.templateRef = { id: existing.id, version: existing.version };
     return existing;
   }
@@ -511,7 +537,8 @@ export function saveBoxTemplate(lib, box) {
     description: box.description,
     physicalWidthMm: box.physicalWidthMm,
     physicalDepthMm: box.physicalDepthMm,
-    components: copy(box.components).map(c => ({ ...c, sourceKey: '' }))
+    components: copy(box.components).map(c => ({ ...c, sourceKey: '' })),
+    interfacePorts: copy(box.interfacePorts || [])
   };
   lib.boxTemplates.push(t);
   box.templateRef = { id: t.id, version: t.version };
@@ -522,7 +549,15 @@ export function updateBoxFromTemplate(box, t) {
   box.description = t.description;
   box.physicalWidthMm = t.physicalWidthMm || box.physicalWidthMm;
   box.physicalDepthMm = t.physicalDepthMm || box.physicalDepthMm;
-  box.components = copy(t.components).map(c => ({ ...c, id: 'part-' + id(), sourceKey: '' }));
+  const oldComponents = t.components,
+    components = copy(oldComponents).map(c => ({ ...c, id: 'part-' + id(), sourceKey: '' })),
+    componentIds = new Map(oldComponents.map((c, i) => [c.id, components[i].id]));
+  box.components = components;
+  box.interfacePorts = copy(t.interfacePorts || []).map(x => ({
+    ...x,
+    id: 'interface-' + id(),
+    componentId: componentIds.get(x.componentId) || ''
+  }));
   box.templateRef = { id: t.id, version: t.version };
 }
 export function routeSpecs(p) {
@@ -1125,6 +1160,21 @@ export function validateInstallation(p) {
       !num(b.height, 0.1, 50) ||
       (b.physicalWidthMm != null && !num(b.physicalWidthMm, 20, 10000)) ||
       (b.physicalDepthMm != null && !num(b.physicalDepthMm, 20, 10000))
+    )
+      fail();
+    if (
+      b.interfacePorts != null &&
+      (!Array.isArray(b.interfacePorts) ||
+        b.interfacePorts.length > 200 ||
+        b.interfacePorts.some(
+          port =>
+            !key(port.id) ||
+            !txt(port.label) ||
+            !['top', 'right', 'bottom', 'left'].includes(port.edge) ||
+            typeof port.visible !== 'boolean' ||
+            (port.componentId && !key(port.componentId)) ||
+            (port.portId && !key(port.portId))
+        ))
     )
       fail();
     for (const c of b.components)

@@ -1,5 +1,5 @@
-import { tailoredInitial, validateProject } from './model.mjs?v=0.29.0';
-import { ensureScene } from './layout-model.mjs?v=0.29.0';
+import { tailoredInitial, validateProject } from './model.mjs?v=0.30.0';
+import { ensureScene } from './layout-model.mjs?v=0.30.0';
 import {
   addFieldDevice,
   addInfrastructure,
@@ -9,7 +9,7 @@ import {
   makeInstance,
   routeRecord,
   saveBoxTemplate
-} from './installation-model.mjs?v=0.29.0';
+} from './installation-model.mjs?v=0.30.0';
 
 export function createDemoProject(library) {
   const p = tailoredInitial();
