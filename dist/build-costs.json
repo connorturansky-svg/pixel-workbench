@@ -54,6 +54,7 @@
   {"issue":39,"version":"0.60.0","title":"layout inspector should scroll","outcome":"shipped","at":"2026-10-02T18:06:11Z","runs":1,"model":"gpt-5.6-sol","credits":36.08,"tokensIn":186600,"tokensCached":154800,"tokensOut":7000,"seconds":97},
   {"issue":36,"version":"0.61.0","title":"schematic view is still not clear","outcome":"shipped","at":"2026-10-02T18:16:02Z","runs":1,"model":"gpt-5.6-sol","credits":44.85,"tokensIn":354800,"tokensCached":321700,"tokensOut":7700,"seconds":130},
   {"issue":40,"version":"0.62.0","title":"Room layout delete components","outcome":"shipped","at":"2026-10-02T18:20:59Z","runs":1,"model":"gpt-5.6-sol","credits":62.64,"tokensIn":481900,"tokensCached":426400,"tokensOut":8900,"seconds":137},
-  {"issue":41,"version":"0.63.0","title":"wire connections","outcome":"shipped","at":"2026-10-02T18:25:54Z","runs":1,"model":"gpt-5.6-sol","credits":65.01,"tokensIn":543000,"tokensCached":490200,"tokensOut":9500,"seconds":132}
+  {"issue":41,"version":"0.63.0","title":"wire connections","outcome":"shipped","at":"2026-10-02T18:25:54Z","runs":1,"model":"gpt-5.6-sol","credits":65.01,"tokensIn":543000,"tokensCached":490200,"tokensOut":9500,"seconds":132},
+  {"issue":36,"version":"0.64.0","title":"schematic view is still not clear","outcome":"shipped","at":"2026-10-02T18:31:21Z","runs":1,"model":"gpt-5.6-sol","credits":40.63,"tokensIn":288300,"tokensCached":251600,"tokensOut":6100,"seconds":104}
  ]
 }

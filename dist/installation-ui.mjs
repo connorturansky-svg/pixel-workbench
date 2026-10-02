@@ -1,5 +1,6 @@
 import {
   PORT_TYPES,
+  SCHEMATIC_LAYOUT_VERSION,
   BUTTON_COLOURS,
   RESOURCE_LABELS,
   ensureInstallation,
@@ -21,7 +22,7 @@ import {
   componentSizeGuides,
   deleteRoute,
   portTypeColour
-} from './installation-model.mjs?v=0.63.0';
+} from './installation-model.mjs?v=0.64.0';
 
 const SCHEMATIC_MIN_WIDTH = 1400,
   SCHEMATIC_MIN_HEIGHT = 700;
@@ -581,7 +582,7 @@ function autoLayout(box, project) {
       const width = stage.clientWidth,
         height = stage.clientHeight,
         margin = 24;
-      api.transact(() =>
+      api.transact(() => {
         groups.forEach((group, column) => {
           const heights = group.map(c => elements.get(c.id)?.offsetHeight || 180),
             total = heights.reduce((sum, value) => sum + value, 0) + Math.max(0, group.length - 1) * 32;
@@ -596,8 +597,9 @@ function autoLayout(box, project) {
             c.y = +((y / height) * 100).toFixed(1);
             y += heights[row] + 32;
           });
-        })
-      );
+        });
+        box.schematicLayoutVersion = SCHEMATIC_LAYOUT_VERSION;
+      });
     });
   });
 }
@@ -725,6 +727,10 @@ function separateSchematicParts(stage, parts, box) {
   if (boxMode !== 'schematic' || parts.length < 2 || !box || normalizedSchematicBoxes.has(box.id))
     return false;
   normalizedSchematicBoxes.add(box.id);
+  if (box.schematicLayoutVersion !== SCHEMATIC_LAYOUT_VERSION) {
+    autoLayout(box, api.getProject());
+    return true;
+  }
   const stageRect = stage.getBoundingClientRect(),
     placed = [],
     moved = [];

@@ -1,5 +1,6 @@
 // Physical installation planning. Definitions live in the device-local library;
 // projects retain snapshots so later library edits never rewrite old plans.
+export const SCHEMATIC_LAYOUT_VERSION = 1;
 export const PORT_TYPES = [
   'pixel_data',
   'pixel_output',
@@ -569,6 +570,7 @@ export function makeBox(name = 'Controller box') {
     name,
     description: '',
     templateRef: null,
+    schematicLayoutVersion: SCHEMATIC_LAYOUT_VERSION,
     components: [],
     interfacePorts: [],
     width: 0.4,
