@@ -1,6 +1,6 @@
-import { ensureScene } from './layout-model.mjs?v=0.53.0';
-import { roomView, propsView, installRoom } from './room.js?v=0.53.0';
-import { wiringGraph, installGraph, drawGraph } from './wiring-graph.mjs?v=0.53.0';
+import { ensureScene } from './layout-model.mjs?v=0.54.0';
+import { roomView, propsView, installRoom } from './room.js?v=0.54.0';
+import { wiringGraph, installGraph, drawGraph } from './wiring-graph.mjs?v=0.54.0';
 import {
   defaultLibrary,
   ensureLibrary,
@@ -13,7 +13,7 @@ import {
   routeSpecs,
   routeGeometry,
   routeIssues
-} from './installation-model.mjs?v=0.53.0';
+} from './installation-model.mjs?v=0.54.0';
 import {
   boxBuilderView,
   standardsView,
@@ -22,11 +22,11 @@ import {
   drawBoxConnections,
   openBox,
   physicalIssues
-} from './installation-ui.mjs?v=0.53.0';
-import { APP_VERSION } from './version.mjs?v=0.53.0';
-import { installInfo } from './info.mjs?v=0.53.0';
-import { suggestView, installSuggest, afterSuggestRender, bellHtml } from './suggest.mjs?v=0.53.0';
-import { createDemoProject } from './demo-project.mjs?v=0.53.0';
+} from './installation-ui.mjs?v=0.54.0';
+import { APP_VERSION } from './version.mjs?v=0.54.0';
+import { installInfo } from './info.mjs?v=0.54.0';
+import { suggestView, installSuggest, afterSuggestRender, bellHtml } from './suggest.mjs?v=0.54.0';
+import { createDemoProject } from './demo-project.mjs?v=0.54.0';
 import {
   tailoredInitial,
   calculate,
@@ -37,7 +37,7 @@ import {
   PSU_MODELS,
   newSegment,
   uid
-} from './model.mjs?v=0.53.0';
+} from './model.mjs?v=0.54.0';
 const testing = new URLSearchParams(location.search).has('test');
 let project = tailoredInitial(),
   view = 'room',
@@ -164,6 +164,7 @@ function notifications(r) {
 }
 function render() {
   const migrated = migrateInfrastructure(project, library);
+  const linkedControllers = linkBoxControllers();
   ensureScene(project);
   const r = calculate(project);
   if (!project.chains.some(c => c.id === selected)) selected = project.chains[0]?.id;
@@ -185,7 +186,7 @@ function render() {
   if (view === 'visual' && page === 'workspace') requestAnimationFrame(drawGraph);
   if (page === 'boxes') requestAnimationFrame(drawBoxConnections);
   if (page === 'suggest') afterSuggestRender();
-  if (migrated) save();
+  if (migrated || linkedControllers) save();
 }
 function checks(r) {
   return `<details class="checks panel" open><summary class="checks-title"><h3>Plan checks <span>${r.warnings.length}</span></h3><small>Includes 100% white checks</small></summary><div class="scroll-list">${r.warnings.map(w => `<div class="check"><span class="check-icon ${w.level}">${w.level === 'info' ? 'i' : '!'}</span><div><strong>${esc(w.title)}</strong><p>${esc(w.detail)}</p></div>${w.chain ? btn('View', 'select:' + w.chain, 'text-btn') : ''}</div>`).join('') || '<p class="empty">No calculated limits exceeded. Verify the assumptions before building.</p>'}</div></details>`;
@@ -443,6 +444,33 @@ function allocatePowerTerminals(count) {
     result.push(pair);
   }
   return result;
+}
+function linkBoxControllers() {
+  let linked = 0;
+  const models = { Baldrick8: 'b8', Baldrick17: 'b17' };
+  for (const box of project.installation?.boxes || [])
+    for (const part of box.components) {
+      const model = !part.sourceKey && models[part.snapshot.name];
+      if (!model) continue;
+      const board = BOARDS[model],
+        terminals = allocatePowerTerminals(board.banks),
+        id = uid();
+      project.controllers.push({
+        id,
+        model,
+        name: part.subname || `${part.snapshot.name} · ${box.name}`,
+        host: '',
+        bankPsus: terminals.map(x => x[0]),
+        bankPsuPorts: terminals.map(x => x[1]),
+        bankLimits: Array(board.banks).fill(0),
+        bankM: Array(board.banks).fill(0.5),
+        bankAwg: Array(board.banks).fill(10),
+        io: ['', '', '']
+      });
+      part.sourceKey = 'controller:' + id;
+      linked++;
+    }
+  return linked;
 }
 function addChain(controllerId, port) {
   const c =
