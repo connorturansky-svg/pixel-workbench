@@ -14,7 +14,7 @@ import {
   componentPlacement,
   componentSearch,
   deleteRoute
-} from './installation-model.mjs?v=0.27.0';
+} from './installation-model.mjs?v=0.28.0';
 
 let api,
   boxId = '',
@@ -120,6 +120,46 @@ const physicalPart = (c, box) => {
           : 'generic';
   return `<button type="button" class="physical-part ${kind} ${c.id === partId ? 'selected' : ''} ${s.known ? '' : 'unknown'}" data-box-part="${E(c.id)}" style="left:${c.x}%;top:${c.y}%;width:${w}%;height:${h}%;z-index:${1 + (c.stackLevel || 0)}" aria-label="${E(c.snapshot.name)}${c.subname ? `, ${E(c.subname)}` : ''}, ${s.known ? `${s.w} by ${s.h} millimetres` : 'size needed'}"><span class="physical-mark">${kind === 'psu' ? '<i class="fan"></i>' : kind === 'board' ? '<i class="pcb"></i>' : E(c.snapshot.icon)}</span><strong>${E(c.snapshot.name)}</strong>${c.subname ? `<small class="part-subname">(${E(c.subname)})</small>` : ''}<small>${s.known ? `${s.w} × ${s.h} mm · layer ${(c.stackLevel || 0) + 1}` : '? size needed'}</small></button>`;
 };
+const visualKind = c => {
+  if (c.snapshot.category === 'Power') return 'power';
+  if (['Network', 'Computer'].includes(c.snapshot.category)) return 'network';
+  if (['Audio', 'Relay board'].includes(c.snapshot.category)) return 'module';
+  if (
+    c.snapshot.name.startsWith('Baldrick') ||
+    ['Controller', 'Input board', 'DMX', 'Signal board'].includes(c.snapshot.category)
+  )
+    return 'board';
+  return 'generic';
+};
+const portKind = type => {
+  if (type.includes('power')) return 'power';
+  if (type === 'pixel_output' || type === 'pixel_data') return 'pixel';
+  if (type === 'ethernet') return 'ethernet';
+  if (type === 'usb') return 'usb';
+  if (type === 'audio') return 'audio';
+  if (type === 'dmx') return 'dmx';
+  if (type.includes('input') || type === 'gpio') return 'input';
+  return 'generic';
+};
+const hardwareDetail = kind =>
+  kind === 'power'
+    ? '<i class="hardware-fan"></i><i class="hardware-vent"></i>'
+    : kind === 'network'
+      ? '<i class="hardware-socket"></i><i class="hardware-chip"></i>'
+      : kind === 'module'
+        ? '<i class="hardware-coil"></i><i class="hardware-chip"></i>'
+        : '<i class="hardware-chip"></i><i class="hardware-capacitor"></i>';
+const schematicPart = c => {
+  const kind = visualKind(c);
+  return `<div class="box-part ${kind} ${c.id === partId ? 'selected' : ''}" data-box-part="${E(c.id)}" style="left:${c.x}%;top:${c.y}%;--part-color:${E(c.snapshot.color || '#4b8a76')}"><div class="part-title"><span>${E(c.snapshot.icon)}</span><strong>${E(c.snapshot.name)}</strong></div><div class="hardware-face"><i class="mount-hole top-left"></i><i class="mount-hole top-right"></i><i class="mount-hole bottom-left"></i><i class="mount-hole bottom-right"></i><div class="hardware-silk"><strong>${E(c.snapshot.name)}</strong><small>${E(c.snapshot.model || c.snapshot.category)}</small></div><div class="hardware-detail" aria-hidden="true">${hardwareDetail(kind)}</div><div class="part-ports">${c.snapshot.ports
+    .map(
+      port =>
+        `<button type="button" class="part-port ${port.direction} ${portKind(port.type)}" draggable="true" data-box-port="${E(c.id)}:${E(port.id)}" title="${E(port.label)} · ${E(port.type)} · ${E(port.direction)}" aria-label="${E(port.label)}, ${E(port.type)}, ${E(port.direction)}"><i><b></b></i><span>${E(port.label)}<small>${E(port.type.replaceAll('_', ' '))}</small></span></button>`
+    )
+    .join(
+      ''
+    )}</div></div>${c.subname ? `<small class="part-subname">(${E(c.subname)})</small>` : ''}<small>${E(c.sourceKey || c.snapshot.category)}</small></div>`;
+};
 export function boxesView(p, lib) {
   const box = current(p),
     cap = projectCapacity(p),
@@ -153,7 +193,7 @@ export function boxesView(p, lib) {
                 .filter(x => x.type !== 'size')
                 .map(x => `<p class="layout-warning">⚠ ${E(x.text)}</p>`)
                 .join('')}`
-            : `<div class="box-stage" id="box-stage"><svg id="box-wires" aria-hidden="true"></svg>${box.components.map(c => `<div class="box-part ${c.id === partId ? 'selected' : ''}" data-box-part="${E(c.id)}" style="left:${c.x}%;top:${c.y}%;border-color:${E(c.snapshot.color || '#4b8a76')}"><div class="part-title"><span>${E(c.snapshot.icon)}</span><strong>${E(c.snapshot.name)}</strong></div>${c.subname ? `<small class="part-subname">(${E(c.subname)})</small>` : ''}<small>${E(c.sourceKey || c.snapshot.category)}</small><div class="part-ports">${c.snapshot.ports.map(port => `<button type="button" class="part-port ${port.direction}" draggable="true" data-box-port="${E(c.id)}:${E(port.id)}" title="${E(port.type)} · ${E(port.direction)}"><i></i>${E(port.label)}</button>`).join('')}</div></div>`).join('')}</div><div class="external-targets"><strong>Room route targets</strong><p>Choose an internal port, then click or drag it to a target.</p><div>${[...p.chains.flatMap(ch => ch.segments.map(v => ['segment:' + v.id, ch.name + ' · ' + v.kind])), ...p.installation.fieldDevices.map(v => ['field:' + v.id, v.name + ' · field'])].map(([key, label]) => `<button type="button" data-box-target="${E(key)}">${E(label)}</button>`).join('')}</div></div><div class="box-wire-help">Click a source port, then a destination port to connect them. Any pairing can be planned; unusual types show a warning.</div>`
+            : `<div class="box-stage" id="box-stage"><svg id="box-wires" aria-hidden="true"></svg>${box.components.map(schematicPart).join('')}</div><div class="external-targets"><strong>Room route targets</strong><p>Choose an internal port, then click or drag it to a target.</p><div>${[...p.chains.flatMap(ch => ch.segments.map(v => ['segment:' + v.id, ch.name + ' · ' + v.kind])), ...p.installation.fieldDevices.map(v => ['field:' + v.id, v.name + ' · field'])].map(([key, label]) => `<button type="button" data-box-target="${E(key)}">${E(label)}</button>`).join('')}</div></div><div class="box-wire-help">Each illustrated connector is an exact hardware port. Click a source port, then a destination port to connect them. Any pairing can be planned; unusual types show a warning.</div>`
         }<h3>Connections</h3>${
           p.installation.connections
             .filter(x => x.boxId === box.id)
@@ -327,17 +367,15 @@ export function installInstallation(a) {
           return;
         }
         api.transact(() =>
-          api
-            .getProject()
-            .installation.connections.push({
-              id: 'link-' + Math.random().toString(36).slice(2, 10),
-              boxId: box.id,
-              fromComponent: from.component,
-              fromPort: from.id,
-              toComponent: component,
-              toPort: id,
-              acknowledged: false
-            })
+          api.getProject().installation.connections.push({
+            id: 'link-' + Math.random().toString(36).slice(2, 10),
+            boxId: box.id,
+            fromComponent: from.component,
+            fromPort: from.id,
+            toComponent: component,
+            toPort: id,
+            acknowledged: false
+          })
         );
       }
       e.stopPropagation();
@@ -722,17 +760,15 @@ export function installInstallation(a) {
       wireFrom = null;
       if (from.component !== toComponent || from.id !== toPort)
         api.transact(() =>
-          api
-            .getProject()
-            .installation.connections.push({
-              id: 'link-' + Math.random().toString(36).slice(2, 10),
-              boxId: box.id,
-              fromComponent: from.component,
-              fromPort: from.id,
-              toComponent,
-              toPort,
-              acknowledged: false
-            })
+          api.getProject().installation.connections.push({
+            id: 'link-' + Math.random().toString(36).slice(2, 10),
+            boxId: box.id,
+            fromComponent: from.component,
+            fromPort: from.id,
+            toComponent,
+            toPort,
+            acknowledged: false
+          })
         );
     }
   });

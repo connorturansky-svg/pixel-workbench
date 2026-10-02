@@ -133,10 +133,10 @@
 .box-part {
   position: absolute;
   z-index: 1;
-  min-width: 125px;
-  max-width: 185px;
+  width: 230px;
+  max-width: 42%;
   background: white;
-  border: 2px solid;
+  border: 2px solid var(--part-color, #4b8a76);
   border-radius: 7px;
   box-shadow: 0 4px 12px #12382425;
   user-select: none;
@@ -152,7 +152,7 @@
   gap: 6px;
   align-items: center;
   cursor: grab;
-  background: #edf5f0;
+  background: color-mix(in srgb, var(--part-color, #4b8a76) 13%, white);
   font-size: 12px;
 }
 .part-title:active {
@@ -170,35 +170,204 @@
   color: #365f4a;
   font-weight: 600;
 }
+.hardware-face {
+  position: relative;
+  margin: 6px;
+  padding: 27px 8px 8px;
+  border: 1px solid #285f4b;
+  border-radius: 5px;
+  background:
+    linear-gradient(28deg, transparent 48%, #b9dfc329 49% 51%, transparent 52%) 0 0 / 35px 28px,
+    #397e61;
+  box-shadow: inset 0 0 0 2px #8dc0a250;
+}
+.box-part.power .hardware-face {
+  border-color: #8c989a;
+  background: repeating-linear-gradient(90deg, #d8dcdb 0 5px, #c0c7c5 5px 7px);
+}
+.box-part.network .hardware-face {
+  background-color: #47759a;
+}
+.box-part.module .hardware-face {
+  background-color: #826947;
+}
+.box-part.generic .hardware-face {
+  background-color: #697c72;
+}
+.hardware-silk {
+  position: absolute;
+  left: 22px;
+  top: 6px;
+  right: 22px;
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  color: white;
+  font-size: 8px;
+  line-height: 1.2;
+}
+.hardware-silk small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mount-hole {
+  position: absolute;
+  z-index: 2;
+  width: 7px;
+  height: 7px;
+  border: 2px solid #cad6ce;
+  border-radius: 50%;
+  background: #405049;
+}
+.mount-hole.top-left {
+  left: 5px;
+  top: 5px;
+}
+.mount-hole.top-right {
+  right: 5px;
+  top: 5px;
+}
+.mount-hole.bottom-left {
+  left: 5px;
+  bottom: 5px;
+}
+.mount-hole.bottom-right {
+  right: 5px;
+  bottom: 5px;
+}
+.hardware-detail {
+  height: 25px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 9px;
+}
+.hardware-chip {
+  display: block;
+  width: 35px;
+  height: 16px;
+  border: 2px solid #c6c2a4;
+  background: repeating-linear-gradient(90deg, #272c2b 0 5px, #a7a179 5px 7px);
+  box-shadow: inset 0 0 0 5px #252928;
+}
+.hardware-capacitor,
+.hardware-coil {
+  width: 12px;
+  height: 17px;
+  border-radius: 4px;
+  background: #273c50;
+  box-shadow: inset 3px 0 #8ca3ad;
+}
+.hardware-coil {
+  width: 24px;
+  background: repeating-linear-gradient(90deg, #8a5b29 0 3px, #d29851 3px 5px);
+}
+.hardware-fan {
+  width: 22px;
+  height: 22px;
+  border: 4px double #697375;
+  border-radius: 50%;
+  background: radial-gradient(circle, #566164 0 3px, transparent 4px);
+}
+.hardware-vent {
+  width: 58px;
+  height: 18px;
+  background: repeating-linear-gradient(90deg, #697375 0 3px, transparent 3px 7px);
+}
+.hardware-socket {
+  width: 27px;
+  height: 20px;
+  border: 2px solid #d8d5c6;
+  background: repeating-linear-gradient(90deg, #273d46 0 4px, #c5a84c 4px 6px);
+}
 .part-ports {
-  padding: 5px;
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 4px;
 }
 .part-port {
   display: flex;
-  gap: 5px;
+  gap: 4px;
   align-items: center;
   text-align: left;
-  border: 0;
+  min-width: 0;
+  border: 1px solid #c5d0c8;
+  border-radius: 3px;
   background: #f4f8f5;
-  padding: 3px 5px;
-  color: #3d6152;
-  font-size: 10px;
+  padding: 2px 3px;
+  color: #254c3c;
+  font-size: 9px;
+  line-height: 1.1;
   cursor: crosshair;
 }
 .part-port i {
-  height: 8px;
-  width: 8px;
-  border-radius: 50%;
-  background: #d48543;
+  position: relative;
+  width: 12px;
+  height: 10px;
+  border: 2px solid #da914e;
+  border-radius: 2px;
+  background: #303a36;
   flex: none;
 }
+.part-port i::before,
+.part-port i::after,
+.part-port i b {
+  content: '';
+  position: absolute;
+  top: 2px;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: #f0d77c;
+}
+.part-port i::before {
+  left: 1px;
+}
+.part-port i b {
+  left: 4px;
+}
+.part-port i::after {
+  right: 1px;
+}
 .part-port.in i {
-  background: #468cac;
+  border-color: #62a7c6;
+}
+.part-port.power i {
+  border-color: #d96a54;
+}
+.part-port.pixel i {
+  border-color: #d99b42;
+}
+.part-port.ethernet i {
+  border-color: #9eb6bc;
+  background: #45575c;
+}
+.part-port.usb i {
+  border-color: #d2d2cd;
+}
+.part-port.audio i,
+.part-port.dmx i {
+  border-radius: 50%;
+  border-color: #9b83bd;
+}
+.part-port > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.part-port small {
+  display: block;
+  overflow: hidden;
+  color: #617b6d;
+  font-size: 7px;
+  text-overflow: ellipsis;
 }
 .part-port.wire-start {
   background: #ffe9bb;
+  outline: 2px solid #d9982d;
+  outline-offset: 1px;
 }
 .box-wire-help {
   font-size: 12px;

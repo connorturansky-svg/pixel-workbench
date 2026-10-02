@@ -1,6 +1,13 @@
 // Every change: bump APP_VERSION, add a CHANGELOG entry at the top (date DD/MM/YYYY), and review HOW_TO_USE, ARCHITECTURE_NOTES / the info.mjs diagram and SHORTCUTS.
-export const APP_VERSION = '0.27.0';
+export const APP_VERSION = '0.28.0';
 export const CHANGELOG = [
+  {
+    version: '0.28.0',
+    date: '02/10/2026',
+    items: [
+      'Controller-box schematics now show each component as a basic top-down hardware illustration, with every named port drawn as a colour-coded connector that remains directly wireable. (follow-up to #12)'
+    ]
+  },
   {
     version: '0.27.0',
     date: '02/10/2026',
@@ -271,7 +278,7 @@ export const HOW_TO_USE = [
   ],
   [
     'Build controller boxes',
-    'Create a box and arrange components in Schematic, choosing reusable hardware such as controllers, PSUs and step-down transformers from the library. Expand Box details to apply a reusable enclosure size in centimetres; it collapses when you select a component so that component’s controls take priority. Edit Small, Medium, Large or custom sizes in Standards. Give a placed component an optional subname, such as “12 V feed”; it appears beneath the hardware name. Switch to Physical layout for a scale enclosure plan. Use the bell to answer missing-size tickets; confirmed measurements are reused from the device library. Rotate parts, use stacking layers for intentional overlap and resolve enclosure-bound or same-layer overlap warnings. Return to Schematic to connect typed ports and room targets.'
+    'Create a box and arrange components in Schematic, choosing reusable hardware such as controllers, PSUs and step-down transformers from the library. Each component has a basic top-down illustration with named, colour-coded connectors; select or drag an exact connector to wire it. Expand Box details to apply a reusable enclosure size in centimetres; it collapses when you select a component so that component’s controls take priority. Edit Small, Medium, Large or custom sizes in Standards. Give a placed component an optional subname, such as “12 V feed”; it appears beneath the hardware name. Switch to Physical layout for a scale enclosure plan. Use the bell to answer missing-size tickets; confirmed measurements are reused from the device library. Rotate parts, use stacking layers for intentional overlap and resolve enclosure-bound or same-layer overlap warnings. Return to Schematic to connect typed ports and room targets.'
   ],
   [
     'Review and pack',
@@ -349,7 +356,7 @@ export const SHORTCUTS = [
 ];
 export const ARCHITECTURE_NOTES = [
   'A static, no-build web app: plain ES modules, HTML and CSS served from dist/. Pushing to main publishes dist/ to GitHub Pages through the Actions workflow.',
-  'app.js holds the project state and re-renders the whole interface from it. Every view (wiring, room, boxes, standards, BOM, guide) reads the same project, so changes appear in every view. room.js keeps the room camera zoom and pan while the layout is open. Controller-box instances retain their optional subnames, schematic positions, rotation and stacking layers; enclosure sizes and physical component dimensions are reusable device-library standards.',
+  'app.js holds the project state and re-renders the whole interface from it. Every view (wiring, room, boxes, standards, BOM, guide) reads the same project, so changes appear in every view. room.js keeps the room camera zoom and pan while the layout is open. installation-ui.mjs derives top-down component illustrations and connector styles from each component snapshot; controller-box instances retain their optional subnames, exact ports, schematic positions, rotation and stacking layers. Enclosure sizes and physical component dimensions are reusable device-library standards.',
   'Calculation and data modules (model, layout-model, installation-model) are UI-free. installation-model also finds live octilinear cable paths around room objects while routes have no manual pivots. verify.mjs and verify-installation.mjs exercise them under Node.',
   'Data never leaves the browser. The project and standards library are stored in localStorage. JSON export/import is the backup path, and ?test=1 runs an isolated session that does not save.',
   'Suggest a feature (suggest.mjs) files a [Feature] GitHub issue, titled with its number and the requester’s title, in the background under the requester’s own account, using a token they connect once (stored in this browser, sent only to api.github.com). Screenshots are uploaded to the repo’s feature-assets branch, which is never deployed. It reads request status from the public GitHub issues API and maps shipped requests to versions from builder commit titles (vX.Y.Z: … (#n)); It also reads build-costs.json from the site itself for the AI cost figures, and usage.json from the feature-assets branch for the daily allowance meter. It reads the builder’s latest issue comment and posts the requester’s replies and follow-ups as issue comments; a top-bar bell counts the requester’s requests that need a reply. Together these are the only network calls the app makes. Only allowlisted authors (ALLOWED_AUTHORS) are listed.',
