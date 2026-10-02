@@ -1,6 +1,13 @@
 // Every change: bump APP_VERSION, add a CHANGELOG entry at the top (date DD/MM/YYYY), and review HOW_TO_USE, ARCHITECTURE_NOTES / the info.mjs diagram and SHORTCUTS.
-export const APP_VERSION = '0.34.0';
+export const APP_VERSION = '0.35.0';
 export const CHANGELOG = [
+  {
+    version: '0.35.0',
+    date: '02/10/2026',
+    items: [
+      'The Wiring workspace now shows a glowing live wire while dragging, highlights connected wires and terminals on hover, and illustrates supplies, distribution, controllers and lights with breadboard-style component faces. (suggested in #21)'
+    ]
+  },
   {
     version: '0.34.0',
     date: '02/10/2026',
@@ -308,7 +315,7 @@ export const HOW_TO_USE = [
   ],
   [
     'Wire the system',
-    'Drag between terminals in Visual. Use Split / inject here for a separately fed section. Review capacity and voltage warnings before building.'
+    'Drag between the illustrated component terminals in Visual and follow the glowing wire to its destination. Hover a completed wire or terminal to highlight both ends. Use Split / inject here for a separately fed section. Review capacity and voltage warnings before building.'
   ],
   [
     'Lay out the room',
@@ -398,7 +405,7 @@ export const SHORTCUTS = [
 ];
 export const ARCHITECTURE_NOTES = [
   'A static, no-build web app: plain ES modules, HTML and CSS served from dist/. Pushing to main publishes dist/ to GitHub Pages through the Actions workflow.',
-  'app.js holds the project state, re-renders the whole interface and derives the global categorized notification strip from shared calculation and layout checks. Every view (wiring, room, boxes, standards, BOM, guide) reads the same project, so changes appear in every view. room.js keeps the room camera zoom and pan while the layout is open. installation-ui.mjs derives top-down component illustrations, connector states, explicit room-visible enclosure ports, a zoomable auto-layout schematic and obstacle-aware wire paths from each component snapshot; installation-model.mjs supplies the named real-world connector catalog for Baldrick boards and common component-size guides. Controller-box instances retain their optional subnames, exact ports, schematic positions, rotation and stacking layers. Enclosure sizes and physical component dimensions are reusable device-library standards.',
+  'app.js holds the project state, re-renders the whole interface and derives the global categorized notification strip from shared calculation and layout checks. Every view (wiring, room, boxes, standards, BOM, guide) reads the same project, so changes appear in every view. wiring-graph.mjs renders breadboard-style component faces, live drag wires and connected endpoint highlighting. room.js keeps the room camera zoom and pan while the layout is open. installation-ui.mjs derives top-down component illustrations, connector states, explicit room-visible enclosure ports, a zoomable auto-layout schematic and obstacle-aware wire paths from each component snapshot; installation-model.mjs supplies the named real-world connector catalog for Baldrick boards and common component-size guides. Controller-box instances retain their optional subnames, exact ports, schematic positions, rotation and stacking layers. Enclosure sizes and physical component dimensions are reusable device-library standards.',
   'Calculation and data modules (model, layout-model, installation-model) are UI-free. installation-model also finds live octilinear cable paths around room objects while routes have no manual pivots. verify.mjs and verify-installation.mjs exercise them under Node.',
   'Data never leaves the browser. The project and standards library are stored in localStorage. JSON export/import is the backup path, and ?test=1 runs an isolated session that does not save.',
   'Suggest a feature (suggest.mjs) files a [Feature] GitHub issue, titled with its number and the requester’s title, in the background under the requester’s own account, using a token they connect once (stored in this browser, sent only to api.github.com). Screenshots are uploaded to the repo’s feature-assets branch, which is never deployed. It reads request status from the public GitHub issues API and maps shipped requests to versions from builder commit titles (vX.Y.Z: … (#n)); It also reads build-costs.json from the site itself for the AI cost figures, and usage.json from the feature-assets branch for the daily allowance meter. It reads the builder’s latest issue comment and posts the requester’s replies and follow-ups as issue comments; a top-bar bell counts the requester’s requests that need a reply. Together these are the only network calls the app makes. Only allowlisted authors (ALLOWED_AUTHORS) are listed.',

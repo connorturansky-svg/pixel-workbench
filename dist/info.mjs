@@ -6,7 +6,7 @@ import {
   SHORTCUTS,
   ARCHITECTURE_NOTES,
   SUGGEST_GUIDE
-} from './version.mjs?v=0.34.0';
+} from './version.mjs?v=0.35.0';
 
 const E = s =>
   String(s ?? '').replace(
@@ -39,7 +39,7 @@ ${box(300, 100, 220, 44, 'index.html', 'loads CSS + app.js module', '')}
 ${box(300, 170, 220, 48, 'app.js', 'state, notifications & pages', 'core')}
 ${line(410, 144, 410, 168)}
 ${box(30, 250, 170, 48, 'model.mjs', 'pixels, power, wire drop', 'calc')}
-${box(215, 250, 190, 48, 'wiring-graph.mjs', 'visual terminal wiring', 'ui')}
+${box(215, 250, 190, 48, 'wiring-graph.mjs', 'illustrated drag wiring', 'ui')}
 ${box(420, 250, 190, 48, 'room.js · installation-room', 'pan, zoom, labels & route editing', 'ui')}
 ${box(625, 250, 170, 48, 'installation-ui.mjs', 'box zoom, auto layout & ports', 'ui')}
 ${box(30, 320, 170, 48, 'layout-model.mjs', 'scene & props', 'calc')}

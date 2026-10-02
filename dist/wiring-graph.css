@@ -102,6 +102,123 @@
   font-size: 12px;
   opacity: 0.7;
 }
+.wg-component-visual {
+  position: relative;
+  height: 54px;
+  margin: 0 0 10px;
+  border: 1px solid #bfcfc5;
+  border-radius: 5px;
+  overflow: hidden;
+  background: #dce9df;
+  box-shadow: inset 0 1px 5px #173f3424;
+}
+.wg-visual-board {
+  position: absolute;
+  inset: 7px 12px;
+  display: block;
+  border: 2px solid #39765d;
+  border-radius: 4px;
+  background:
+    radial-gradient(circle at 9px 9px, #d8c772 0 2px, transparent 2.5px),
+    radial-gradient(circle at calc(100% - 9px) calc(100% - 9px), #d8c772 0 2px, transparent 2.5px), #31765b;
+  box-shadow: inset 0 0 0 2px #ffffff20;
+}
+.wg-visual-board b {
+  position: absolute;
+  top: 12px;
+  width: 18px;
+  height: 10px;
+  border: 1px solid #171e1b;
+  background: #29322e;
+  box-shadow:
+    -3px 0 #c4b977,
+    3px 0 #c4b977;
+}
+.wg-visual-board b:nth-child(1) {
+  left: 25px;
+}
+.wg-visual-board b:nth-child(2) {
+  right: 25px;
+}
+.wg-visual-board b:nth-child(3) {
+  left: 4px;
+  width: 10px;
+  background: #316982;
+}
+.wg-visual-board b:nth-child(4) {
+  right: 4px;
+  width: 10px;
+  background: #d5a954;
+}
+.wg-component-visual.psu {
+  background: #bcc5c2;
+}
+.wg-component-visual.psu .wg-visual-board {
+  inset: 6px 9px;
+  border-color: #788580;
+  background: repeating-linear-gradient(90deg, #919d99 0 4px, #c7cfcc 4px 8px);
+}
+.wg-component-visual.psu span {
+  position: absolute;
+  right: 18px;
+  top: 12px;
+  width: 27px;
+  height: 27px;
+  border: 5px double #596762;
+  border-radius: 50%;
+  background: radial-gradient(circle, #48544f 0 4px, transparent 5px);
+}
+.wg-component-visual.psu .wg-visual-board b {
+  top: 11px;
+  left: 7px;
+  width: 8px;
+  height: 12px;
+  border-color: #b78c43;
+  background: #e6cf75;
+  box-shadow:
+    13px 0 #e6cf75,
+    26px 0 #e6cf75;
+}
+.wg-component-visual.psu .wg-visual-board b:not(:first-child) {
+  display: none;
+}
+.wg-component-visual.distro .wg-visual-board b {
+  top: 7px;
+  width: 8px;
+  height: 20px;
+  border-radius: 2px;
+  background: #e9dfb8;
+  box-shadow:
+    15px 0 #e9dfb8,
+    30px 0 #e9dfb8,
+    45px 0 #e9dfb8;
+}
+.wg-component-visual.distro .wg-visual-board b:nth-child(n + 2) {
+  display: none;
+}
+.wg-controller .wg-component-visual {
+  border-color: #4f826a;
+  background: #24533f;
+}
+.wg-component-visual.flood .wg-visual-board {
+  inset: 6px 50px;
+  border: 5px solid #636b68;
+  border-radius: 3px;
+  background: radial-gradient(circle, #fff5b4 0 8px, #d7b34b 9px 12px, #6d7571 13px);
+  transform: perspective(40px) rotateX(-4deg);
+}
+.wg-component-visual.flood .wg-visual-board b,
+.wg-component-visual.pixels .wg-visual-board b {
+  display: none;
+}
+.wg-component-visual.pixels .wg-visual-board {
+  inset: 17px 7px;
+  border: 0;
+  background:
+    radial-gradient(circle, #f7e477 0 5px, #52a787 6px 9px, transparent 10px) 0 0 / 38px 20px repeat-x,
+    #eff5f0;
+  box-shadow: none;
+}
 .wg-psu {
   border-radius: 8px;
   background: #e7f0e8;
@@ -223,6 +340,11 @@
   stroke-width: 3;
   stroke: #d28a3f;
   pointer-events: stroke;
+  stroke-linecap: round;
+  transition:
+    filter 180ms,
+    opacity 180ms,
+    stroke-width 180ms;
 }
 .wg-wire.data {
   stroke: #328bc2;
@@ -239,11 +361,24 @@
 }
 .wg-wire.pending {
   stroke: #e2b64a;
+  stroke-width: 4;
   stroke-dasharray: 7 5;
+  filter: drop-shadow(0 0 4px #e2b64a);
+  pointer-events: none;
+}
+.wg-wire.connection-highlight {
+  stroke-width: 6;
+  filter: drop-shadow(0 0 6px #61c795);
 }
 .wg-wire[data-wire-remove] {
   pointer-events: stroke;
   cursor: pointer;
+}
+.wg-port.connection-highlight {
+  outline: 2px solid #61c795;
+  background: #e8fff2;
+  color: #254b3a;
+  box-shadow: 0 0 9px #61c795aa;
 }
 .wg-footer {
   border-top: 1px solid #dce6df;

@@ -1,5 +1,5 @@
-import { BOARDS } from './model.mjs?v=0.34.0';
-import { ensureWiring, connectWire } from './wiring-model.mjs?v=0.34.0';
+import { BOARDS } from './model.mjs?v=0.35.0';
+import { ensureWiring, connectWire } from './wiring-model.mjs?v=0.35.0';
 
 let api,
   pending = null,
@@ -11,8 +11,20 @@ const E = v =>
   );
 const port = (id, label, side = 'out', used = false) =>
   `<button type="button" class="wg-port ${side} ${used ? 'used' : ''}" data-wport="${E(id)}" title="Drag to connect ${E(label)}"><i></i><span>${E(label)}</span></button>`;
+const componentVisual = cls => {
+  const kind = cls.includes('wg-psu')
+    ? 'psu'
+    : cls.includes('wg-distro')
+      ? 'distro'
+      : cls.includes('wg-controller')
+        ? 'controller'
+        : cls.includes('wg-flood')
+          ? 'flood'
+          : 'pixels';
+  return `<div class="wg-component-visual ${kind}" aria-hidden="true"><i class="wg-visual-board"><b></b><b></b><b></b><b></b></i><span></span></div>`;
+};
 const card = (cls, title, sub, body, color) =>
-  `<section class="wg-card ${cls}" style="--node-color:${E(color)}"><div class="wg-card-head"><strong>${E(title)}</strong><small>${E(sub)}</small></div>${body}</section>`;
+  `<section class="wg-card ${cls}" style="--node-color:${E(color)}"><div class="wg-card-head"><strong>${E(title)}</strong><small>${E(sub)}</small></div>${componentVisual(cls)}${body}</section>`;
 
 export function wiringGraph(p, r) {
   ensureWiring(p);
@@ -156,6 +168,8 @@ export function drawGraph() {
     const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     path.setAttribute('d', route(point(stage, a), point(stage, b)));
     path.setAttribute('class', 'wg-wire ' + type);
+    path.dataset.wireFrom = from;
+    path.dataset.wireTo = to;
     if (id) {
       path.dataset.wireRemove = id;
       path.setAttribute('title', 'Click to remove injection');
@@ -179,6 +193,33 @@ function finish(target) {
 }
 export function installGraph(a) {
   api = a;
+  const highlightConnection = (target, on) => {
+    const keys = target.matches('[data-wport]')
+      ? [target.dataset.wport]
+      : [target.dataset.wireFrom, target.dataset.wireTo].filter(Boolean);
+    const paths = [...document.querySelectorAll('.wg-wire:not(.pending)')].filter(
+      path => keys.includes(path.dataset.wireFrom) || keys.includes(path.dataset.wireTo)
+    );
+    const connected = new Set(keys);
+    paths.forEach(path => {
+      path.classList.toggle('connection-highlight', on);
+      connected.add(path.dataset.wireFrom);
+      connected.add(path.dataset.wireTo);
+    });
+    connected.forEach(key =>
+      document
+        .querySelector(`[data-wport="${CSS.escape(key)}"]`)
+        ?.classList.toggle('connection-highlight', on)
+    );
+  };
+  document.addEventListener('pointerover', e => {
+    const target = e.target.closest('[data-wport],.wg-wire:not(.pending)');
+    if (target?.closest('.wg-stage')) highlightConnection(target, true);
+  });
+  document.addEventListener('pointerout', e => {
+    const target = e.target.closest('[data-wport],.wg-wire:not(.pending)');
+    if (target?.closest('.wg-stage') && !target.contains(e.relatedTarget)) highlightConnection(target, false);
+  });
   document.addEventListener('pointerdown', e => {
     const el = e.target.closest('[data-wport]');
     if (!el || !el.closest('.wg-stage') || el.classList.contains('in')) return;
