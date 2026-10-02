@@ -35,7 +35,7 @@ def main():
         os.makedirs(shots, exist_ok=True)
     folder = os.path.abspath(args[0] if args else os.path.join(os.path.dirname(__file__), "..", "dist"))
     with open(os.path.join(folder, "version.mjs"), encoding="utf-8") as f:
-        version = re.search(r"APP_VERSION='([^']+)'", f.read()).group(1)
+        version = re.search(r"APP_VERSION\s*=\s*'([^']+)'", f.read()).group(1)
     httpd = serve(folder)
     base = f"http://127.0.0.1:{httpd.server_address[1]}/"
     problems = []

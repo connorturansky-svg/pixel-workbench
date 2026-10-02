@@ -51,7 +51,8 @@ Only requests from the GitHub accounts in `ALLOWED_AUTHORS` (`J-Turansky` and `c
 1. Every 5 minutes (Task Scheduler), it takes the oldest open `[Feature]` issue and labels it `in-progress`.
 2. It resets its own worktree (`..\pixel-workbench-build`) to `origin/main` and downloads the issue's screenshots.
 3. It runs the Copilot CLI headlessly under [AGENTS.md](AGENTS.md). The agent gets only file and shell tools: no MCP servers, no web access, no git or gh, and no tokens. Request text is treated as untrusted.
-4. It rejects changes outside `dist/` and `README.md` and any new network or `eval` code. Then it runs `stamp-version.mjs`, the verify scripts and `automation/smoke.py` (headless browser, every page and info tab). The agent gets two rounds to fix failures.
+4. It rejects changes outside `dist/` and `README.md` and any new network or `eval` code. Then it runs `stamp-version.mjs`, the verify scripts and `automation/smoke.py` (headless browser, every page and info tab). The agent gets two rounds to fix failures, continuing its own Copilot session (`--resume`) so it doesn't re-read the code.
+   To keep AI credits low, the prompt includes a code map (`automation/codemap.py`), the agent runs one quiet `node check.mjs`, and the builder formats changed files with Prettier (`.prettierrc`) so lines stay short.
 5. It labels the issue `tested`, then appends the build's AI usage to `dist/build-costs.json`: credits, tokens, model and agent time, from the Copilot CLI usage summary. Usage from earlier attempts that didn't ship is included too. Cost is estimated at $0.01 per AI credit. It then commits, tags `vX.Y.0` and pushes to `main` as J-Turansky. It then waits for the Pages deploy, comments, labels `shipped` and closes the issue.
 
 Other outcomes:
@@ -74,7 +75,7 @@ Logs, screenshots and state are in `%LOCALAPPDATA%\PixelWorkbenchBuilder`. To ru
 
 ## Checks
 
-Run `node verify.mjs` and `node verify-installation.mjs` for numerical and validation checks. `python automation\smoke.py dist` loads every page and info tab in headless Chromium. The app also exposes read-plan and set-planning-brightness WebMCP tools where supported.
+Run `node check.mjs` to run every check quietly, or `node verify.mjs` and `node verify-installation.mjs` for numerical and validation checks. `python automation\smoke.py dist` loads every page and info tab in headless Chromium. The app also exposes read-plan and set-planning-brightness WebMCP tools where supported.
 
 The layout checks cover old-project migration, geometry bounds, state round-trips and rejected unsafe references. Projects remain compatible with the existing v1 JSON format through optional scene/props fields.
 

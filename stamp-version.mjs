@@ -3,7 +3,7 @@
 import {readFileSync,writeFileSync,readdirSync} from 'node:fs';
 import {join} from 'node:path';
 const dir=new URL('./dist/',import.meta.url).pathname.replace(/^\/(\w:)/,'$1');
-const v=readFileSync(join(dir,'version.mjs'),'utf8').match(/APP_VERSION='([^']+)'/)[1];
+const v=readFileSync(join(dir,'version.mjs'),'utf8').match(/APP_VERSION\s*=\s*'([^']+)'/)[1];
 const {CHANGELOG}=await import(new URL('./dist/version.mjs?check='+Date.now(),import.meta.url));
 const top=CHANGELOG[0];
 if(top?.version!==v||!/^\d{2}\/\d{2}\/\d{4}$/.test(top?.date||'')){console.error(`Release check failed: newest CHANGELOG entry must be v${v} with a DD/MM/YYYY date (found v${top?.version} ${top?.date||'no date'}).`);process.exit(1);}

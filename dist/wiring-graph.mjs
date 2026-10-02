@@ -1,29 +1,245 @@
-import {BOARDS} from './model.mjs?v=0.25.0';
-import {ensureWiring,connectWire} from './wiring-model.mjs?v=0.25.0';
+import { BOARDS } from './model.mjs?v=0.26.0';
+import { ensureWiring, connectWire } from './wiring-model.mjs?v=0.26.0';
 
-let api,pending=null,dragging=false;
-const E=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const port=(id,label,side='out',used=false)=>`<button type="button" class="wg-port ${side} ${used?'used':''}" data-wport="${E(id)}" title="Drag to connect ${E(label)}"><i></i><span>${E(label)}</span></button>`;
-const card=(cls,title,sub,body,color)=>`<section class="wg-card ${cls}" style="--node-color:${E(color)}"><div class="wg-card-head"><strong>${E(title)}</strong><small>${E(sub)}</small></div>${body}</section>`;
+let api,
+  pending = null,
+  dragging = false;
+const E = v =>
+  String(v ?? '').replace(
+    /[&<>"']/g,
+    c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]
+  );
+const port = (id, label, side = 'out', used = false) =>
+  `<button type="button" class="wg-port ${side} ${used ? 'used' : ''}" data-wport="${E(id)}" title="Drag to connect ${E(label)}"><i></i><span>${E(label)}</span></button>`;
+const card = (cls, title, sub, body, color) =>
+  `<section class="wg-card ${cls}" style="--node-color:${E(color)}"><div class="wg-card-head"><strong>${E(title)}</strong><small>${E(sub)}</small></div>${body}</section>`;
 
-export function wiringGraph(p,r){
+export function wiringGraph(p, r) {
   ensureWiring(p);
-  const pl=p.scene?.placements||{},color=(key,fallback)=>pl[key]?.color||fallback;
-  const psus=p.psus.map(ps=>card('wg-psu',ps.name,`${ps.watts} W · 12 V`,Array.from({length:3},(_,i)=>port(`psu:${ps.id}:${i+1}`,`DC ${i+1}`,'out',p.controllers.some(c=>c.bankPsus.some((id,j)=>id===ps.id&&c.bankPsuPorts[j]===i+1))||p.distros.some(d=>d.psu===ps.id&&d.psuPort===i+1))).join(''),color('psu:'+ps.id,'#cde5d5'))).join('');
-  const distros=p.distros.map(d=>card('wg-distro',d.name,`${d.outputs} fused outputs · ${d.amps} A`,port(`distro-in:${d.id}`,'12 V in','in',true)+`<div class="wg-port-grid">${Array.from({length:d.outputs},(_,i)=>port(`distro:${d.id}:${i+1}`,`F${i+1}`,'out',p.chains.some(ch=>ch.segments.some(s=>s.inject&&s.distro===d.id&&s.distroPort===i+1)))).join('')}</div>`,color('distro:'+d.id,'#93acb9'))).join('');
-  const controllers=p.controllers.map(c=>card('wg-controller',c.name,BOARDS[c.model].name,`<div class="wg-bank-list">${c.bankPsus.map((id,i)=>port(`bank:${c.id}:${i+1}`,`Bank ${i+1} · P${i*4+1}–${Math.min((i+1)*4,BOARDS[c.model].ports)}`,'in',true)).join('')}</div><div class="wg-data-list">${Array.from({length:BOARDS[c.model].ports},(_,i)=>port(`data:${c.id}:${i+1}`,`Data P${i+1}`,'out',p.chains.some(ch=>ch.controller===c.id&&ch.port===i+1))).join('')}</div>`,color('controller:'+c.id,'#173f34'))).join('');
-  const segments=p.chains.flatMap(ch=>ch.segments.map((s,i)=>{const sr=r.chains[ch.id]?.segments.find(x=>x.id===s.id),key='segment:'+s.id;return card('wg-segment '+(s.kind==='flood'?'wg-flood':''),`${s.count} ${s.kind}${s.count===1?'':'s'}`,`${E(ch.name)} · P${ch.port} · ${Math.round((sr?.endV||0)*100)/100} V`,port(`data-in:${s.id}`,'Data in','in',true)+port(`power:${s.id}`,'12 V in','in',true)+port(`data-out:${s.id}`,'Data out','out',i<ch.segments.length-1)+port(`power-out:${s.id}`,'12 V out','out',i<ch.segments.length-1&&!ch.segments[i+1].inject)+`<button class="wg-edit" data-action="select:${ch.id}">Edit output</button><button class="wg-edit" data-wsplit="${E(ch.id)}:${i}">Split / inject here</button>`,color(key,'#39886e'));})).join('');
-  return `<div class="wg-shell panel"><div class="wg-header"><strong>Wiring map</strong><span><i class="wg-key-data"></i> Data <i class="wg-key-power"></i> 12 V power <i class="wg-key-inject"></i> Isolated injection</span></div><p class="wg-help">Drag from an output terminal to an input terminal. Click two terminals to connect by keyboard or touch. PSU DC 1–3 are planning terminals; check the actual unit’s terminal layout.</p><div class="wg-scroll"><div class="wg-stage"><svg class="wg-wires" aria-hidden="true"></svg><div class="wg-columns"><div class="wg-column"><h4>POWER SUPPLIES</h4>${psus||'<p class="wg-empty">Add a PSU</p>'}</div><div class="wg-column"><h4>DISTRIBUTION</h4>${distros||'<p class="wg-empty">Add a distro</p>'}</div><div class="wg-column"><h4>CONTROLLERS</h4>${controllers||'<p class="wg-empty">Add a controller</p>'}</div><div class="wg-column"><h4>PIXELS & FLOODS</h4>${segments||'<p class="wg-empty">Add an output</p>'}</div></div></div></div><div class="wg-footer">Select a string to edit its pixels or split it for a new injection. Drawn wires are planning connections; check actual terminal ratings and polarity.</div></div>`;
+  const pl = p.scene?.placements || {},
+    color = (key, fallback) => pl[key]?.color || fallback;
+  const psus = p.psus
+    .map(ps =>
+      card(
+        'wg-psu',
+        ps.name,
+        `${ps.watts} W · 12 V`,
+        Array.from({ length: 3 }, (_, i) =>
+          port(
+            `psu:${ps.id}:${i + 1}`,
+            `DC ${i + 1}`,
+            'out',
+            p.controllers.some(c =>
+              c.bankPsus.some((id, j) => id === ps.id && c.bankPsuPorts[j] === i + 1)
+            ) || p.distros.some(d => d.psu === ps.id && d.psuPort === i + 1)
+          )
+        ).join(''),
+        color('psu:' + ps.id, '#cde5d5')
+      )
+    )
+    .join('');
+  const distros = p.distros
+    .map(d =>
+      card(
+        'wg-distro',
+        d.name,
+        `${d.outputs} fused outputs · ${d.amps} A`,
+        port(`distro-in:${d.id}`, '12 V in', 'in', true) +
+          `<div class="wg-port-grid">${Array.from({ length: d.outputs }, (_, i) =>
+            port(
+              `distro:${d.id}:${i + 1}`,
+              `F${i + 1}`,
+              'out',
+              p.chains.some(ch =>
+                ch.segments.some(s => s.inject && s.distro === d.id && s.distroPort === i + 1)
+              )
+            )
+          ).join('')}</div>`,
+        color('distro:' + d.id, '#93acb9')
+      )
+    )
+    .join('');
+  const controllers = p.controllers
+    .map(c =>
+      card(
+        'wg-controller',
+        c.name,
+        BOARDS[c.model].name,
+        `<div class="wg-bank-list">${c.bankPsus.map((id, i) => port(`bank:${c.id}:${i + 1}`, `Bank ${i + 1} · P${i * 4 + 1}–${Math.min((i + 1) * 4, BOARDS[c.model].ports)}`, 'in', true)).join('')}</div><div class="wg-data-list">${Array.from(
+          { length: BOARDS[c.model].ports },
+          (_, i) =>
+            port(
+              `data:${c.id}:${i + 1}`,
+              `Data P${i + 1}`,
+              'out',
+              p.chains.some(ch => ch.controller === c.id && ch.port === i + 1)
+            )
+        ).join('')}</div>`,
+        color('controller:' + c.id, '#173f34')
+      )
+    )
+    .join('');
+  const segments = p.chains
+    .flatMap(ch =>
+      ch.segments.map((s, i) => {
+        const sr = r.chains[ch.id]?.segments.find(x => x.id === s.id),
+          key = 'segment:' + s.id;
+        return card(
+          'wg-segment ' + (s.kind === 'flood' ? 'wg-flood' : ''),
+          `${s.count} ${s.kind}${s.count === 1 ? '' : 's'}`,
+          `${E(ch.name)} · P${ch.port} · ${Math.round((sr?.endV || 0) * 100) / 100} V`,
+          port(`data-in:${s.id}`, 'Data in', 'in', true) +
+            port(`power:${s.id}`, '12 V in', 'in', true) +
+            port(`data-out:${s.id}`, 'Data out', 'out', i < ch.segments.length - 1) +
+            port(
+              `power-out:${s.id}`,
+              '12 V out',
+              'out',
+              i < ch.segments.length - 1 && !ch.segments[i + 1].inject
+            ) +
+            `<button class="wg-edit" data-action="select:${ch.id}">Edit output</button><button class="wg-edit" data-wsplit="${E(ch.id)}:${i}">Split / inject here</button>`,
+          color(key, '#39886e')
+        );
+      })
+    )
+    .join('');
+  return `<div class="wg-shell panel"><div class="wg-header"><strong>Wiring map</strong><span><i class="wg-key-data"></i> Data <i class="wg-key-power"></i> 12 V power <i class="wg-key-inject"></i> Isolated injection</span></div><p class="wg-help">Drag from an output terminal to an input terminal. Click two terminals to connect by keyboard or touch. PSU DC 1–3 are planning terminals; check the actual unit’s terminal layout.</p><div class="wg-scroll"><div class="wg-stage"><svg class="wg-wires" aria-hidden="true"></svg><div class="wg-columns"><div class="wg-column"><h4>POWER SUPPLIES</h4>${psus || '<p class="wg-empty">Add a PSU</p>'}</div><div class="wg-column"><h4>DISTRIBUTION</h4>${distros || '<p class="wg-empty">Add a distro</p>'}</div><div class="wg-column"><h4>CONTROLLERS</h4>${controllers || '<p class="wg-empty">Add a controller</p>'}</div><div class="wg-column"><h4>PIXELS & FLOODS</h4>${segments || '<p class="wg-empty">Add an output</p>'}</div></div></div></div><div class="wg-footer">Select a string to edit its pixels or split it for a new injection. Drawn wires are planning connections; check actual terminal ratings and polarity.</div></div>`;
 }
 
-const edges=p=>{const out=[];
-  p.controllers.forEach(c=>c.bankPsus.forEach((id,i)=>out.push([`psu:${id}:${c.bankPsuPorts[i]}`,`bank:${c.id}:${i+1}`,'power'])));
-  p.distros.forEach(d=>out.push([`psu:${d.psu}:${d.psuPort}`,`distro-in:${d.id}`,'power']));
-  p.chains.forEach(ch=>ch.segments.forEach((s,i)=>{out.push([i?`data-out:${ch.segments[i-1].id}`:`data:${ch.controller}:${ch.port}`,`data-in:${s.id}`,'data']);if(s.inject)out.push([`distro:${s.distro}:${s.distroPort}`,`power:${s.id}`,'inject',s.id]);else out.push([i?`power-out:${ch.segments[i-1].id}`:`data:${ch.controller}:${ch.port}`,`power:${s.id}`,'through']);}));return out;
+const edges = p => {
+  const out = [];
+  p.controllers.forEach(c =>
+    c.bankPsus.forEach((id, i) =>
+      out.push([`psu:${id}:${c.bankPsuPorts[i]}`, `bank:${c.id}:${i + 1}`, 'power'])
+    )
+  );
+  p.distros.forEach(d => out.push([`psu:${d.psu}:${d.psuPort}`, `distro-in:${d.id}`, 'power']));
+  p.chains.forEach(ch =>
+    ch.segments.forEach((s, i) => {
+      out.push([
+        i ? `data-out:${ch.segments[i - 1].id}` : `data:${ch.controller}:${ch.port}`,
+        `data-in:${s.id}`,
+        'data'
+      ]);
+      if (s.inject) out.push([`distro:${s.distro}:${s.distroPort}`, `power:${s.id}`, 'inject', s.id]);
+      else
+        out.push([
+          i ? `power-out:${ch.segments[i - 1].id}` : `data:${ch.controller}:${ch.port}`,
+          `power:${s.id}`,
+          'through'
+        ]);
+    })
+  );
+  return out;
 };
-function point(stage,el){const a=stage.getBoundingClientRect(),b=(el.querySelector('i')||el).getBoundingClientRect();return {x:b.left-a.left+b.width/2,y:b.top-a.top+b.height/2};}
-function route(a,b){const bend=Math.max(38,Math.abs(b.x-a.x)*.45);return `M${a.x},${a.y} C${a.x+bend},${a.y} ${b.x-bend},${b.y} ${b.x},${b.y}`;}
-export function drawGraph(){const stage=document.querySelector('.wg-stage');if(!stage)return;const svg=stage.querySelector('.wg-wires');svg.setAttribute('viewBox',`0 0 ${stage.clientWidth} ${stage.clientHeight}`);svg.setAttribute('width',stage.clientWidth);svg.setAttribute('height',stage.clientHeight);svg.replaceChildren();for(const [from,to,type,id] of edges(api.getProject())){const a=stage.querySelector(`[data-wport="${CSS.escape(from)}"]`),b=stage.querySelector(`[data-wport="${CSS.escape(to)}"]`);if(!a||!b)continue;const path=document.createElementNS('http://www.w3.org/2000/svg','path');path.setAttribute('d',route(point(stage,a),point(stage,b)));path.setAttribute('class','wg-wire '+type);if(id){path.dataset.wireRemove=id;path.setAttribute('title','Click to remove injection');}svg.append(path);}if(pending)stage.querySelector(`[data-wport="${CSS.escape(pending)}"]`)?.classList.add('connecting');}
-function finish(target){if(!pending)return;const source=pending;pending=null;dragging=false;if(source===target){drawGraph();return;}const done=api.transact(()=>connectWire(api.getProject(),source,target));if(done)api.toast('Connection updated across the plan.');else drawGraph();}
-export function installGraph(a){api=a;document.addEventListener('pointerdown',e=>{const el=e.target.closest('[data-wport]');if(!el||!el.closest('.wg-stage')||el.classList.contains('in'))return;pending=el.dataset.wport;dragging=true;el.classList.add('connecting');e.preventDefault();});document.addEventListener('pointermove',e=>{if(!dragging||!pending)return;const stage=document.querySelector('.wg-stage');if(!stage)return;const el=stage.querySelector(`[data-wport="${CSS.escape(pending)}"]`);if(!el)return;drawGraph();const a=point(stage,el),r=stage.getBoundingClientRect(),b={x:e.clientX-r.left,y:e.clientY-r.top},path=document.createElementNS('http://www.w3.org/2000/svg','path');path.setAttribute('d',route(a,b));path.setAttribute('class','wg-wire pending');stage.querySelector('svg').append(path);});document.addEventListener('pointerup',e=>{if(!dragging)return;dragging=false;const target=document.elementFromPoint(e.clientX,e.clientY)?.closest('[data-wport]');if(target?.classList.contains('in'))finish(target.dataset.wport);else drawGraph();});document.addEventListener('click',e=>{const port=e.target.closest('[data-wport]');if(port&&port.closest('.wg-stage')){if(port.classList.contains('in'))finish(port.dataset.wport);else{pending=port.dataset.wport;drawGraph();}return;}const split=e.target.closest('[data-wsplit]');if(split){const [id,i]=split.dataset.wsplit.split(':');api.split(id,+i);return;}const wire=e.target.closest('[data-wire-remove]');if(wire){const id=wire.dataset.wireRemove;api.transact(()=>{const s=api.getProject().chains.flatMap(ch=>ch.segments).find(x=>x.id===id);if(s){s.inject=false;delete api.getProject().installation?.routes?.['inject:'+id];}});api.toast('Injection removed; upstream power continues.');}});window.addEventListener('resize',()=>requestAnimationFrame(drawGraph));}
-
+function point(stage, el) {
+  const a = stage.getBoundingClientRect(),
+    b = (el.querySelector('i') || el).getBoundingClientRect();
+  return { x: b.left - a.left + b.width / 2, y: b.top - a.top + b.height / 2 };
+}
+function route(a, b) {
+  const bend = Math.max(38, Math.abs(b.x - a.x) * 0.45);
+  return `M${a.x},${a.y} C${a.x + bend},${a.y} ${b.x - bend},${b.y} ${b.x},${b.y}`;
+}
+export function drawGraph() {
+  const stage = document.querySelector('.wg-stage');
+  if (!stage) return;
+  const svg = stage.querySelector('.wg-wires');
+  svg.setAttribute('viewBox', `0 0 ${stage.clientWidth} ${stage.clientHeight}`);
+  svg.setAttribute('width', stage.clientWidth);
+  svg.setAttribute('height', stage.clientHeight);
+  svg.replaceChildren();
+  for (const [from, to, type, id] of edges(api.getProject())) {
+    const a = stage.querySelector(`[data-wport="${CSS.escape(from)}"]`),
+      b = stage.querySelector(`[data-wport="${CSS.escape(to)}"]`);
+    if (!a || !b) continue;
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', route(point(stage, a), point(stage, b)));
+    path.setAttribute('class', 'wg-wire ' + type);
+    if (id) {
+      path.dataset.wireRemove = id;
+      path.setAttribute('title', 'Click to remove injection');
+    }
+    svg.append(path);
+  }
+  if (pending) stage.querySelector(`[data-wport="${CSS.escape(pending)}"]`)?.classList.add('connecting');
+}
+function finish(target) {
+  if (!pending) return;
+  const source = pending;
+  pending = null;
+  dragging = false;
+  if (source === target) {
+    drawGraph();
+    return;
+  }
+  const done = api.transact(() => connectWire(api.getProject(), source, target));
+  if (done) api.toast('Connection updated across the plan.');
+  else drawGraph();
+}
+export function installGraph(a) {
+  api = a;
+  document.addEventListener('pointerdown', e => {
+    const el = e.target.closest('[data-wport]');
+    if (!el || !el.closest('.wg-stage') || el.classList.contains('in')) return;
+    pending = el.dataset.wport;
+    dragging = true;
+    el.classList.add('connecting');
+    e.preventDefault();
+  });
+  document.addEventListener('pointermove', e => {
+    if (!dragging || !pending) return;
+    const stage = document.querySelector('.wg-stage');
+    if (!stage) return;
+    const el = stage.querySelector(`[data-wport="${CSS.escape(pending)}"]`);
+    if (!el) return;
+    drawGraph();
+    const a = point(stage, el),
+      r = stage.getBoundingClientRect(),
+      b = { x: e.clientX - r.left, y: e.clientY - r.top },
+      path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', route(a, b));
+    path.setAttribute('class', 'wg-wire pending');
+    stage.querySelector('svg').append(path);
+  });
+  document.addEventListener('pointerup', e => {
+    if (!dragging) return;
+    dragging = false;
+    const target = document.elementFromPoint(e.clientX, e.clientY)?.closest('[data-wport]');
+    if (target?.classList.contains('in')) finish(target.dataset.wport);
+    else drawGraph();
+  });
+  document.addEventListener('click', e => {
+    const port = e.target.closest('[data-wport]');
+    if (port && port.closest('.wg-stage')) {
+      if (port.classList.contains('in')) finish(port.dataset.wport);
+      else {
+        pending = port.dataset.wport;
+        drawGraph();
+      }
+      return;
+    }
+    const split = e.target.closest('[data-wsplit]');
+    if (split) {
+      const [id, i] = split.dataset.wsplit.split(':');
+      api.split(id, +i);
+      return;
+    }
+    const wire = e.target.closest('[data-wire-remove]');
+    if (wire) {
+      const id = wire.dataset.wireRemove;
+      api.transact(() => {
+        const s = api
+          .getProject()
+          .chains.flatMap(ch => ch.segments)
+          .find(x => x.id === id);
+        if (s) {
+          s.inject = false;
+          delete api.getProject().installation?.routes?.['inject:' + id];
+        }
+      });
+      api.toast('Injection removed; upstream power continues.');
+    }
+  });
+  window.addEventListener('resize', () => requestAnimationFrame(drawGraph));
+}
