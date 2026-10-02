@@ -31,6 +31,8 @@
   {"issue":23,"version":"0.38.0","title":"edge ports autofill","outcome":"shipped","at":"2026-10-02T15:52:21Z","runs":1,"model":"gpt-5.6-sol","credits":90.41,"tokensIn":1000000,"tokensCached":993300,"tokensOut":11700,"seconds":210},
   {"issue":24,"version":"0.39.0","title":"edge port wire","outcome":"shipped","at":"2026-10-02T15:59:30Z","runs":1,"model":"gpt-5.6-sol","credits":18.13,"tokensIn":109200,"tokensCached":89600,"tokensOut":2400,"seconds":57},
   {"issue":21,"version":"0.40.0","title":"Wiring workspace room layout view changes","outcome":"shipped","at":"2026-10-02T16:05:03Z","runs":1,"model":"gpt-5.6-sol","credits":32.65,"tokensIn":182200,"tokensCached":150900,"tokensOut":5500,"seconds":88},
-  {"issue":25,"version":"0.42.0","title":"Standards update sync","outcome":"shipped","at":"2026-10-02T16:14:51Z","runs":1,"model":"gpt-5.6-sol","credits":32.64,"tokensIn":195200,"tokensCached":162200,"tokensOut":4800,"seconds":83}
+  {"issue":25,"version":"0.42.0","title":"Standards update sync","outcome":"shipped","at":"2026-10-02T16:14:51Z","runs":1,"model":"gpt-5.6-sol","credits":32.64,"tokensIn":195200,"tokensCached":162200,"tokensOut":4800,"seconds":83},
+  {"issue":26,"version":"0.43.0","title":"neaten up interface","outcome":"needs-info","at":"2026-10-02T16:18:28Z","runs":1,"model":"gpt-5.6-sol","credits":8.68,"tokensIn":27800,"tokensCached":13900,"tokensOut":603,"seconds":14},
+  {"issue":27,"version":"0.43.0","title":"edge port neatening","outcome":"shipped","at":"2026-10-02T16:24:41Z","runs":1,"model":"gpt-5.6-sol","credits":22.02,"tokensIn":104900,"tokensCached":81800,"tokensOut":3600,"seconds":73}
  ]
 }

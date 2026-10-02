@@ -17,7 +17,7 @@ import {
   componentSearch,
   componentSizeGuides,
   deleteRoute
-} from './installation-model.mjs?v=0.42.0';
+} from './installation-model.mjs?v=0.43.0';
 
 let api,
   boxId = '',
@@ -175,11 +175,12 @@ const interfacePorts = box => {
   return box.interfacePorts
     .map(port => {
       const list = groups[port.edge],
+        component = box.components.find(item => item.id === port.componentId),
         offset = ((list.indexOf(port) + 1) / (list.length + 1)) * 100,
         style =
           port.edge === 'top' || port.edge === 'bottom'
-            ? `left:${offset}%;${port.edge}:0`
-            : `top:${offset}%;${port.edge}:0`;
+            ? `left:${offset}%;${port.edge}:0;--port-color:${E(component?.snapshot.color || '#d9982d')}`
+            : `top:${offset}%;${port.edge}:0;--port-color:${E(component?.snapshot.color || '#d9982d')}`;
       return `<button type="button" draggable="true" class="interface-port ${port.edge} ${port.componentId ? 'linked' : ''}" data-box-port="@interface:${E(port.id)}" style="${style}" title="${E(port.label)} · ${E(port.edge)} edge${port.visible ? ' · visible in Room layout' : ''}">${E(port.label)}</button>`;
     })
     .join('');
