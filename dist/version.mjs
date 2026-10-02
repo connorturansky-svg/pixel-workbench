@@ -1,6 +1,13 @@
 // Every change: bump APP_VERSION, add a CHANGELOG entry at the top (date DD/MM/YYYY), and review HOW_TO_USE, ARCHITECTURE_NOTES / the info.mjs diagram and SHORTCUTS.
-export const APP_VERSION = '0.60.0';
+export const APP_VERSION = '0.61.0';
 export const CHANGELOG = [
+  {
+    version: '0.61.0',
+    date: '02/10/2026',
+    items: [
+      'Box schematic wires now stay in clear lanes around every component and use a faster router for smooth editing. (follow-up to #36)'
+    ]
+  },
   {
     version: '0.60.0',
     date: '02/10/2026',

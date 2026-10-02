@@ -21,7 +21,7 @@ import {
   componentSizeGuides,
   deleteRoute,
   portTypeColour
-} from './installation-model.mjs?v=0.60.0';
+} from './installation-model.mjs?v=0.61.0';
 
 const SCHEMATIC_MIN_WIDTH = 1400,
   SCHEMATIC_MIN_HEIGHT = 700;
@@ -38,6 +38,7 @@ let api,
   schematicZoom = 1,
   schematicCanvasWidth = 1,
   schematicCanvasHeight = SCHEMATIC_MIN_HEIGHT,
+  connectionFrame = 0,
   showTickets = false,
   boxDetailsOpen = false,
   builderMode = 'controller';
@@ -473,7 +474,7 @@ function setSchematicZoom(next, clientX, clientY) {
   scroll.scrollTop = (scroll.scrollTop + y) * ratio - y;
   const readout = document.querySelector('.box-zoom-readout');
   if (readout) readout.textContent = Math.round(schematicZoom * 100) + '%';
-  requestAnimationFrame(drawBoxConnections);
+  scheduleBoxConnections();
 }
 function autoLayout(box, project) {
   const ids = new Set(box.components.map(c => c.id)),
@@ -610,25 +611,69 @@ const routePath = (a, b, obstacles, bounds) => {
       .filter((y, i, values) => !i || Math.abs(y - values[i - 1]) > 1),
     nodes = xs.flatMap(x => ys.map(y => ({ x, y }))).filter(point => !blocked(point)),
     nodeKey = point => `${point.x},${point.y}`,
-    startNode = nodes.find(point => point.x === start.x && point.y === start.y),
-    finishNode = nodes.find(point => point.x === finish.x && point.y === finish.y),
-    open = startNode ? [startNode] : [],
+    byKey = new Map(nodes.map(point => [nodeKey(point), point])),
+    rows = new Map(ys.map(y => [y, nodes.filter(point => point.y === y).sort((u, v) => u.x - v.x)])),
+    columns = new Map(xs.map(x => [x, nodes.filter(point => point.x === x).sort((u, v) => u.y - v.y)])),
+    startNode = byKey.get(nodeKey(start)),
+    finishNode = byKey.get(nodeKey(finish)),
+    open = [],
     distance = new Map(startNode ? [[nodeKey(startNode), 0]] : []),
-    previous = new Map();
+    previous = new Map(),
+    push = item => {
+      open.push(item);
+      for (let i = open.length - 1; i;) {
+        const parent = Math.floor((i - 1) / 2);
+        if (open[parent].score <= open[i].score) break;
+        [open[parent], open[i]] = [open[i], open[parent]];
+        i = parent;
+      }
+    },
+    pop = () => {
+      const first = open[0],
+        last = open.pop();
+      if (open.length && last) {
+        open[0] = last;
+        for (let i = 0; ;) {
+          const left = i * 2 + 1,
+            right = left + 1;
+          let smallest = i;
+          if (left < open.length && open[left].score < open[smallest].score) smallest = left;
+          if (right < open.length && open[right].score < open[smallest].score) smallest = right;
+          if (smallest === i) break;
+          [open[smallest], open[i]] = [open[i], open[smallest]];
+          i = smallest;
+        }
+      }
+      return first;
+    };
+  if (startNode && finishNode) push({ point: startNode, travelled: 0, score: 0 });
   while (open.length) {
-    open.sort((u, v) => distance.get(nodeKey(v)) - distance.get(nodeKey(u)));
-    const current = open.pop();
+    const item = pop(),
+      current = item.point,
+      currentKey = nodeKey(current);
+    if (item.travelled !== distance.get(currentKey)) continue;
     if (current === finishNode) break;
-    const neighbours = nodes.filter(
-      point => (point.x === current.x || point.y === current.y) && point !== current && clear(current, point)
-    );
+    const row = rows.get(current.y),
+      column = columns.get(current.x),
+      rowIndex = row.indexOf(current),
+      columnIndex = column.indexOf(current),
+      neighbours = [
+        row[rowIndex - 1],
+        row[rowIndex + 1],
+        column[columnIndex - 1],
+        column[columnIndex + 1]
+      ].filter(point => point && clear(current, point));
     for (const next of neighbours) {
       const key = nodeKey(next),
-        score = distance.get(nodeKey(current)) + Math.abs(next.x - current.x) + Math.abs(next.y - current.y);
+        score = item.travelled + Math.abs(next.x - current.x) + Math.abs(next.y - current.y);
       if (score >= (distance.get(key) ?? Infinity)) continue;
       distance.set(key, score);
       previous.set(key, current);
-      if (!open.includes(next)) open.push(next);
+      push({
+        point: next,
+        travelled: score,
+        score: score + Math.abs(finish.x - next.x) + Math.abs(finish.y - next.y)
+      });
     }
   }
   const middle = [];
@@ -644,6 +689,13 @@ const routePath = (a, b, obstacles, bounds) => {
     );
   return points.map((point, i) => `${i ? 'L' : 'M'}${point.x} ${point.y}`).join(' ');
 };
+function scheduleBoxConnections() {
+  if (connectionFrame) return;
+  connectionFrame = requestAnimationFrame(() => {
+    connectionFrame = 0;
+    drawBoxConnections();
+  });
+}
 function separateSchematicParts(stage, parts, box) {
   if (boxMode !== 'schematic' || parts.length < 2 || !box || normalizedSchematicBoxes.has(box.id))
     return false;
@@ -750,9 +802,8 @@ export function drawBoxConnections() {
       const a = stage.querySelector(`[data-box-port="${CSS.escape(x.fromComponent + ':' + x.fromPort)}"]`),
         b = stage.querySelector(`[data-box-port="${CSS.escape(x.toComponent + ':' + x.toPort)}"]`);
       if (!a || !b) return '';
-      const endpoints = [a.closest('.box-part'), b.closest('.box-part')],
-        obstacles = [
-          ...parts.filter(part => !endpoints.includes(part)).map(rectFor),
+      const obstacles = [
+          ...parts.map(rectFor),
           ...[...stage.querySelectorAll('.interface-port')]
             .filter(port => port !== a && port !== b)
             .map(rectFor)
@@ -1311,7 +1362,7 @@ export function installInstallation(a) {
         rect = stage?.getBoundingClientRect();
       wirePoint = rect ? { x: e.clientX - rect.left, y: e.clientY - rect.top } : null;
       e.dataTransfer.setData('application/x-pixel-port', port.dataset.boxPort);
-      requestAnimationFrame(drawBoxConnections);
+      scheduleBoxConnections();
     }
   });
   document.addEventListener('dragover', e => {
@@ -1321,7 +1372,7 @@ export function installInstallation(a) {
         rect = stage?.getBoundingClientRect();
       if (wireFrom && rect) {
         wirePoint = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-        drawBoxConnections();
+        scheduleBoxConnections();
       }
     }
   });
@@ -1366,7 +1417,7 @@ export function installInstallation(a) {
     if (!e.target.closest('[data-box-port]')) return;
     wireFrom = null;
     wirePoint = null;
-    drawBoxConnections();
+    scheduleBoxConnections();
   });
   const highlightConnection = (target, on) => {
     const keys = target.matches('[data-box-port]')
@@ -1414,7 +1465,7 @@ export function installInstallation(a) {
           x: Math.max(0, Math.min(rect.width, e.clientX - rect.left)),
           y: Math.max(0, Math.min(rect.height, e.clientY - rect.top))
         };
-        drawBoxConnections();
+        scheduleBoxConnections();
       }
       return;
     }
@@ -1444,7 +1495,7 @@ export function installInstallation(a) {
       drag.part.style.left = previous.left;
       drag.part.style.top = previous.top;
     }
-    drawBoxConnections();
+    scheduleBoxConnections();
   });
   document.addEventListener('pointerup', e => {
     if (!drag || drag.pointer !== e.pointerId) return;
