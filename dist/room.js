@@ -5,20 +5,20 @@ import {
   makeProp,
   PALETTE,
   clampPosition
-} from './layout-model.mjs?v=0.49.0';
+} from './layout-model.mjs?v=0.50.0';
 import {
   ensureInstallation,
   exposedPorts,
   perimeterAnchor,
   deleteRoute
-} from './installation-model.mjs?v=0.49.0';
+} from './installation-model.mjs?v=0.50.0';
 import {
   routeLayer,
   routeControls,
   routeInspector,
   installRoutes,
   refreshRoutes
-} from './installation-room.mjs?v=0.49.0';
+} from './installation-room.mjs?v=0.50.0';
 let api,
   chosen = '',
   propId = 'prop-smiley',
@@ -182,7 +182,7 @@ export function roomView(p) {
   if (!es.some(e => e.key === chosen)) chosen = es[0]?.key;
   const e = es.find(e => e.key === chosen),
     v = p.scene.placements[chosen];
-  return `<div class="room-toolbar"><div><strong>Room layout</strong><span>Bird’s-eye · drag objects to position · drag empty space to pan</span></div><div>${b('+ Field device', 'field-library', 'btn')}${b(showGrid ? 'Grid on' : 'Grid off', 'grid', 'btn ' + (showGrid ? 'pressed' : ''))}</div></div>${routeControls(p)}<div class="room-workspace"><div class="room-panel panel"><div class="room-dimensions"><span>${p.scene.width} m × ${p.scene.depth} m</span><span>${p.scene.snap ? 'Snap ' + p.scene.snap + ' m' : 'Free positioning'}</span></div><div class="room-stage"><div class="room-scroll"><svg id="room-canvas" viewBox="0 0 ${p.scene.width * 100} ${p.scene.depth * 100}" style="width:${zoom * 100}%;min-width:${zoom * 100}%" role="img" aria-label="Bird’s-eye room layout. Drag objects to position, drag empty space to pan, or use the mouse wheel to zoom."><defs><pattern id="room-grid" width="100" height="100" patternUnits="userSpaceOnUse"><path d="M100 0H0V100" fill="none" stroke="#dce5e4" stroke-width="1"/></pattern></defs><rect width="100%" height="100%" fill="#f9fbfa"/>${showGrid ? '<rect width="100%" height="100%" fill="url(#room-grid)"/>' : ''}<rect x="3" y="3" width="${p.scene.width * 100 - 6}" height="${p.scene.depth * 100 - 6}" fill="none" stroke="#9cafad" stroke-width="6"/><g id="room-routes">${routeLayer(p)}</g><path id="room-wire-preview" aria-hidden="true"/>${es.map(en => node(p, en)).join('')}</svg></div><div class="room-camera" role="group" aria-label="Room view controls"><button type="button" data-room="zoom-out" aria-label="Zoom out" title="Zoom out">−</button><span data-room-zoom aria-live="polite">${Math.round(zoom * 100)}%</span><button type="button" data-room="zoom-in" aria-label="Zoom in" title="Zoom in">+</button><button type="button" data-room="home" aria-label="Reset zoom and recenter room" title="Reset zoom and recenter">⌂</button></div></div><div class="room-key"><span><i></i> Data <i class="room-power-key"></i> Power <i class="room-inject-key"></i> Injection</span><span>Mouse wheel zooms · drag empty space to pan</span></div></div><aside class="panel room-inspector"><div class="inspector-title"><h3>Layout inspector</h3><span class="pill">2D</span></div><div class="inspector-body">${
+  return `<div class="room-toolbar"><div><strong>Room layout</strong><span>Bird’s-eye · drag objects to position · drag empty space to pan</span></div><div>${b('+ Pixels / flood', 'add-pixels', 'btn')}${b('+ Field device', 'field-library', 'btn')}${b(showGrid ? 'Grid on' : 'Grid off', 'grid', 'btn ' + (showGrid ? 'pressed' : ''))}</div></div>${routeControls(p)}<div class="room-workspace"><div class="room-panel panel"><div class="room-dimensions"><span>${p.scene.width} m × ${p.scene.depth} m</span><span>${p.scene.snap ? 'Snap ' + p.scene.snap + ' m' : 'Free positioning'}</span></div><div class="room-stage"><div class="room-scroll"><svg id="room-canvas" viewBox="0 0 ${p.scene.width * 100} ${p.scene.depth * 100}" style="width:${zoom * 100}%;min-width:${zoom * 100}%" role="img" aria-label="Bird’s-eye room layout. Drag objects to position, drag empty space to pan, or use the mouse wheel to zoom."><defs><pattern id="room-grid" width="100" height="100" patternUnits="userSpaceOnUse"><path d="M100 0H0V100" fill="none" stroke="#dce5e4" stroke-width="1"/></pattern></defs><rect width="100%" height="100%" fill="#f9fbfa"/>${showGrid ? '<rect width="100%" height="100%" fill="url(#room-grid)"/>' : ''}<rect x="3" y="3" width="${p.scene.width * 100 - 6}" height="${p.scene.depth * 100 - 6}" fill="none" stroke="#9cafad" stroke-width="6"/><g id="room-routes">${routeLayer(p)}</g><path id="room-wire-preview" aria-hidden="true"/>${es.map(en => node(p, en)).join('')}</svg></div><div class="room-camera" role="group" aria-label="Room view controls"><button type="button" data-room="zoom-out" aria-label="Zoom out" title="Zoom out">−</button><span data-room-zoom aria-live="polite">${Math.round(zoom * 100)}%</span><button type="button" data-room="zoom-in" aria-label="Zoom in" title="Zoom in">+</button><button type="button" data-room="home" aria-label="Reset zoom and recenter room" title="Reset zoom and recenter">⌂</button></div></div><div class="room-key"><span><i></i> Data <i class="room-power-key"></i> Power <i class="room-inject-key"></i> Injection</span><span>Mouse wheel zooms · drag empty space to pan</span></div></div><aside class="panel room-inspector"><div class="inspector-title"><h3>Layout inspector</h3><span class="pill">2D</span></div><div class="inspector-body">${
     e
       ? `<span class="room-type">${e.type === 'segment' ? 'PIXEL GROUP' : e.type.toUpperCase()}</span><h3>${E(e.name)}</h3>${pick(
           'Selected object',
@@ -391,6 +391,10 @@ function onClick(ev) {
     pr = p.props.find(x => x.id === propId);
   if (action === 'field-library') {
     api.showFieldLibrary();
+    return;
+  }
+  if (action === 'add-pixels') {
+    addPixels(p);
     return;
   }
   if (action === 'delete-field') {
@@ -692,15 +696,7 @@ function place(pr, p) {
     api.toast('Mark at least one pixel before placing this prop.');
     return;
   }
-  const free = [];
-  for (const c of p.controllers)
-    for (let port = 1; port <= api.boardPorts(c); port++)
-      if (!p.chains.some(ch => ch.controller === c.id && ch.port === port))
-        free.push([c.id + '|' + port, c.name + ' · port ' + port]);
-  const options = [
-    ...free.map(([id, name]) => `<option value="new|${id}">New output: ${E(name)}</option>`),
-    ...p.chains.map(ch => `<option value="append|${ch.id}">Append to ${E(ch.name)} · P${ch.port}</option>`)
-  ];
+  const options = outputOptions(p);
   if (!options.length) {
     api.toast('Add a controller first.');
     return;
@@ -730,6 +726,72 @@ function place(pr, p) {
           width: pr.width,
           height: pr.height,
           color: pr.color
+        });
+      });
+      api.showRoom();
+    }
+  );
+}
+function outputOptions(p) {
+  const free = [];
+  for (const c of p.controllers)
+    for (let port = 1; port <= api.boardPorts(c); port++)
+      if (!p.chains.some(ch => ch.controller === c.id && ch.port === port))
+        free.push([c.id + '|' + port, c.name + ' · port ' + port]);
+  return [
+    ...free.map(([id, name]) => `<option value="new|${id}">New output: ${E(name)}</option>`),
+    ...p.chains.map(ch => `<option value="append|${ch.id}">Append to ${E(ch.name)} · P${ch.port}</option>`)
+  ];
+}
+function addPixels(p) {
+  const targets = outputOptions(p);
+  if (!targets.length) {
+    api.toast('Add a controller first.');
+    return;
+  }
+  api.modal(
+    'Add pixels or a flood',
+    `<label>Pixels / flood<select name="item"><optgroup label="Individual items"><option value="custom|seed">Seed pixel string · 100 pixels</option><option value="custom|bullet">Bullet pixel string · 100 pixels</option><option value="custom|flood">Single flood · 10 W</option></optgroup>${p.presets.length ? `<optgroup label="Saved presets">${p.presets.map(x => `<option value="preset|${x.id}">${E(x.name)} · ${x.count} ${E(x.kind)}</option>`).join('')}</optgroup>` : ''}${
+      p.props.length
+        ? `<optgroup label="Prop models">${p.props
+            .filter(x => x.count)
+            .map(x => `<option value="prop|${x.id}">${E(x.name)} · ${x.count} pixels</option>`)
+            .join('')}</optgroup>`
+        : ''
+    }</select></label><label>Data connection<select name="target">${targets.join('')}</select></label><p class="micro">The new item is placed in the centre of the room. Drag it to its installed position, then edit its electrical details from the wiring workspace.</p>`,
+    f => {
+      api.transact(() => {
+        const [source, sourceId] = f.get('item').split('|'),
+          [mode, targetId, port] = f.get('target').split('|'),
+          preset = source === 'preset' ? p.presets.find(x => x.id === sourceId) : null,
+          pr = source === 'prop' ? p.props.find(x => x.id === sourceId) : null,
+          s = api.newSegment(source === 'custom' ? sourceId : preset?.kind || pr?.kind);
+        if (preset)
+          Object.assign(s, {
+            kind: preset.kind,
+            count: preset.count,
+            watts: preset.watts,
+            channels: preset.channels,
+            spacing: preset.spacing,
+            stringAwg: preset.stringAwg
+          });
+        if (pr) Object.assign(s, { count: pr.count, watts: pr.watts, channels: pr.channels, propId: pr.id });
+        const name = pr?.name || preset?.name || (sourceId === 'flood' ? 'Flood light' : 'Pixel string');
+        if (mode === 'new')
+          p.chains.push({
+            id: 'r-' + Math.random().toString(36).slice(2, 10),
+            name,
+            controller: targetId,
+            port: +port,
+            segments: [s]
+          });
+        else p.chains.find(ch => ch.id === targetId).segments.push(s);
+        ensureScene(p);
+        chosen = 'segment:' + s.id;
+        Object.assign(p.scene.placements[chosen], {
+          x: p.scene.width / 2,
+          y: p.scene.depth / 2,
+          ...(pr ? { width: pr.width, height: pr.height, color: pr.color } : {})
         });
       });
       api.showRoom();

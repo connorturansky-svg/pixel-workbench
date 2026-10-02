@@ -39,6 +39,7 @@
   {"issue":29,"version":"0.46.0","title":"Add information to graphics","outcome":"shipped","at":"2026-10-02T16:40:07Z","runs":1,"model":"gpt-5.6-sol","credits":42.2,"tokensIn":256500,"tokensCached":218100,"tokensOut":7100,"seconds":100},
   {"issue":26,"version":"0.47.0","title":"neaten up interface","outcome":"shipped","at":"2026-10-02T16:44:38Z","runs":1,"model":"gpt-5.6-sol","credits":33.45,"tokensIn":250900,"tokensCached":216100,"tokensOut":3700,"seconds":67},
   {"issue":30,"version":"0.48.0","title":"Edge port visability","outcome":"retry","at":"2026-10-02T16:49:41Z","runs":1,"model":"gpt-5.6-sol","credits":24.76,"tokensIn":146600,"tokensCached":118300,"tokensOut":2900,"seconds":52},
-  {"issue":30,"version":"0.49.0","title":"Edge port visability","outcome":"shipped","at":"2026-10-02T16:54:37Z","runs":1,"model":"gpt-5.6-sol","credits":22.82,"tokensIn":137500,"tokensCached":106500,"tokensOut":3100,"seconds":70}
+  {"issue":30,"version":"0.49.0","title":"Edge port visability","outcome":"shipped","at":"2026-10-02T16:54:37Z","runs":1,"model":"gpt-5.6-sol","credits":22.82,"tokensIn":137500,"tokensCached":106500,"tokensOut":3100,"seconds":70},
+  {"issue":31,"version":"0.50.0","title":"Add pixels on room layout","outcome":"shipped","at":"2026-10-02T17:00:26Z","runs":1,"model":"gpt-5.6-sol","credits":50.25,"tokensIn":363900,"tokensCached":320500,"tokensOut":7900,"seconds":108}
  ]
 }
