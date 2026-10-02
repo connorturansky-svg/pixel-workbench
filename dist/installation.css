@@ -652,6 +652,19 @@
   align-items: end;
   gap: 8px;
 }
+.interface-group {
+  border-top: 1px solid var(--line);
+}
+.interface-group summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 2px;
+  cursor: pointer;
+}
+.interface-group summary small {
+  color: var(--muted);
+}
 .interface-editor p {
   font-size: 11px;
   color: var(--muted);
@@ -659,7 +672,7 @@
 .interface-row {
   flex-wrap: wrap;
   padding: 7px 0;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid #dfeae3;
 }
 .interface-row label {
   margin: 0;

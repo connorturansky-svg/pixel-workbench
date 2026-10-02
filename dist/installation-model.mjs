@@ -506,6 +506,7 @@ export function ensureInstallation(p) {
   a.autoRoute ??= true;
   a.showLabels ??= true;
   a.filters ??= { data: true, power: true, inject: true, other: true };
+  for (const box of a.boxes) syncInterfacePorts(box);
   return p;
 }
 export function addFieldDevice(p, def, name = def.name) {
@@ -548,6 +549,57 @@ export function makeInstance(def, sourceKey = '') {
     stackLevel: 0,
     operatingLimits: {}
   };
+}
+const interfaceEdge = (port, pixelIndex = 0) => {
+  const type = port.type;
+  return type === 'pixel_output' || type === 'pixel_data'
+    ? pixelIndex % 2
+      ? 'bottom'
+      : 'right'
+    : type.includes('power')
+      ? 'bottom'
+      : type.includes('input')
+        ? 'left'
+        : type === 'audio' || type === 'dmx' || type === 'ethernet' || type === 'usb'
+          ? 'top'
+          : port.direction === 'in'
+            ? 'left'
+            : 'right';
+};
+export function syncInterfacePorts(box) {
+  box.interfacePorts ??= [];
+  const existing = new Set(
+    box.interfacePorts
+      .filter(port => port.componentId && port.portId)
+      .map(port => `${port.componentId}:${port.portId}`)
+  );
+  let pixelIndex = 0;
+  for (const component of box.components)
+    for (const port of component.snapshot.ports) {
+      const pixelPort = port.type === 'pixel_output' || port.type === 'pixel_data',
+        key = `${component.id}:${port.id}`;
+      if (!existing.has(key)) {
+        box.interfacePorts.push({
+          id: 'interface-' + id(),
+          label: port.label,
+          edge: interfaceEdge(port, pixelIndex),
+          visible: false,
+          componentId: component.id,
+          portId: port.id,
+          generated: true
+        });
+        existing.add(key);
+      }
+      if (pixelPort) pixelIndex++;
+    }
+  const liveComponents = new Map(box.components.map(component => [component.id, component]));
+  box.interfacePorts = box.interfacePorts.filter(port => {
+    if (!port.generated) return true;
+    return liveComponents
+      .get(port.componentId)
+      ?.snapshot.ports.some(componentPort => componentPort.id === port.portId);
+  });
+  return box.interfacePorts;
 }
 export function boxForSource(p, key) {
   return p.installation?.boxes?.find(b => b.components.some(c => c.sourceKey === key)) || null;
@@ -594,6 +646,7 @@ export function addInfrastructure(p, lib, key, boxId) {
     c.x = 12 + (box.components.length % 4) * 21;
     c.y = 12 + Math.floor(box.components.length / 4) * 25;
     box.components.push(c);
+    syncInterfacePorts(box);
   }
   return box;
 }
@@ -632,36 +685,25 @@ export function exposedPorts(box) {
       .filter(x => x.visible && x.componentId && x.portId)
       .map(x => {
         const component = box.components.find(c => c.id === x.componentId),
-          source = component?.snapshot.ports.find(port => port.id === x.portId);
+          source = component?.snapshot.ports.find(port => port.id === x.portId),
+          same = box.interfacePorts.filter(port => port.edge === x.edge),
+          i = same.indexOf(x);
         return component && source
-          ? { component, port: { ...source, label: x.label || source.label }, edge: x.edge }
+          ? {
+              component,
+              port: { ...source, label: x.label || source.label },
+              edge: x.edge,
+              t: (i + 1) / (same.length + 1)
+            }
           : null;
       })
-      .filter(Boolean)
-      .map((entry, _, all) => {
-        const same = all.filter(x => x.edge === entry.edge),
-          i = same.indexOf(entry);
-        return { ...entry, t: (i + 1) / (same.length + 1) };
-      });
+      .filter(Boolean);
   const entries = box.components.flatMap(c => c.snapshot.ports.map(port => ({ component: c, port })));
   const groups = { top: [], right: [], bottom: [], left: [] };
   let pixelIndex = 0;
   for (const entry of entries) {
-    const t = entry.port.type;
-    const edge =
-      t === 'pixel_output' || t === 'pixel_data'
-        ? pixelIndex++ % 2
-          ? 'bottom'
-          : 'right'
-        : t.includes('power')
-          ? 'bottom'
-          : t.includes('input')
-            ? 'left'
-            : t === 'audio' || t === 'dmx' || t === 'ethernet' || t === 'usb'
-              ? 'top'
-              : entry.port.direction === 'in'
-                ? 'left'
-                : 'right';
+    const edge = interfaceEdge(entry.port, pixelIndex);
+    if (entry.port.type === 'pixel_output' || entry.port.type === 'pixel_data') pixelIndex++;
     groups[edge].push(entry);
   }
   return Object.entries(groups).flatMap(([edge, list]) =>
@@ -671,7 +713,19 @@ export function exposedPorts(box) {
 export function perimeterAnchor(p, boxId, componentId, portId) {
   const box = p.installation?.boxes.find(b => b.id === boxId),
     v = p.scene?.placements?.['box:' + boxId],
-    node = box && exposedPorts(box).find(e => e.component.id === componentId && e.port.id === portId);
+    explicit = box?.interfacePorts?.find(port => port.componentId === componentId && port.portId === portId),
+    same = explicit && box.interfacePorts.filter(port => port.edge === explicit.edge),
+    source = box?.components
+      .find(component => component.id === componentId)
+      ?.snapshot.ports.find(port => port.id === portId),
+    node =
+      box &&
+      (exposedPorts(box).find(e => e.component.id === componentId && e.port.id === portId) ||
+        (explicit &&
+          source && {
+            edge: explicit.edge,
+            t: (same.indexOf(explicit) + 1) / (same.length + 1)
+          }));
   if (!v || !node) return null;
   const { edge, t } = node,
     gap = 0.06;
@@ -700,6 +754,7 @@ export function addBoxFromTemplate(p, t) {
       componentId: componentIds.get(x.componentId) || ''
     }));
   }
+  syncInterfacePorts(box);
   p.installation.boxes.push(box);
   return box;
 }
@@ -744,6 +799,7 @@ export function updateBoxFromTemplate(box, t) {
     id: 'interface-' + id(),
     componentId: componentIds.get(x.componentId) || ''
   }));
+  syncInterfacePorts(box);
   box.templateRef = { id: t.id, version: t.version };
 }
 export function routeSpecs(p) {

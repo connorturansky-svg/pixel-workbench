@@ -4,6 +4,7 @@ import {
   ensureInstallation,
   makeBox,
   makeInstance,
+  syncInterfacePorts,
   addBoxFromTemplate,
   saveBoxTemplate,
   updateBoxFromTemplate,
@@ -15,7 +16,7 @@ import {
   componentSearch,
   componentSizeGuides,
   deleteRoute
-} from './installation-model.mjs?v=0.37.0';
+} from './installation-model.mjs?v=0.38.0';
 
 let api,
   boxId = '',
@@ -25,6 +26,7 @@ let api,
   drag = null,
   bomScope = '',
   boxMode = 'schematic',
+  openInterfaceGroups = new Set(),
   schematicZoom = 1,
   schematicCanvasWidth = 1,
   schematicCanvasHeight = 450,
@@ -181,6 +183,39 @@ const interfacePorts = box => {
     })
     .join('');
 };
+const interfaceRow = port =>
+  `<div class="interface-row">${F('Label', port.label, `interface:${port.id}:label`, 'text', 'maxlength="80"')}${S(
+    'Edge',
+    port.edge,
+    `interface:${port.id}:edge`,
+    [
+      ['top', 'Top'],
+      ['right', 'Right'],
+      ['bottom', 'Bottom'],
+      ['left', 'Left']
+    ]
+  )}<label class="check"><input type="checkbox" data-install-field="interface:${E(port.id)}:visible" ${port.visible ? 'checked' : ''}> Active</label></div>`;
+const interfaceEditor = box => {
+  const componentGroups = box.components
+      .map(component => {
+        const ports = box.interfacePorts.filter(port => port.componentId === component.id),
+          active = ports.filter(port => port.visible).length;
+        if (!ports.length) return '';
+        return `<details class="interface-group" data-interface-group="${E(component.id)}" ${openInterfaceGroups.has(component.id) ? 'open' : ''}><summary><span>${E(component.snapshot.icon)} <strong>${E(component.snapshot.name)}</strong>${component.subname ? ` · ${E(component.subname)}` : ''}</span><small>${active} of ${ports.length} active</small></summary>${ports.map(interfaceRow).join('')}</details>`;
+      })
+      .join(''),
+    unassigned = box.interfacePorts.filter(port => !box.components.some(c => c.id === port.componentId));
+  return `<div class="interface-editor"><div><strong>Box edge ports</strong></div><p>Every component connector has a matching edge port. Expand a component, adjust its label or edge, then activate only the ports needed in Room layout.</p>${componentGroups || '<p class="micro">Add a component to create its edge ports.</p>'}${
+    unassigned.length
+      ? `<details class="interface-group" data-interface-group="@unassigned" ${openInterfaceGroups.has('@unassigned') ? 'open' : ''}><summary><span><strong>Unassigned ports</strong></span><small>${unassigned.length}</small></summary>${unassigned
+          .map(
+            port =>
+              `${interfaceRow(port)}${B('Remove', 'delete-interface-port:' + port.id, 'text-btn danger')}`
+          )
+          .join('')}</details>`
+      : ''
+  }</div>`;
+};
 function connectEndpoints(box, from, to) {
   const edge = from.component === '@interface' ? from : to.component === '@interface' ? to : null,
     component = edge === from ? to : from;
@@ -190,8 +225,13 @@ function connectEndpoints(box, from, to) {
       .find(c => c.id === component.component)
       ?.snapshot.ports.find(port => port.id === component.id);
     if (!source) return;
+    const port = box.interfacePorts.find(x => x.id === edge.id);
+    if (!port) return;
+    if (port.generated) {
+      api.toast('Generated edge ports stay linked to their matching component connector.');
+      return;
+    }
     api.transact(() => {
-      const port = box.interfacePorts.find(x => x.id === edge.id);
       port.componentId = component.component;
       port.portId = component.id;
       if (!port.label || port.label === 'New port') port.label = source.label;
@@ -257,27 +297,7 @@ export function boxesView(p, lib) {
                 .filter(x => x.type !== 'size')
                 .map(x => `<p class="layout-warning">⚠ ${E(x.text)}</p>`)
                 .join('')}`
-            : `<div class="box-canvas-toolbar"><div>${B('−', 'box-zoom:out', 'btn box-zoom-button')}${B(`${Math.round(schematicZoom * 100)}%`, 'box-zoom:home', 'btn box-zoom-readout')}${B('+', 'box-zoom:in', 'btn box-zoom-button')}</div>${B('Auto layout', 'auto-layout')}</div><div class="box-stage-scroll" tabindex="0" aria-label="Scrollable box schematic"><div class="box-stage" id="box-stage" style="width:${Math.max(1, schematicCanvasWidth * schematicZoom) * 100}%;min-height:${Math.max(450, schematicCanvasHeight * schematicZoom)}px;--schematic-zoom:${schematicZoom}"><svg id="box-wires" aria-hidden="true"></svg>${box.components.map(c => schematicPart(c, linkedPorts)).join('')}${interfacePorts(box)}</div></div><div class="interface-editor"><div><strong>Box edge ports</strong>${B('+ Add edge port', 'add-interface-port', 'text-btn')}</div><p>Wire a component connector to an edge port. Only ports marked Room visible appear on the box in Room layout.</p>${
-                Array.isArray(box.interfacePorts)
-                  ? box.interfacePorts
-                      .map(
-                        port =>
-                          `<div class="interface-row">${F('Label', port.label, `interface:${port.id}:label`, 'text', 'maxlength="80"')}${S(
-                            'Edge',
-                            port.edge,
-                            `interface:${port.id}:edge`,
-                            [
-                              ['top', 'Top'],
-                              ['right', 'Right'],
-                              ['bottom', 'Bottom'],
-                              ['left', 'Left']
-                            ]
-                          )}<label class="check"><input type="checkbox" data-install-field="interface:${E(port.id)}:visible" ${port.visible ? 'checked' : ''}> Room visible</label><span>${port.componentId ? 'Wired' : 'Not wired'}</span>${B('Remove', 'delete-interface-port:' + port.id, 'text-btn danger')}</div>`
-                      )
-                      .join('') ||
-                    '<p class="micro">Component ports remain available in Room layout until you add the first explicit edge port.</p>'
-                  : '<p class="micro">This older box currently exposes every component port. Add an edge port to switch to explicit room connectors.</p>'
-              }</div><div class="external-targets"><strong>Room route targets</strong><p>Choose an internal port, then click or drag it to a target.</p><div>${[...p.chains.flatMap(ch => ch.segments.map(v => ['segment:' + v.id, ch.name + ' · ' + v.kind])), ...p.installation.fieldDevices.map(v => ['field:' + v.id, v.name + ' · field'])].map(([key, label]) => `<button type="button" data-box-target="${E(key)}">${E(label)}</button>`).join('')}</div></div><div class="box-wire-help">Drag from an exact hardware port to another component or box edge port. Linked ports are filled; hover a port or wire to trace its connection.</div>`
+            : `<div class="box-canvas-toolbar"><div>${B('−', 'box-zoom:out', 'btn box-zoom-button')}${B(`${Math.round(schematicZoom * 100)}%`, 'box-zoom:home', 'btn box-zoom-readout')}${B('+', 'box-zoom:in', 'btn box-zoom-button')}</div>${B('Auto layout', 'auto-layout')}</div><div class="box-stage-scroll" tabindex="0" aria-label="Scrollable box schematic"><div class="box-stage" id="box-stage" style="width:${Math.max(1, schematicCanvasWidth * schematicZoom) * 100}%;min-height:${Math.max(450, schematicCanvasHeight * schematicZoom)}px;--schematic-zoom:${schematicZoom}"><svg id="box-wires" aria-hidden="true"></svg>${box.components.map(c => schematicPart(c, linkedPorts)).join('')}${interfacePorts(box)}</div></div>${interfaceEditor(box)}<div class="external-targets"><strong>Room route targets</strong><p>Choose an internal port, then click or drag it to a target.</p><div>${[...p.chains.flatMap(ch => ch.segments.map(v => ['segment:' + v.id, ch.name + ' · ' + v.kind])), ...p.installation.fieldDevices.map(v => ['field:' + v.id, v.name + ' · field'])].map(([key, label]) => `<button type="button" data-box-target="${E(key)}">${E(label)}</button>`).join('')}</div></div><div class="box-wire-help">Drag between exact hardware ports for internal connections. Activated edge ports become route targets in Room layout; hover a port or wire to trace its connection.</div>`
         }<h3>Connections</h3>${
           p.installation.connections
             .filter(x => x.boxId === box.id)
@@ -616,6 +636,13 @@ export function installInstallation(a) {
       boxDetailsOpen = !details.parentElement.open;
       return;
     }
+    const interfaceSummary = e.target.closest('.interface-group>summary');
+    if (interfaceSummary) {
+      const id = interfaceSummary.parentElement.dataset.interfaceGroup;
+      if (interfaceSummary.parentElement.open) openInterfaceGroups.delete(id);
+      else openInterfaceGroups.add(id);
+      return;
+    }
     const port = e.target.closest('[data-box-port]');
     if (port) {
       const [component, id] = port.dataset.boxPort.split(':'),
@@ -725,6 +752,7 @@ export function installInstallation(a) {
           c.x = 10 + (box.components.length % 4) * 20;
           c.y = 10 + Math.floor(box.components.length / 4) * 25;
           box.components.push(c);
+          syncInterfacePorts(box);
           partId = c.id;
           boxDetailsOpen = false;
         });
@@ -738,17 +766,14 @@ export function installInstallation(a) {
         copy.y = Math.min(85, copy.y + 7);
         copy.sourceKey = '';
         box.components.push(copy);
+        syncInterfacePorts(box);
         partId = copy.id;
         boxDetailsOpen = false;
       });
     } else if (action === 'delete-part' && box) {
       api.transact(() => {
         box.components = box.components.filter(c => c.id !== partId);
-        for (const port of box.interfacePorts || [])
-          if (port.componentId === partId) {
-            port.componentId = '';
-            port.portId = '';
-          }
+        syncInterfacePorts(box);
         for (const link of p.installation.connections.filter(
           x => x.fromComponent === partId || x.toComponent === partId
         ))
@@ -824,6 +849,7 @@ export function installInstallation(a) {
         api.transact(() => {
           c.snapshot = structuredClone(d);
           c.definitionVersion = d.version;
+          syncInterfacePorts(box);
         });
     } else if (action === 'new-box-size')
       api.libraryTransact(() =>
@@ -1061,6 +1087,7 @@ export function installInstallation(a) {
           c.x = +Math.min(85, Math.max(0, ((e.clientX - rect.left) / rect.width) * 100)).toFixed(1);
           c.y = +Math.min(85, Math.max(0, ((e.clientY - rect.top) / rect.height) * 100)).toFixed(1);
           box.components.push(c);
+          syncInterfacePorts(box);
           partId = c.id;
           boxDetailsOpen = false;
         });
