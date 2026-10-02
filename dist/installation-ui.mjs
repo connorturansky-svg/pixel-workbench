@@ -14,12 +14,13 @@ import {
   componentPlacement,
   componentSearch,
   deleteRoute
-} from './installation-model.mjs?v=0.28.0';
+} from './installation-model.mjs?v=0.29.0';
 
 let api,
   boxId = '',
   partId = '',
   wireFrom = null,
+  wirePoint = null,
   drag = null,
   bomScope = '',
   boxMode = 'schematic',
@@ -149,12 +150,12 @@ const hardwareDetail = kind =>
       : kind === 'module'
         ? '<i class="hardware-coil"></i><i class="hardware-chip"></i>'
         : '<i class="hardware-chip"></i><i class="hardware-capacitor"></i>';
-const schematicPart = c => {
+const schematicPart = (c, linkedPorts) => {
   const kind = visualKind(c);
   return `<div class="box-part ${kind} ${c.id === partId ? 'selected' : ''}" data-box-part="${E(c.id)}" style="left:${c.x}%;top:${c.y}%;--part-color:${E(c.snapshot.color || '#4b8a76')}"><div class="part-title"><span>${E(c.snapshot.icon)}</span><strong>${E(c.snapshot.name)}</strong></div><div class="hardware-face"><i class="mount-hole top-left"></i><i class="mount-hole top-right"></i><i class="mount-hole bottom-left"></i><i class="mount-hole bottom-right"></i><div class="hardware-silk"><strong>${E(c.snapshot.name)}</strong><small>${E(c.snapshot.model || c.snapshot.category)}</small></div><div class="hardware-detail" aria-hidden="true">${hardwareDetail(kind)}</div><div class="part-ports">${c.snapshot.ports
     .map(
       port =>
-        `<button type="button" class="part-port ${port.direction} ${portKind(port.type)}" draggable="true" data-box-port="${E(c.id)}:${E(port.id)}" title="${E(port.label)} · ${E(port.type)} · ${E(port.direction)}" aria-label="${E(port.label)}, ${E(port.type)}, ${E(port.direction)}"><i><b></b></i><span>${E(port.label)}<small>${E(port.type.replaceAll('_', ' '))}</small></span></button>`
+        `<button type="button" class="part-port ${port.direction} ${portKind(port.type)} ${linkedPorts.has(c.id + ':' + port.id) ? 'linked' : ''}" draggable="true" data-box-port="${E(c.id)}:${E(port.id)}" title="${E(port.label)} · ${E(port.type)} · ${E(port.direction)}" aria-label="${E(port.label)}, ${E(port.type)}, ${E(port.direction)}${linkedPorts.has(c.id + ':' + port.id) ? ', connected' : ''}"><i><b></b></i><span>${E(port.label)}<small>${E(port.type.replaceAll('_', ' '))}</small></span></button>`
     )
     .join(
       ''
@@ -166,7 +167,16 @@ export function boxesView(p, lib) {
     template = lib.boxTemplates.find(t => t.id === box?.templateRef?.id),
     part = box?.components.find(c => c.id === partId),
     issues = physicalIssues(box),
-    tickets = issues.filter(x => x.type === 'size');
+    tickets = issues.filter(x => x.type === 'size'),
+    linkedPorts = new Set(
+      (p.installation.connections || [])
+        .filter(x => x.boxId === box?.id)
+        .flatMap(x => [
+          x.fromComponent && x.fromPort ? x.fromComponent + ':' + x.fromPort : '',
+          x.toComponent && x.toPort ? x.toComponent + ':' + x.toPort : ''
+        ])
+        .filter(Boolean)
+    );
   return `<div class="install-intro">Arrange and wire components in Schematic, then use Physical layout for a scale drawing of the enclosure. Measurements stay in the device-local hardware library.</div><div class="install-toolbar">${B('+ New box', 'new-box')}${S(
     'Open box',
     boxId,
@@ -193,7 +203,7 @@ export function boxesView(p, lib) {
                 .filter(x => x.type !== 'size')
                 .map(x => `<p class="layout-warning">⚠ ${E(x.text)}</p>`)
                 .join('')}`
-            : `<div class="box-stage" id="box-stage"><svg id="box-wires" aria-hidden="true"></svg>${box.components.map(schematicPart).join('')}</div><div class="external-targets"><strong>Room route targets</strong><p>Choose an internal port, then click or drag it to a target.</p><div>${[...p.chains.flatMap(ch => ch.segments.map(v => ['segment:' + v.id, ch.name + ' · ' + v.kind])), ...p.installation.fieldDevices.map(v => ['field:' + v.id, v.name + ' · field'])].map(([key, label]) => `<button type="button" data-box-target="${E(key)}">${E(label)}</button>`).join('')}</div></div><div class="box-wire-help">Each illustrated connector is an exact hardware port. Click a source port, then a destination port to connect them. Any pairing can be planned; unusual types show a warning.</div>`
+            : `<div class="box-stage" id="box-stage"><svg id="box-wires" aria-hidden="true"></svg>${box.components.map(c => schematicPart(c, linkedPorts)).join('')}</div><div class="external-targets"><strong>Room route targets</strong><p>Choose an internal port, then click or drag it to a target.</p><div>${[...p.chains.flatMap(ch => ch.segments.map(v => ['segment:' + v.id, ch.name + ' · ' + v.kind])), ...p.installation.fieldDevices.map(v => ['field:' + v.id, v.name + ' · field'])].map(([key, label]) => `<button type="button" data-box-target="${E(key)}">${E(label)}</button>`).join('')}</div></div><div class="box-wire-help">Drag from an exact hardware port to preview a clean route, then drop on another port. Linked ports are filled; hover a port or wire to trace its full connection. Any pairing can be planned; unusual types show a warning.</div>`
         }<h3>Connections</h3>${
           p.installation.connections
             .filter(x => x.boxId === box.id)
@@ -290,6 +300,34 @@ export function openBox(id) {
   partId = '';
   boxDetailsOpen = false;
 }
+const segmentHits = (a, b, r) =>
+  a.x === b.x
+    ? a.x >= r.left && a.x <= r.right && Math.max(a.y, b.y) >= r.top && Math.min(a.y, b.y) <= r.bottom
+    : a.y >= r.top && a.y <= r.bottom && Math.max(a.x, b.x) >= r.left && Math.min(a.x, b.x) <= r.right;
+const routePath = (a, b, obstacles) => {
+  const direction = b.x >= a.x ? 1 : -1,
+    start = { x: a.x + 14 * direction, y: a.y },
+    finish = { x: b.x - 14 * direction, y: b.y },
+    middle = (start.x + finish.x) / 2,
+    direct = [a, start, { x: middle, y: start.y }, { x: middle, y: finish.y }, finish, b],
+    clear = points =>
+      points.slice(1).every((point, i) => !obstacles.some(rect => segmentHits(points[i], point, rect)));
+  let points = direct;
+  if (!clear(points) && obstacles.length) {
+    const top = Math.max(8, Math.min(...obstacles.map(r => r.top)) - 14),
+      bottom = Math.min(
+        document.querySelector('#box-stage')?.clientHeight - 8 || 442,
+        Math.max(...obstacles.map(r => r.bottom)) + 14
+      ),
+      candidates = [
+        [a, start, { x: start.x, y: top }, { x: finish.x, y: top }, finish, b],
+        [a, start, { x: start.x, y: bottom }, { x: finish.x, y: bottom }, finish, b]
+      ];
+    points =
+      candidates.find(clear) || candidates.sort((x, y) => Math.abs(x[2].y - a.y) - Math.abs(y[2].y - a.y))[0];
+  }
+  return points.map((point, i) => `${i ? 'L' : 'M'}${point.x} ${point.y}`).join(' ');
+};
 export function drawBoxConnections() {
   const stage = document.querySelector('#box-stage'),
     svg = document.querySelector('#box-wires');
@@ -297,22 +335,42 @@ export function drawBoxConnections() {
   const p = api.getProject(),
     box = current(p);
   svg.setAttribute('viewBox', `0 0 ${stage.clientWidth} ${stage.clientHeight}`);
-  svg.innerHTML = (p.installation.connections || [])
+  const rs = stage.getBoundingClientRect(),
+    rectFor = el => {
+      const r = el.getBoundingClientRect();
+      return {
+        left: r.left - rs.left - 8,
+        right: r.right - rs.left + 8,
+        top: r.top - rs.top - 8,
+        bottom: r.bottom - rs.top + 8
+      };
+    },
+    center = el => {
+      const r = el.getBoundingClientRect();
+      return { x: r.left + r.width / 2 - rs.left, y: r.top + r.height / 2 - rs.top };
+    },
+    parts = [...stage.querySelectorAll('.box-part')];
+  const paths = (p.installation.connections || [])
     .filter(x => x.boxId === box?.id)
     .map(x => {
       const a = stage.querySelector(`[data-box-port="${CSS.escape(x.fromComponent + ':' + x.fromPort)}"]`),
         b = stage.querySelector(`[data-box-port="${CSS.escape(x.toComponent + ':' + x.toPort)}"]`);
       if (!a || !b) return '';
-      const ra = a.getBoundingClientRect(),
-        rb = b.getBoundingClientRect(),
-        rs = stage.getBoundingClientRect(),
-        x1 = ra.left + ra.width / 2 - rs.left,
-        y1 = ra.top + ra.height / 2 - rs.top,
-        x2 = rb.left + rb.width / 2 - rs.left,
-        y2 = rb.top + rb.height / 2 - rs.top;
-      return `<path d="M${x1} ${y1} C${(x1 + x2) / 2} ${y1},${(x1 + x2) / 2} ${y2},${x2} ${y2}" fill="none" stroke="${connectionWarnings(p, x).length ? '#d17944' : '#4b8a76'}" stroke-width="2"/>`;
+      const endpoints = [a.closest('.box-part'), b.closest('.box-part')],
+        obstacles = parts.filter(part => !endpoints.includes(part)).map(rectFor);
+      return `<path class="box-wire" data-wire-from="${E(x.fromComponent + ':' + x.fromPort)}" data-wire-to="${E(x.toComponent + ':' + x.toPort)}" d="${routePath(center(a), center(b), obstacles)}" stroke="${connectionWarnings(p, x).length ? '#d17944' : '#4b8a76'}"/>`;
     })
     .join('');
+  let preview = '';
+  if (wireFrom && wirePoint) {
+    const a = stage.querySelector(`[data-box-port="${CSS.escape(wireFrom.component + ':' + wireFrom.id)}"]`);
+    if (a) {
+      const sourcePart = a.closest('.box-part'),
+        obstacles = parts.filter(part => part !== sourcePart).map(rectFor);
+      preview = `<path class="box-wire preview" d="${routePath(center(a), wirePoint, obstacles)}"/>`;
+    }
+  }
+  svg.innerHTML = paths + preview;
 }
 function addExternal(box, from, toKey) {
   const p = api.getProject(),
@@ -357,11 +415,16 @@ export function installInstallation(a) {
         box = current(api.getProject());
       if (!wireFrom) {
         wireFrom = { component, id };
+        const stage = port.closest('#box-stage'),
+          rect = stage?.getBoundingClientRect();
+        wirePoint = rect ? { x: e.clientX - rect.left, y: e.clientY - rect.top } : null;
         port.classList.add('wire-start');
+        drawBoxConnections();
         api.toast('Choose a destination port.');
       } else {
         const from = wireFrom;
         wireFrom = null;
+        wirePoint = null;
         if (from.component === component && from.id === id) {
           api.render();
           return;
@@ -390,6 +453,7 @@ export function installInstallation(a) {
       const box = current(api.getProject()),
         from = wireFrom;
       wireFrom = null;
+      wirePoint = null;
       addExternal(box, from, target.dataset.boxTarget);
       return;
     }
@@ -722,11 +786,23 @@ export function installInstallation(a) {
     if (palette) e.dataTransfer.setData('application/x-pixel-part', palette.dataset.palette);
     else if (port) {
       wireFrom = { component: port.dataset.boxPort.split(':')[0], id: port.dataset.boxPort.split(':')[1] };
+      const stage = port.closest('#box-stage'),
+        rect = stage?.getBoundingClientRect();
+      wirePoint = rect ? { x: e.clientX - rect.left, y: e.clientY - rect.top } : null;
       e.dataTransfer.setData('application/x-pixel-port', port.dataset.boxPort);
+      requestAnimationFrame(drawBoxConnections);
     }
   });
   document.addEventListener('dragover', e => {
-    if (e.target.closest('#box-stage,[data-box-target],[data-box-port]')) e.preventDefault();
+    if (e.target.closest('#box-stage,[data-box-target],[data-box-port]')) {
+      e.preventDefault();
+      const stage = document.querySelector('#box-stage'),
+        rect = stage?.getBoundingClientRect();
+      if (wireFrom && rect) {
+        wirePoint = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+        drawBoxConnections();
+      }
+    }
   });
   document.addEventListener('drop', e => {
     const stage = e.target.closest('#box-stage'),
@@ -752,12 +828,14 @@ export function installInstallation(a) {
       e.preventDefault();
       const from = wireFrom;
       wireFrom = null;
+      wirePoint = null;
       addExternal(box, from, target.dataset.boxTarget);
     } else if (port && wireFrom) {
       e.preventDefault();
       const [toComponent, toPort] = port.dataset.boxPort.split(':'),
         from = wireFrom;
       wireFrom = null;
+      wirePoint = null;
       if (from.component !== toComponent || from.id !== toPort)
         api.transact(() =>
           api.getProject().installation.connections.push({
@@ -772,6 +850,39 @@ export function installInstallation(a) {
         );
     }
   });
+  document.addEventListener('dragend', e => {
+    if (!e.target.closest('[data-box-port]')) return;
+    wireFrom = null;
+    wirePoint = null;
+    drawBoxConnections();
+  });
+  const highlightConnection = (target, on) => {
+    const keys = target.matches('[data-box-port]')
+      ? [target.dataset.boxPort]
+      : [target.dataset.wireFrom, target.dataset.wireTo].filter(Boolean);
+    const paths = [...document.querySelectorAll('.box-wire:not(.preview)')].filter(
+      path => keys.includes(path.dataset.wireFrom) || keys.includes(path.dataset.wireTo)
+    );
+    const connected = new Set(keys);
+    paths.forEach(path => {
+      path.classList.toggle('connection-highlight', on);
+      connected.add(path.dataset.wireFrom);
+      connected.add(path.dataset.wireTo);
+    });
+    connected.forEach(key =>
+      document
+        .querySelector(`[data-box-port="${CSS.escape(key)}"]`)
+        ?.classList.toggle('connection-highlight', on)
+    );
+  };
+  document.addEventListener('pointerover', e => {
+    const target = e.target.closest('[data-box-port],.box-wire:not(.preview)');
+    if (target) highlightConnection(target, true);
+  });
+  document.addEventListener('pointerout', e => {
+    const target = e.target.closest('[data-box-port],.box-wire:not(.preview)');
+    if (target && !target.contains(e.relatedTarget)) highlightConnection(target, false);
+  });
   document.addEventListener('pointerdown', e => {
     const el = e.target.closest('.box-part .part-title,.physical-part');
     if (!el || e.button !== 0) return;
@@ -783,7 +894,18 @@ export function installInstallation(a) {
     e.preventDefault();
   });
   document.addEventListener('pointermove', e => {
-    if (!drag || drag.pointer !== e.pointerId) return;
+    if (!drag || drag.pointer !== e.pointerId) {
+      const stage = document.querySelector('#box-stage'),
+        rect = stage?.getBoundingClientRect();
+      if (wireFrom && rect) {
+        wirePoint = {
+          x: Math.max(0, Math.min(rect.width, e.clientX - rect.left)),
+          y: Math.max(0, Math.min(rect.height, e.clientY - rect.top))
+        };
+        drawBoxConnections();
+      }
+      return;
+    }
     const rect = drag.stage.getBoundingClientRect(),
       maxX = 100 - (drag.part.offsetWidth / rect.width) * 100,
       maxY = 100 - (drag.part.offsetHeight / rect.height) * 100,

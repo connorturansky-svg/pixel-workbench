@@ -15,6 +15,7 @@
   {"issue":12,"version":"0.24.0","title":"On the box builder page, its using size measurements in m","outcome":"shipped","at":"2026-10-02T13:37:01Z","runs":1,"model":"gpt-5.6-sol","credits":97.0,"tokensIn":550300,"tokensCached":476300,"tokensOut":20500,"seconds":222},
   {"issue":13,"version":"0.25.0","title":"Increase my daily build allowance to 10k credits","outcome":"declined","at":"2026-10-02T13:38:29Z","runs":1,"model":"gpt-5.6-sol","credits":4.49,"tokensIn":19400,"tokensCached":11900,"tokensOut":145,"seconds":13},
   {"issue":14,"version":"0.25.0","title":"For the controller box section, box details should be a collapsable…","outcome":"shipped","at":"2026-10-02T13:46:08Z","runs":1,"model":"gpt-5.6-sol","credits":67.22,"tokensIn":217100,"tokensCached":163000,"tokensOut":16800,"seconds":169},
-  {"issue":12,"version":"0.28.0","title":"On the box builder page, its using size measurements in m","outcome":"shipped","at":"2026-10-02T14:15:36Z","runs":1,"model":"gpt-5.6-sol","credits":36.31,"tokensIn":172700,"tokensCached":135700,"tokensOut":6200,"seconds":100}
+  {"issue":12,"version":"0.28.0","title":"On the box builder page, its using size measurements in m","outcome":"shipped","at":"2026-10-02T14:15:36Z","runs":1,"model":"gpt-5.6-sol","credits":36.31,"tokensIn":172700,"tokensCached":135700,"tokensOut":6200,"seconds":100},
+  {"issue":15,"version":"0.29.0","title":"Box builder wiring visuals","outcome":"shipped","at":"2026-10-02T14:19:50Z","runs":1,"model":"gpt-5.6-sol","credits":39.66,"tokensIn":255500,"tokensCached":219900,"tokensOut":6500,"seconds":79}
  ]
 }
