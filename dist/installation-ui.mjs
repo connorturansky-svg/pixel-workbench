@@ -15,7 +15,7 @@ import {
   componentSearch,
   componentSizeGuides,
   deleteRoute
-} from './installation-model.mjs?v=0.33.0';
+} from './installation-model.mjs?v=0.34.0';
 
 let api,
   boxId = '',
@@ -25,6 +25,7 @@ let api,
   drag = null,
   bomScope = '',
   boxMode = 'schematic',
+  schematicZoom = 1,
   showTickets = false,
   boxDetailsOpen = false;
 const E = s =>
@@ -254,7 +255,7 @@ export function boxesView(p, lib) {
                 .filter(x => x.type !== 'size')
                 .map(x => `<p class="layout-warning">⚠ ${E(x.text)}</p>`)
                 .join('')}`
-            : `<div class="box-stage" id="box-stage"><svg id="box-wires" aria-hidden="true"></svg>${box.components.map(c => schematicPart(c, linkedPorts)).join('')}${interfacePorts(box)}</div><div class="interface-editor"><div><strong>Box edge ports</strong>${B('+ Add edge port', 'add-interface-port', 'text-btn')}</div><p>Wire a component connector to an edge port. Only ports marked Room visible appear on the box in Room layout.</p>${
+            : `<div class="box-canvas-toolbar"><div>${B('−', 'box-zoom:out', 'btn box-zoom-button')}${B('100%', 'box-zoom:home', 'btn box-zoom-readout')}${B('+', 'box-zoom:in', 'btn box-zoom-button')}</div>${B('Auto layout', 'auto-layout')}</div><div class="box-stage-scroll" tabindex="0" aria-label="Scrollable box schematic"><div class="box-stage" id="box-stage" style="width:${schematicZoom * 100}%;min-height:${450 * schematicZoom}px"><svg id="box-wires" aria-hidden="true"></svg>${box.components.map(c => schematicPart(c, linkedPorts)).join('')}${interfacePorts(box)}</div></div><div class="interface-editor"><div><strong>Box edge ports</strong>${B('+ Add edge port', 'add-interface-port', 'text-btn')}</div><p>Wire a component connector to an edge port. Only ports marked Room visible appear on the box in Room layout.</p>${
                 Array.isArray(box.interfacePorts)
                   ? box.interfacePorts
                       .map(
@@ -370,6 +371,124 @@ export function openBox(id) {
   boxId = id;
   partId = '';
   boxDetailsOpen = false;
+  schematicZoom = 1;
+}
+function setSchematicZoom(next, clientX, clientY) {
+  const scroll = document.querySelector('.box-stage-scroll'),
+    stage = scroll?.querySelector('#box-stage');
+  if (!scroll || !stage) return;
+  next = Math.max(0.5, Math.min(3, Math.round(next * 100) / 100));
+  const rect = scroll.getBoundingClientRect(),
+    x = clientX == null ? scroll.clientWidth / 2 : clientX - rect.left,
+    y = clientY == null ? scroll.clientHeight / 2 : clientY - rect.top,
+    ratio = next / schematicZoom;
+  schematicZoom = next;
+  stage.style.width = schematicZoom * 100 + '%';
+  stage.style.minHeight = 450 * schematicZoom + 'px';
+  scroll.scrollLeft = (scroll.scrollLeft + x) * ratio - x;
+  scroll.scrollTop = (scroll.scrollTop + y) * ratio - y;
+  const readout = document.querySelector('.box-zoom-readout');
+  if (readout) readout.textContent = Math.round(schematicZoom * 100) + '%';
+  requestAnimationFrame(drawBoxConnections);
+}
+function autoLayout(box, project) {
+  const ids = new Set(box.components.map(c => c.id)),
+    links = (project.installation.connections || []).filter(
+      x => x.boxId === box.id && ids.has(x.fromComponent) && ids.has(x.toComponent)
+    ),
+    outgoing = new Map(box.components.map(c => [c.id, []])),
+    incoming = new Map(box.components.map(c => [c.id, 0])),
+    depth = new Map(box.components.map(c => [c.id, 0]));
+  links.forEach(link => {
+    outgoing.get(link.fromComponent).push(link.toComponent);
+    incoming.set(link.toComponent, incoming.get(link.toComponent) + 1);
+  });
+  const queue = box.components.filter(c => incoming.get(c.id) === 0).map(c => c.id),
+    visited = new Set();
+  while (queue.length) {
+    const id = queue.shift();
+    visited.add(id);
+    outgoing.get(id).forEach(next => {
+      depth.set(next, Math.max(depth.get(next), depth.get(id) + 1));
+      incoming.set(next, incoming.get(next) - 1);
+      if (incoming.get(next) === 0) queue.push(next);
+    });
+  }
+  const categoryLayer = category =>
+    [
+      'Network',
+      'Computer',
+      'Input board',
+      'Controller',
+      'Signal board',
+      'DMX',
+      'Relay board',
+      'Power'
+    ].indexOf(category);
+  box.components.forEach(c => {
+    if (
+      !visited.has(c.id) ||
+      (!links.some(x => x.fromComponent === c.id || x.toComponent === c.id) && !depth.get(c.id))
+    )
+      depth.set(c.id, Math.max(0, categoryLayer(c.snapshot.category)));
+  });
+  const values = [...new Set(depth.values())].sort((a, b) => a - b),
+    groups = values.map(value =>
+      box.components
+        .filter(c => depth.get(c.id) === value)
+        .sort(
+          (a, b) =>
+            a.snapshot.category.localeCompare(b.snapshot.category) ||
+            a.snapshot.name.localeCompare(b.snapshot.name)
+        )
+    ),
+    maxRows = Math.max(1, ...groups.map(group => group.length)),
+    scroll = document.querySelector('.box-stage-scroll'),
+    baseWidth = scroll?.clientWidth || 800;
+  schematicZoom = Math.min(
+    3,
+    Math.max(1, (groups.length * 280 + 48) / baseWidth, (maxRows * 210 + 48) / 450)
+  );
+  api.render();
+  requestAnimationFrame(() => {
+    const stage = document.querySelector('#box-stage');
+    if (!stage) return;
+    const elements = new Map(
+        [...stage.querySelectorAll('[data-box-part]')].map(element => [element.dataset.boxPart, element])
+      ),
+      tallest = Math.max(
+        0,
+        ...groups.map(
+          group =>
+            group.reduce((sum, c) => sum + (elements.get(c.id)?.offsetHeight || 180), 0) +
+            (group.length - 1) * 32
+        )
+      );
+    if (tallest + 48 > stage.clientHeight)
+      setSchematicZoom(Math.min(3, schematicZoom * ((tallest + 48) / stage.clientHeight)));
+    requestAnimationFrame(() => {
+      const width = stage.clientWidth,
+        height = stage.clientHeight,
+        margin = 24;
+      api.transact(() =>
+        groups.forEach((group, column) => {
+          const heights = group.map(c => elements.get(c.id)?.offsetHeight || 180),
+            total = heights.reduce((sum, value) => sum + value, 0) + Math.max(0, group.length - 1) * 32;
+          let y = Math.max(margin, (height - total) / 2);
+          group.forEach((c, row) => {
+            const partWidth = elements.get(c.id)?.offsetWidth || 230,
+              x =
+                groups.length === 1
+                  ? (width - partWidth) / 2
+                  : margin + (column * (width - partWidth - margin * 2)) / (groups.length - 1);
+            c.x = +((Math.max(0, x) / width) * 100).toFixed(1);
+            c.y = +((y / height) * 100).toFixed(1);
+            y += heights[row] + 32;
+          });
+        })
+      );
+    });
+  });
 }
 const segmentHits = (a, b, r) =>
   a.x === b.x
@@ -545,6 +664,11 @@ export function installInstallation(a) {
     if (action === 'box-mode') {
       boxMode = id;
       api.render();
+    } else if (action === 'box-zoom') {
+      if (id === 'home') setSchematicZoom(1);
+      else setSchematicZoom(schematicZoom + (id === 'in' ? 0.25 : -0.25));
+    } else if (action === 'auto-layout' && box) {
+      autoLayout(box, p);
     } else if (action === 'tickets') {
       showTickets = !showTickets;
       api.render();
@@ -1026,4 +1150,13 @@ export function installInstallation(a) {
         c.y = +parseFloat(d.part.style.top).toFixed(1);
       });
   });
+  document.addEventListener(
+    'wheel',
+    e => {
+      if (!e.target.closest('.box-stage-scroll') || boxMode !== 'schematic') return;
+      e.preventDefault();
+      setSchematicZoom(schematicZoom + (e.deltaY < 0 ? 0.1 : -0.1), e.clientX, e.clientY);
+    },
+    { passive: false }
+  );
 }

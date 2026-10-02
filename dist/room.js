@@ -5,20 +5,20 @@ import {
   makeProp,
   PALETTE,
   clampPosition
-} from './layout-model.mjs?v=0.33.0';
+} from './layout-model.mjs?v=0.34.0';
 import {
   ensureInstallation,
   exposedPorts,
   perimeterAnchor,
   deleteRoute
-} from './installation-model.mjs?v=0.33.0';
+} from './installation-model.mjs?v=0.34.0';
 import {
   routeLayer,
   routeControls,
   routeInspector,
   installRoutes,
   refreshRoutes
-} from './installation-room.mjs?v=0.33.0';
+} from './installation-room.mjs?v=0.34.0';
 let api,
   chosen = '',
   propId = 'prop-smiley',

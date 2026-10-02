@@ -111,6 +111,37 @@
   font-size: 12px;
   color: #6e8e7b;
 }
+.box-canvas-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 14px;
+}
+.box-canvas-toolbar > div {
+  display: flex;
+  align-items: center;
+}
+.box-zoom-button {
+  min-width: 36px;
+}
+.box-zoom-readout {
+  min-width: 68px;
+  border-radius: 0;
+}
+.box-stage-scroll {
+  max-height: 650px;
+  margin: 10px 0 16px;
+  overflow: auto;
+  border: 2px solid #769a84;
+  border-radius: 7px;
+  background: #eaf2ec;
+  scrollbar-gutter: stable;
+}
+.box-stage-scroll:focus-visible {
+  outline: 3px solid var(--orange);
+  outline-offset: 2px;
+}
 .box-stage {
   position: relative;
   min-height: 450px;
@@ -118,9 +149,9 @@
   background-image:
     linear-gradient(#e6eee8 1px, transparent 1px), linear-gradient(90deg, #e6eee8 1px, transparent 1px);
   background-size: 25px 25px;
-  border: 2px solid #769a84;
-  border-radius: 7px;
-  margin: 16px 0;
+  border: 0;
+  border-radius: 0;
+  margin: 0;
   overflow: hidden;
 }
 .box-stage > svg {
