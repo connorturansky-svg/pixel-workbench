@@ -44,9 +44,9 @@ Every change bumps `APP_VERSION` in `dist/version.mjs` and adds a `CHANGELOG` en
 
 ## Feature requests (automatic builds)
 
-The **Suggest a feature** page lets anyone describe an idea and add screenshots. The issue title is generated from the first sentence. The page opens a prefilled `[Feature]` GitHub issue that the requester creates under their own GitHub account. The same page lists every request and its build status from the public GitHub issues API, with the total request count shown in the heading.
+The **Suggest a feature** page lets anyone describe an idea and add screenshots. The issue title is generated from the first sentence. The page opens a prefilled `[Feature]` GitHub issue that the requester creates under their own GitHub account. The same page lists each allowed request and its build status from the public GitHub API, with the total request count in the heading. Shipped requests show the version they were released in, read from the builder's `vX.Y.Z: … (#n)` commit titles.
 
-Every request is built with no approval step, by `automation/builder.py` on the build PC:
+Only requests from the GitHub accounts in `ALLOWED_AUTHORS` (`J-Turansky` and `connorturansky-svg`) are built. To change the list, edit `ALLOWED_AUTHORS` in both `automation/builder.py` and `dist/suggest.mjs`. Requests from anyone else are labelled `declined` and closed with an explanation. Allowed requests are built with no approval step, by `automation/builder.py` on the build PC:
 
 1. Every 5 minutes (Task Scheduler), it takes the oldest open `[Feature]` issue and labels it `in-progress`.
 2. It resets its own worktree (`..\pixel-workbench-build`) to `origin/main` and downloads the issue's screenshots.
