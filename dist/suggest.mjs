@@ -1,4 +1,4 @@
-import { APP_VERSION } from './version.mjs?v=0.40.0';
+import { APP_VERSION } from './version.mjs?v=0.41.0';
 
 // Suggest a feature: submits a `[Feature]` GitHub issue in the background under the requester's own GitHub account
 // (a token they connect once, kept only in this browser and sent only to api.github.com). Screenshots are uploaded
@@ -259,10 +259,13 @@ const fmtTok = n =>
       : String(Math.round(n));
 const fmtCredits = c => Math.round(c).toLocaleString('en-GB');
 const fmtTime = s => (s >= 60 ? `${Math.floor(s / 60)}m ${s % 60}s` : `${s}s`);
-export function costSummary(data) {
+export const RECENT_DAYS = 28;
+export function costSummary(data, now = Date.now()) {
   const rate = Number(data?.creditUsd) || 0.01,
     by = {},
-    tot = { credits: 0, tokens: 0, builds: 0, shipped: 0 };
+    tot = { credits: 0, tokens: 0, builds: 0, shipped: 0 },
+    recent = { credits: 0, tokens: 0, builds: 0 },
+    cut = now - RECENT_DAYS * 864e5;
   for (const b of Array.isArray(data?.builds) ? data.builds : []) {
     const c = Number(b.credits) || 0,
       ti = Number(b.tokensIn) || 0,
@@ -289,8 +292,13 @@ export function costSummary(data) {
     tot.tokens += ti + to;
     tot.builds++;
     if (b.outcome === 'shipped') tot.shipped++;
+    if (Date.parse(b.at) > cut) {
+      recent.credits += c;
+      recent.tokens += ti + to;
+      recent.builds++;
+    }
   }
-  return { rate, by, tot };
+  return { rate, by, tot, recent };
 }
 const usd = (c, rate) => '$' + (Math.round(c) * rate).toFixed(2);
 function costHtml(n) {
@@ -335,13 +343,18 @@ function limitHtml() {
     cls = full ? ' full' : pct >= 80 ? ' near' : '';
   return `<div class="sg-limit${cls}" role="group" aria-label="Daily build allowance"><div class="sg-limit-row"><span><b>Daily build allowance</b> · <span title="AI credits used by all builds in the last 24 hours">${fmtCredits(u.used)} of ${fmtCredits(u.lim)} credits, last 24h</span></span><span>${Math.round(pct)}%</span></div><div class="sg-limit-bar" role="progressbar" aria-valuemin="0" aria-valuemax="${u.lim}" aria-valuenow="${Math.round(u.used)}"><i style="width:${pct.toFixed(1)}%"></i></div>${full ? `<p>Limit reached. Requests stay queued and building restarts${u.resume ? ` at about ${whenText(u.resume)}` : ' when older builds drop out of the 24-hour window'}.</p>` : ''}</div>`;
 }
+function recentHtml(s) {
+  const r = s?.recent;
+  if (!r) return '';
+  return `<div class="sg-limit sg-recent" role="group" aria-label="Last ${RECENT_DAYS} days"><div class="sg-limit-row"><span><b>Last ${RECENT_DAYS} days</b> · <span title="AI usage of builds in the last ${RECENT_DAYS} days, read from build-costs.json">${fmtCredits(r.credits)} credits · ${usd(r.credits, s.rate)} · ${fmtTok(r.tokens)} tokens</span></span><span>${r.builds} build${r.builds === 1 ? '' : 's'}</span></div></div>`;
+}
 function spendHtml() {
   const s = list.cost;
   if (!s?.tot?.builds) return limitHtml();
   const t = s.tot,
     other = t.builds - t.shipped;
   return `<div class="sg-spend" title="AI usage of every automatic build, read from build-costs.json. 1 AI credit = $${s.rate} (GitHub’s rate).">
-<div><b>${fmtCredits(t.credits)}</b><span>AI credits</span></div><div><b>${usd(t.credits, s.rate)}</b><span>est. cost</span></div><div><b>${fmtTok(t.tokens)}</b><span>tokens</span></div><div><b>${t.builds}</b><span>build${t.builds === 1 ? '' : 's'}${other ? ` (${other} not shipped)` : ''}</span></div></div>${limitHtml()}`;
+<div><b>${fmtCredits(t.credits)}</b><span>AI credits</span></div><div><b>${usd(t.credits, s.rate)}</b><span>est. cost</span></div><div><b>${fmtTok(t.tokens)}</b><span>tokens</span></div><div><b>${t.builds}</b><span>build${t.builds === 1 ? '' : 's'}${other ? ` (${other} not shipped)` : ''}</span></div></div>${recentHtml(s)}${limitHtml()}`;
 }
 const mine = i => !!auth && String(i.user?.login || '').toLowerCase() === auth.login.toLowerCase();
 const REPLIED_KEY = 'pw-sg-replied';

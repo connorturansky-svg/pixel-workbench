@@ -443,6 +443,9 @@
   font-size: 12px;
   color: #9a3a27;
 }
+.sg-recent {
+  margin-bottom: 8px;
+}
 .sg-num {
   font-variant-numeric: tabular-nums;
   color: #6b7e7a;

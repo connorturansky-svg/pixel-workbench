@@ -1,6 +1,13 @@
 // Every change: bump APP_VERSION, add a CHANGELOG entry at the top (date DD/MM/YYYY), and review HOW_TO_USE, ARCHITECTURE_NOTES / the info.mjs diagram and SHORTCUTS.
-export const APP_VERSION = '0.40.0';
+export const APP_VERSION = '0.41.0';
 export const CHANGELOG = [
+  {
+    version: '0.41.0',
+    date: '02/10/2026',
+    items: [
+      'Suggest a feature now shows the total AI credits, estimated cost, tokens and builds from the last 28 days, just above the Daily build allowance meter.'
+    ]
+  },
   {
     version: '0.40.0',
     date: '02/10/2026',
@@ -417,7 +424,7 @@ export const SUGGEST_GUIDE = [
   ],
   [
     'Costs and the daily allowance',
-    'Each build uses AI credits. The counter above the tabs totals the AI credits, estimated cost and tokens of every build, and each shipped request shows its own. All requests from all users share an allowance of 5,000 AI credits in any rolling 24 hours, shown by the Daily build allowance meter. When it is full, requests wait in the queue until older builds drop out of the 24-hour window.'
+    'Each build uses AI credits. The counter above the tabs totals the AI credits, estimated cost and tokens of every build, and each shipped request shows its own. A Last 28 days line totals the same figures for recent builds. All requests from all users share an allowance of 5,000 AI credits in any rolling 24 hours, shown by the Daily build allowance meter. When it is full, requests wait in the queue until older builds drop out of the 24-hour window.'
   ],
   [
     'Tips for a good request',
