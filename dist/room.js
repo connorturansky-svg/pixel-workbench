@@ -5,7 +5,7 @@ import {
   makeProp,
   PALETTE,
   clampPosition
-} from './layout-model.mjs?v=0.62.0';
+} from './layout-model.mjs?v=0.63.0';
 import {
   ensureInstallation,
   BUTTON_COLOURS,
@@ -13,14 +13,14 @@ import {
   perimeterAnchor,
   deleteRoute,
   portTypeColour
-} from './installation-model.mjs?v=0.62.0';
+} from './installation-model.mjs?v=0.63.0';
 import {
   routeLayer,
   routeControls,
   routeInspector,
   installRoutes,
   refreshRoutes
-} from './installation-room.mjs?v=0.62.0';
+} from './installation-room.mjs?v=0.63.0';
 let api,
   chosen = '',
   propId = 'prop-smiley',
@@ -352,11 +352,16 @@ export function installRoom(a) {
   document.body.append(file);
   file.addEventListener('change', importReference);
 }
-function completeRoomWire(key) {
-  if (!roomWire || !key || (!key.startsWith('field:') && !key.startsWith('segment:'))) return;
+function completeRoomWire(target) {
+  if (
+    !roomWire ||
+    !target ||
+    (typeof target === 'string' && !target.startsWith('field:') && !target.startsWith('segment:'))
+  )
+    return;
   const source = roomWire;
   roomWire = null;
-  api.linkRoom(source, key);
+  api.linkRoom(source, target);
 }
 function removeRoomObject(p) {
   const e = entities(p).find(item => item.key === chosen);
@@ -407,8 +412,12 @@ function onClick(ev) {
   const external = ev.target.closest('[data-room-port]');
   if (external) {
     const [boxId, componentId, portId] = external.dataset.roomPort.split(':');
+    if (roomWire) {
+      completeRoomWire({ boxId, componentId, portId });
+      return;
+    }
     roomWire = { boxId, componentId, portId };
-    api.toast('Choose a field device or pixel group to connect.');
+    api.toast('Choose another box port, field device or pixel group to connect.');
     return;
   }
   const node = ev.target.closest('[data-room-node]');

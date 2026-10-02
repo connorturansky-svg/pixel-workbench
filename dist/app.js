@@ -1,6 +1,6 @@
-import { ensureScene } from './layout-model.mjs?v=0.62.0';
-import { roomView, propsView, installRoom } from './room.js?v=0.62.0';
-import { wiringGraph, installGraph, drawGraph } from './wiring-graph.mjs?v=0.62.0';
+import { ensureScene } from './layout-model.mjs?v=0.63.0';
+import { roomView, propsView, installRoom } from './room.js?v=0.63.0';
+import { wiringGraph, installGraph, drawGraph } from './wiring-graph.mjs?v=0.63.0';
 import {
   defaultLibrary,
   ensureLibrary,
@@ -14,7 +14,7 @@ import {
   routeGeometry,
   routeIssues,
   projectCapacity
-} from './installation-model.mjs?v=0.62.0';
+} from './installation-model.mjs?v=0.63.0';
 import {
   boxBuilderView,
   standardsView,
@@ -23,11 +23,11 @@ import {
   drawBoxConnections,
   openBox,
   physicalIssues
-} from './installation-ui.mjs?v=0.62.0';
-import { APP_VERSION } from './version.mjs?v=0.62.0';
-import { installInfo } from './info.mjs?v=0.62.0';
-import { suggestView, installSuggest, afterSuggestRender, bellHtml } from './suggest.mjs?v=0.62.0';
-import { createDemoProject } from './demo-project.mjs?v=0.62.0';
+} from './installation-ui.mjs?v=0.63.0';
+import { APP_VERSION } from './version.mjs?v=0.63.0';
+import { installInfo } from './info.mjs?v=0.63.0';
+import { suggestView, installSuggest, afterSuggestRender, bellHtml } from './suggest.mjs?v=0.63.0';
+import { createDemoProject } from './demo-project.mjs?v=0.63.0';
 import {
   tailoredInitial,
   calculate,
@@ -38,7 +38,7 @@ import {
   PSU_MODELS,
   newSegment,
   uid
-} from './model.mjs?v=0.62.0';
+} from './model.mjs?v=0.63.0';
 const testing = new URLSearchParams(location.search).has('test');
 let project = tailoredInitial(),
   view = 'room',
@@ -1151,11 +1151,60 @@ installGraph({
   }
 });
 installRoom({
-  linkRoom: (source, key) => {
-    const box = project.installation.boxes.find(b => b.id === source.boxId);
-    const part = box?.components.find(c => c.id === source.componentId);
-    const port = part?.snapshot.ports.find(v => v.id === source.portId);
+  linkRoom: (source, target) => {
+    let box = project.installation.boxes.find(b => b.id === source.boxId),
+      part = box?.components.find(c => c.id === source.componentId),
+      port = part?.snapshot.ports.find(v => v.id === source.portId);
     if (!port) return;
+    if (typeof target !== 'string') {
+      let targetBox = project.installation.boxes.find(b => b.id === target.boxId),
+        targetPart = targetBox?.components.find(c => c.id === target.componentId),
+        targetPort = targetPart?.snapshot.ports.find(v => v.id === target.portId);
+      if (
+        !targetPort ||
+        (source.boxId === target.boxId &&
+          source.componentId === target.componentId &&
+          source.portId === target.portId)
+      )
+        return;
+      const sourceCanSend = port.direction !== 'in',
+        targetCanReceive = targetPort.direction !== 'out',
+        targetCanSend = targetPort.direction !== 'in',
+        sourceCanReceive = port.direction !== 'out';
+      if ((!sourceCanSend || !targetCanReceive) && targetCanSend && sourceCanReceive) {
+        [box, targetBox] = [targetBox, box];
+        [part, targetPart] = [targetPart, part];
+        [port, targetPort] = [targetPort, port];
+      }
+      transact(() =>
+        project.installation.connections.push({
+          id: 'link-' + uid(),
+          boxId: box.id,
+          fromKey: 'box:' + box.id,
+          fromComponent: part.id,
+          fromPort: port.id,
+          toKey: 'box:' + targetBox.id,
+          toComponent: targetPart.id,
+          toPort: targetPort.id,
+          kind: port.type.includes('power') ? 'power' : port.type.includes('pixel') ? 'data' : 'other',
+          name:
+            box.name +
+            ' / ' +
+            part.snapshot.name +
+            ' ' +
+            port.label +
+            ' to ' +
+            targetBox.name +
+            ' / ' +
+            targetPart.snapshot.name +
+            ' ' +
+            targetPort.label,
+          acknowledged: false
+        })
+      );
+      return;
+    }
+    const key = target;
     transact(() => {
       const chain = key.startsWith('segment:')
           ? project.chains.find(ch => ch.segments.some(s => 'segment:' + s.id === key))

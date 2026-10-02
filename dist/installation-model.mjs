@@ -1313,9 +1313,14 @@ export function assignCable(p, routeId, standard) {
   r.cableSnapshot = standard ? copy(standard) : null;
 }
 export function connectionWarnings(p, x) {
-  const box = p.installation.boxes.find(b => b.id === x.boxId),
-    a = box?.components.find(c => c.id === x.fromComponent),
-    b = box?.components.find(c => c.id === x.toComponent),
+  const fromBox = p.installation.boxes.find(
+      b => b.id === (x.fromKey?.startsWith('box:') ? x.fromKey.slice(4) : x.boxId)
+    ),
+    toBox = p.installation.boxes.find(
+      b => b.id === (x.toKey?.startsWith('box:') ? x.toKey.slice(4) : x.boxId)
+    ),
+    a = fromBox?.components.find(c => c.id === x.fromComponent),
+    b = toBox?.components.find(c => c.id === x.toComponent),
     ap = a?.snapshot.ports.find(v => v.id === x.fromPort),
     bp = b?.snapshot.ports.find(v => v.id === x.toPort);
   const result = [];
@@ -1331,7 +1336,7 @@ export function connectionWarnings(p, x) {
       );
     return result;
   }
-  if (x.toKey) {
+  if (x.toKey && !x.toKey.startsWith('box:')) {
     if (!ap) return ['Source port no longer exists'];
     if (ap.direction === 'in') result.push('External route starts at an input port');
     if (x.toKey.startsWith('field:')) {
@@ -1350,7 +1355,7 @@ export function connectionWarnings(p, x) {
     return result;
   }
   if (!ap || !bp) return ['Port no longer exists'];
-  if (ap.direction !== 'out' || bp.direction !== 'in')
+  if (!['out', 'bidirectional'].includes(ap.direction) || !['in', 'bidirectional'].includes(bp.direction))
     result.push(`Expected output → input; got ${ap.direction} → ${bp.direction}`);
   if (ap.type !== bp.type && ap.type !== 'generic' && bp.type !== 'generic')
     result.push(`Expected ${bp.type.replaceAll('_', ' ')}; connected to ${ap.type.replaceAll('_', ' ')}`);
@@ -1477,9 +1482,15 @@ export function boxCapacity(p, box) {
     addResource(counts, resource, 1);
     generic.set(item.id, counts);
   };
-  for (const link of p.installation.connections.filter(v => v.boxId === box.id)) {
-    const from = box.components.find(c => c.id === link.fromComponent),
-      to = box.components.find(c => c.id === link.toComponent);
+  for (const link of p.installation.connections.filter(
+    v => v.boxId === box.id || v.fromKey === 'box:' + box.id || v.toKey === 'box:' + box.id
+  )) {
+    const from =
+        (!link.fromKey || link.fromKey === 'box:' + box.id) &&
+        box.components.find(c => c.id === link.fromComponent),
+      to =
+        (!link.toKey || link.toKey === 'box:' + box.id) &&
+        box.components.find(c => c.id === link.toComponent);
     const fromPort = from?.snapshot.ports.find(v => v.id === link.fromPort),
       toPort = to?.snapshot.ports.find(v => v.id === link.toPort);
     if (fromPort?.direction === 'out' || fromPort?.direction === 'bidirectional') track(from, fromPort);
