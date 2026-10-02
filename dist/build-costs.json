@@ -34,6 +34,7 @@
   {"issue":25,"version":"0.42.0","title":"Standards update sync","outcome":"shipped","at":"2026-10-02T16:14:51Z","runs":1,"model":"gpt-5.6-sol","credits":32.64,"tokensIn":195200,"tokensCached":162200,"tokensOut":4800,"seconds":83},
   {"issue":26,"version":"0.43.0","title":"neaten up interface","outcome":"needs-info","at":"2026-10-02T16:18:28Z","runs":1,"model":"gpt-5.6-sol","credits":8.68,"tokensIn":27800,"tokensCached":13900,"tokensOut":603,"seconds":14},
   {"issue":27,"version":"0.43.0","title":"edge port neatening","outcome":"shipped","at":"2026-10-02T16:24:41Z","runs":1,"model":"gpt-5.6-sol","credits":22.02,"tokensIn":104900,"tokensCached":81800,"tokensOut":3600,"seconds":73},
-  {"issue":26,"version":"0.44.0","title":"neaten up interface","outcome":"shipped","at":"2026-10-02T16:30:24Z","runs":1,"model":"gpt-5.6-sol","credits":47.87,"tokensIn":382300,"tokensCached":336600,"tokensOut":5800,"seconds":104}
+  {"issue":26,"version":"0.44.0","title":"neaten up interface","outcome":"shipped","at":"2026-10-02T16:30:24Z","runs":1,"model":"gpt-5.6-sol","credits":47.87,"tokensIn":382300,"tokensCached":336600,"tokensOut":5800,"seconds":104},
+  {"issue":28,"version":"0.45.0","title":"Label neatening","outcome":"shipped","at":"2026-10-02T16:35:06Z","runs":1,"model":"gpt-5.6-sol","credits":38.37,"tokensIn":252000,"tokensCached":214800,"tokensOut":5600,"seconds":95}
  ]
 }

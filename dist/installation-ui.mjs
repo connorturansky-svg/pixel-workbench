@@ -17,7 +17,7 @@ import {
   componentSearch,
   componentSizeGuides,
   deleteRoute
-} from './installation-model.mjs?v=0.44.0';
+} from './installation-model.mjs?v=0.45.0';
 
 let api,
   boxId = '',
