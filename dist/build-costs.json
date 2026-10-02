@@ -4,6 +4,7 @@
   {"issue":1,"version":"0.8.0","title":"Show the request count on the build status heading","outcome":"shipped","at":"2026-10-02T11:51:35Z","runs":1,"model":"gpt-5.6-sol","credits":18.83,"tokensIn":98100,"tokensCached":73300,"tokensOut":1800,"seconds":38},
   {"issue":3,"version":"0.11.0","title":"I want to improve the left nav pane so it doesn't need to scroll","outcome":"shipped","at":"2026-10-02T12:17:45Z","runs":1,"model":"gpt-5.6-sol","credits":48.15,"tokensIn":400600,"tokensCached":360800,"tokensOut":6900,"seconds":151},
   {"issue":4,"version":"0.13.0","title":"Nav bar still needs to scroll, use responsive design to prevent this…","outcome":"shipped","at":"2026-10-02T12:31:09Z","runs":1,"model":"gpt-5.6-sol","credits":42.12,"tokensIn":262200,"tokensCached":219800,"tokensOut":6100,"seconds":108},
-  {"issue":5,"version":"0.14.0","title":"On the room layout view, i want to be able to use the mouse to zoom…","outcome":"shipped","at":"2026-10-02T12:36:34Z","runs":1,"model":"gpt-5.6-sol","credits":62.73,"tokensIn":286600,"tokensCached":234800,"tokensOut":13700,"seconds":162}
+  {"issue":5,"version":"0.14.0","title":"On the room layout view, i want to be able to use the mouse to zoom…","outcome":"shipped","at":"2026-10-02T12:36:34Z","runs":1,"model":"gpt-5.6-sol","credits":62.73,"tokensIn":286600,"tokensCached":234800,"tokensOut":13700,"seconds":162},
+  {"issue":6,"version":"0.16.0","title":"For room layout: 1","outcome":"shipped","at":"2026-10-02T12:55:43Z","runs":1,"model":"gpt-5.6-sol","credits":93.65,"tokensIn":552500,"tokensCached":468000,"tokensOut":16300,"seconds":144}
  ]
 }
