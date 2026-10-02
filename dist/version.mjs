@@ -1,5 +1,7 @@
-export const APP_VERSION='0.5.0';
+// Every change: bump APP_VERSION, add a CHANGELOG entry at the top (date DD/MM/YYYY), and review HOW_TO_USE, ARCHITECTURE_NOTES / the info.mjs diagram and SHORTCUTS.
+export const APP_VERSION='0.6.0';
 export const CHANGELOG=[
+ {version:'0.6.0',date:'02/10/2026',items:['Info / Help moves from the sidebar into a single i button (top bar) that opens a fixed-size dialog with How to use, What’s new, Architecture and Shortcuts tabs.','Added an About summary, an architecture diagram with technical notes, and a keyboard shortcut reference. Press ? anywhere outside a text field to open it.','The sidebar version label now opens What’s new. Changelog entries now show their release date.']},
  {version:'0.5.0',items:['Controller boxes now anchor the room layout, with coloured rectangular component sections and exposed component-port nodes. Existing loose infrastructure moves into an Unassigned infrastructure box.','Added field devices, port-to-device wiring, combined route warnings on the map, connection deletion and catalog search/category filters.','Added a disposable demo project with real boxes, cables, capacity, warnings and Save demo as project.']},
  {version:'0.4.1',items:['Added separate How to Use and What’s New tabs, duplicate box parts and clearer capacity bands.','Added port-to-room targets, clearer internal port routing, custom resources and operating limits.','Added a measured physical cable schedule to the wiring guide.']},
  {version:'0.4.0',items:['Physical room cable routes with draggable pivots and endpoints, scale-based lengths, slack and cable-fit warnings.','Reusable cable standards and hardware definitions, controller-box builder, typed ports and capacity summaries.','Project bill of materials, route visibility and optional signal-flow animation.','Info / Help with usage guidance and version history.']},
@@ -17,5 +19,24 @@ export const HOW_TO_USE=[
  ['Lay out the room','Switch to Room layout. Set room dimensions in metres, drag objects, then select a cable route. Double-click the route or use Add pivot; drag pivots and endpoints to follow the real path.'],
  ['Choose physical cables','In Standards, edit your cable colours, connectors and actual lengths. Assign a standard to a room route. Route length, optional slack and spare/shortfall are shown separately.'],
  ['Build controller boxes','Create a box, drag components from the library into it, position or duplicate them, then click or drag between their typed ports. Choose a port and a room target for an external cable route. Link real project hardware to count its use, and save reusable templates.'],
- ['Review and pack','Check per-box and project capacity, then open the Bill of materials. Export project JSON for backup and use the Wiring guide and planning CSV in the field.']
+ ['Review and pack','Check per-box and project capacity, then open the Bill of materials. Export project JSON for backup and use the Wiring guide and planning CSV in the field.'],
+ ['Get help','Use the i button in the top bar for this guide, the change log, the architecture and keyboard shortcuts. The version label in the sidebar opens What’s new.']
+];
+export const ABOUT='Pixel Workbench is a device-local planner for 12 V pixel systems built on Baldrick controllers and FPP. Use it to lay out a room, size power and injection, design controller boxes and produce a wiring guide, bill of materials and channel CSV. Calculations are planning estimates. Confirm ratings and wiring against the actual equipment.';
+export const SHORTCUTS=[
+ ['?','Open this dialog on the Shortcuts tab (outside text fields)'],
+ ['Esc','Close this dialog or any open editor dialog'],
+ ['Tab','Move between controls and room objects'],
+ ['Enter','Select the focused room object'],
+ ['Space','Select the focused room object'],
+ ['← ↑ → ↓','Move the focused room object by the snap grid'],
+ ['Shift + ← ↑ → ↓','Move the focused room object by 1 m'],
+ ['Delete','Remove the focused cable-route pivot']
+];
+export const ARCHITECTURE_NOTES=[
+ 'A static, no-build web app: plain ES modules, HTML and CSS served from dist/. Pushing to main publishes dist/ to GitHub Pages through the Actions workflow.',
+ 'app.js holds the project state and re-renders the whole interface from it. Every view (wiring, room, boxes, standards, BOM, guide) reads the same project, so changes appear in every view.',
+ 'Calculation and data modules (model, layout-model, installation-model) are UI-free. verify.mjs and verify-installation.mjs exercise them under Node.',
+ 'Data never leaves the browser. The project and standards library are stored in localStorage. JSON export/import is the backup path, and ?test=1 runs an isolated session that does not save.',
+ 'version.mjs is the single source for the version, changelog, help text and shortcuts. info.mjs renders the i dialog.'
 ];
