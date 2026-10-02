@@ -601,6 +601,27 @@ export function syncInterfacePorts(box) {
   });
   return box.interfacePorts;
 }
+export function syncBoxStandards(box, lib) {
+  let updated = 0;
+  for (const component of box.components) {
+    const definition = lib.components.find(item => item.id === component.definitionId);
+    if (!definition || definition.version === component.definitionVersion) continue;
+    component.snapshot = copy(definition);
+    component.definitionVersion = definition.version;
+    updated++;
+  }
+  if (!updated) return 0;
+  syncInterfacePorts(box);
+  const components = new Map(box.components.map(component => [component.id, component]));
+  for (const port of box.interfacePorts) {
+    if (!port.generated) continue;
+    const componentPort = components
+      .get(port.componentId)
+      ?.snapshot.ports.find(componentPort => componentPort.id === port.portId);
+    if (componentPort) port.label = componentPort.label;
+  }
+  return updated;
+}
 export function boxForSource(p, key) {
   return p.installation?.boxes?.find(b => b.components.some(c => c.sourceKey === key)) || null;
 }

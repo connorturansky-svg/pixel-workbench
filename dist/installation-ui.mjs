@@ -5,6 +5,7 @@ import {
   makeBox,
   makeInstance,
   syncInterfacePorts,
+  syncBoxStandards,
   addBoxFromTemplate,
   saveBoxTemplate,
   updateBoxFromTemplate,
@@ -16,7 +17,7 @@ import {
   componentSearch,
   componentSizeGuides,
   deleteRoute
-} from './installation-model.mjs?v=0.41.0';
+} from './installation-model.mjs?v=0.42.0';
 
 let api,
   boxId = '',
@@ -291,7 +292,7 @@ export function boxesView(p, lib) {
           )
           .join(
             ''
-          )}</aside><section class="panel box-editor"><div class="box-heading"><div><h2>${E(box.name)}</h2><p>${E(box.description || 'Drag parts to arrange them. Click one to edit.')}</p></div>${B('Delete box', 'delete-box', 'text-btn danger')}</div><div class="box-view-tabs" role="group" aria-label="Box view">${B('Schematic', 'box-mode:schematic', boxMode === 'schematic' ? 'active' : '')}${B('Physical layout', 'box-mode:physical', boxMode === 'physical' ? 'active' : '')}</div>${
+          )}</aside><section class="panel box-editor"><div class="box-heading"><div><h2>${E(box.name)}</h2><p>${E(box.description || 'Drag parts to arrange them. Click one to edit.')}</p></div><div>${B('Sync standards', 'sync-standards', 'text-btn')}${B('Delete box', 'delete-box', 'text-btn danger')}</div></div><div class="box-view-tabs" role="group" aria-label="Box view">${B('Schematic', 'box-mode:schematic', boxMode === 'schematic' ? 'active' : '')}${B('Physical layout', 'box-mode:physical', boxMode === 'physical' ? 'active' : '')}</div>${
           boxMode === 'physical'
             ? `<div class="physical-status"><span>${box.physicalWidthMm / 10 || 40} × ${box.physicalDepthMm / 10 || 25} cm enclosure</span><span class="${issues.length ? 'warn' : ''}">${issues.length ? `${issues.length} layout issue${issues.length === 1 ? '' : 's'}` : 'Layout fits'}</span></div><div class="box-stage physical-stage" id="box-stage" style="aspect-ratio:${box.physicalWidthMm || 400}/${box.physicalDepthMm || 250}">${box.components.map(c => physicalPart(c, box)).join('')}</div>${issues
                 .filter(x => x.type !== 'size')
@@ -728,6 +729,16 @@ export function installInstallation(a) {
         c.definitionVersion = d.version;
       });
       api.toast('Measurements saved to the device library.');
+    } else if (action === 'sync-standards' && box) {
+      let updated = 0;
+      api.transact(() => {
+        updated = syncBoxStandards(box, lib);
+      });
+      api.toast(
+        updated
+          ? `${updated} component standard${updated === 1 ? '' : 's'} synced.`
+          : 'This box already uses the latest standards.'
+      );
     } else if (action === 'new-box')
       api.transact(() => {
         const b = makeBox('Controller box ' + (p.installation.boxes.length + 1));
