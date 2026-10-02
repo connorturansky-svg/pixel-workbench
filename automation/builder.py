@@ -39,6 +39,7 @@ STATE = os.path.join(DATA_DIR, "state.json")
 LOCK = os.path.join(DATA_DIR, "builder.lock")
 MARK = "<!-- pw-builder -->"
 TITLE = re.compile(r"^\s*\[feature\]", re.I)
+NUMBER = re.compile(r"^\s*#\d+\b\s*[:\-\u2013]?\s*")   # "#7 " after [Feature]
 SKIP = {"in-progress", "tested", "build-failed", "needs-info", "declined", "shipped"}
 LABELS = {"feature-request": ("1e755d", "Suggested from the app"), "in-progress": ("fbca04", "Being built"), "tested": ("5319e7", "Passed checks; publishing"),
           "shipped": ("0e8a16", "Built and live"), "build-failed": ("d73a4a", "The automatic build failed"),
@@ -178,6 +179,10 @@ def next_request(state):
         n = i["number"]
         if "feature-request" not in labels:
             label(n, add=["feature-request"])
+        numbered = f"[Feature] #{n} " + NUMBER.sub("", TITLE.sub("", i["title"]).strip())
+        if i["title"] != numbered and not DRY:
+            gh("issue", "edit", str(n), "-R", REPO, "--title", numbered[:256], check=False)
+            i["title"] = numbered
         if i["author"]["login"].lower() not in ALLOWED_AUTHORS:
             if "declined" not in labels:
                 comment(n, "Thanks for the suggestion. Automatic builds are limited to approved GitHub accounts, "
@@ -577,7 +582,7 @@ def sync_owner():
 # ---------------------------------------------------------------- one build
 
 def build(issue, state):
-    n, title = issue["number"], TITLE.sub("", issue["title"]).strip()[:100]
+    n, title = issue["number"], NUMBER.sub("", TITLE.sub("", issue["title"]).strip())[:100]
     author = issue["author"]["login"]
     ensure_worktree()
     version = next_version()

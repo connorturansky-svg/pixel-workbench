@@ -1,4 +1,4 @@
-import {ensureInstallation,routeSpecs,routeRecord,routeGeometry,routeAnchor,assignCable,routeIssues,deleteRoute} from './installation-model.mjs?v=0.18.0';
+import {ensureInstallation,routeSpecs,routeRecord,routeGeometry,routeAnchor,assignCable,routeIssues,deleteRoute} from './installation-model.mjs?v=0.19.0';
 
 let api,selected='',pivotIndex=-1,drag=null;
 const E=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));

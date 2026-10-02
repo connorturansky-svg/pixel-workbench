@@ -1,4 +1,4 @@
-import {APP_VERSION} from './version.mjs?v=0.18.0';
+import {APP_VERSION} from './version.mjs?v=0.19.0';
 
 // Suggest a feature: submits a `[Feature]` GitHub issue in the background under the requester's own GitHub account
 // (a token they connect once, kept only in this browser and sent only to api.github.com). Screenshots are uploaded
@@ -68,6 +68,7 @@ async function submit(){
   const r=await gh('/issues',{method:'POST',body:JSON.stringify({title:'[Feature] '+title,body:issueBody(shots),labels:['feature-request']})});
   if(!r.ok)await fail(r,'create the request');
   const issue=await r.json();
+  try{const nt=numberedTitle(issue.title,issue.number),pr=await gh(`/issues/${issue.number}`,{method:'PATCH',body:JSON.stringify({title:nt})});if(pr.ok)issue.title=nt;}catch{}
   draft.images.forEach(im=>URL.revokeObjectURL(im.url));Object.assign(draft,{desc:'',images:[]});
   sub={state:'done',msg:'',number:issue.number,url:issue.html_url};
   list={...list,items:[issue,...list.items.filter(x=>x.number!==issue.number)]};try{sessionStorage.removeItem(KEY);}catch{}
@@ -145,13 +146,15 @@ function spendHtml(){
  return `<div class="sg-spend" title="AI usage of every automatic build, read from build-costs.json. 1 AI credit = $${s.rate} (GitHub’s rate).">
 <div><b>${fmtCredits(t.credits)}</b><span>AI credits</span></div><div><b>${usd(t.credits,s.rate)}</b><span>est. cost</span></div><div><b>${fmtTok(t.tokens)}</b><span>tokens</span></div><div><b>${t.builds}</b><span>build${t.builds===1?'':'s'}${other?` (${other} not shipped)`:''}</span></div></div>${limitHtml()}`;
 }
+export const titleText=t=>String(t||'').replace(/^\s*\[Feature\]\s*/i,'').replace(/^#\d+\b\s*[:\-–]?\s*/,'');
+export const numberedTitle=(t,n)=>`[Feature] #${n} ${titleText(t)}`;
 function listHtml(){
  if(list.state==='loading'&&!list.items.length)return '<p class="empty">Loading requests…</p>';
  if(list.state==='error'&&!list.items.length)return `<p class="empty">Couldn't load the request list (${E(list.error)}). <a href="https://github.com/${REPO}/issues?q=%5BFeature%5D" target="_blank" rel="noopener">See them on GitHub</a>.</p>`;
  if(!list.items.length)return '<p class="empty">No feature requests yet. Be the first.</p>';
  const [,stageLabel,match]=stageOf(stage),shown=list.items.filter(i=>match(statusOf(i)));
  if(!shown.length)return `<p class="empty">Nothing is ${stage==='attention'?'waiting for attention':stageLabel.toLowerCase()} right now.</p>`;
- return `<ul class="sg-list">${shown.map(i=>{const s=statusOf(i),[label,help]=STATUS[s];return `<li class="sg-item"><span class="sg-state"><span class="sg-pill sg-${s}" title="${E(help)}">${label}</span>${s==='shipped'&&list.versions?.[i.number]?`<a class="sg-ver" href="https://github.com/${REPO}/releases/tag/v${E(list.versions[i.number])}" target="_blank" rel="noopener" title="Released in this version">v${E(list.versions[i.number])}</a>`:''}</span><div class="sg-item-main"><a href="${E(i.html_url)}" target="_blank" rel="noopener">${E(i.title.replace(/^\[Feature\]\s*/i,''))}</a><small>#${i.number} · ${E(i.user?.login||'')} · ${date(i.created_at)}${s==='shipped'&&i.closed_at?` · shipped ${date(i.closed_at)}`:''}${i.comments?` · ${i.comments} comment${i.comments>1?'s':''}`:''}</small>${s==='shipped'?costHtml(i.number):''}</div></li>`;}).join('')}</ul>`;
+ return `<ul class="sg-list">${shown.map(i=>{const s=statusOf(i),[label,help]=STATUS[s];return `<li class="sg-item"><span class="sg-state"><span class="sg-pill sg-${s}" title="${E(help)}">${label}</span>${s==='shipped'&&list.versions?.[i.number]?`<a class="sg-ver" href="https://github.com/${REPO}/releases/tag/v${E(list.versions[i.number])}" target="_blank" rel="noopener" title="Released in this version">v${E(list.versions[i.number])}</a>`:''}</span><div class="sg-item-main"><a href="${E(i.html_url)}" target="_blank" rel="noopener"><span class="sg-num">#${i.number}</span> ${E(titleText(i.title))}</a><small>${E(i.user?.login||'')} · ${date(i.created_at)}${s==='shipped'&&i.closed_at?` · shipped ${date(i.closed_at)}`:''}${i.comments?` · ${i.comments} comment${i.comments>1?'s':''}`:''}</small>${s==='shipped'?costHtml(i.number):''}</div></li>`;}).join('')}</ul>`;
 }
 
 export function suggestView(){

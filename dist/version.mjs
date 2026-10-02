@@ -1,6 +1,7 @@
 // Every change: bump APP_VERSION, add a CHANGELOG entry at the top (date DD/MM/YYYY), and review HOW_TO_USE, ARCHITECTURE_NOTES / the info.mjs diagram and SHORTCUTS.
-export const APP_VERSION='0.18.0';
+export const APP_VERSION='0.19.0';
 export const CHANGELOG=[
+ {version:'0.19.0',date:'02/10/2026',items:['Feature request titles now start with their number, for example “[Feature] #7 …”, on GitHub and in the Suggest a feature list.','New requests are numbered as soon as they’re submitted, and the builder numbers any request that was raised directly on GitHub.']},
  {version:'0.18.0',date:'02/10/2026',items:['Cable-route pivots now keep hold of the pointer throughout a room-layout drag, so they can be repositioned reliably like other movable items. (suggested in #8)']},
  {version:'0.17.0',date:'02/10/2026',items:['Automatic builds now share a daily allowance of 5,000 AI credits across all requests and users, over a rolling 24 hours.','A Daily build allowance meter on Suggest a feature shows how much of the allowance has been used. It turns amber at 80% and red when the limit is reached.','When the limit is reached, requests stay queued and the meter shows roughly when building restarts.']},
  {version:'0.16.0',date:'02/10/2026',items:['Room labels are larger, sit closer to their objects and scale with the room view; a toolbar control can hide or show all labels.','Controller-box ports now protrude from the enclosure and identify their component and exact input or output.','Cable routes now find live 45-degree paths around room objects as they move. Adding a pivot turns that route into an editable manual path, and pivot dragging is more reliable. (suggested in #6)']},
