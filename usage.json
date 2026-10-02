@@ -235,7 +235,13 @@
    "issue": 30,
    "credits": 24.76,
    "outcome": "retry"
+  },
+  {
+   "at": "2026-10-02T16:54:37Z",
+   "issue": 30,
+   "credits": 22.82,
+   "outcome": "shipped"
   }
  ],
- "updated": "2026-10-02T16:49:42Z"
+ "updated": "2026-10-02T16:55:14Z"
 }
