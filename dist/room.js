@@ -5,21 +5,21 @@ import {
   makeProp,
   PALETTE,
   clampPosition
-} from './layout-model.mjs?v=0.55.0';
+} from './layout-model.mjs?v=0.56.0';
 import {
   ensureInstallation,
   exposedPorts,
   perimeterAnchor,
   deleteRoute,
   portTypeColour
-} from './installation-model.mjs?v=0.55.0';
+} from './installation-model.mjs?v=0.56.0';
 import {
   routeLayer,
   routeControls,
   routeInspector,
   installRoutes,
   refreshRoutes
-} from './installation-room.mjs?v=0.55.0';
+} from './installation-room.mjs?v=0.56.0';
 let api,
   chosen = '',
   propId = 'prop-smiley',
@@ -280,6 +280,10 @@ function node(p, e) {
   const v = p.scene.placements[e.key],
     pr = p.props.find(pr => pr.id === e.o.propId),
     is = e.type === 'segment',
+    connected =
+      !is ||
+      !!e.chain.controller ||
+      p.installation.connections.some(x => x.fromKey === e.key || x.toKey === e.key),
     w = v.width * 100,
     h = v.height * 100,
     labels = p.installation.showLabels;
@@ -288,7 +292,7 @@ function node(p, e) {
     : e.type === 'field'
       ? fieldConnectionLabel(p, e.o)
       : '';
-  return `<g data-room-node="${E(e.key)}" tabindex="0" role="button" aria-label="Move ${E(e.name)}" transform="translate(${v.x * 100} ${v.y * 100})" class="room-object ${chosen === e.key ? 'chosen' : ''}"><g transform="rotate(${v.rotation})"><rect x="${-w / 2 - 6}" y="${-h / 2 - 6}" width="${w + 12}" height="${h + 12}" rx="7" fill="transparent" class="selection-ring" stroke="${chosen === e.key ? '#153f3d' : 'transparent'}" stroke-width="2"/>${is ? `<svg x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" viewBox="0 0 100 100" preserveAspectRatio="none">${e.o.kind === 'flood' && !pr ? floodSvg(e.o.count, v.color) : propSvg(pr ? { ...pr, color: v.color } : { shape: 'line', count: e.o.count, columns: Math.min(e.o.count, 8), color: v.color }, e.o.count)}</svg><rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" fill="transparent"/>` : `${e.type === 'box' ? boxVisual(e.o, w, h) : e.type === 'field' ? fieldVisual(e.o, w, h) : e.type === 'psu' ? `<rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="3" fill="#e7f0e8" stroke="${v.color}" stroke-width="4"/><path d="M${w / 2 - 10} ${-h / 2}v${h}" stroke="${v.color}" stroke-width="5"/>` : e.type === 'distro' ? `<path d="M${-w / 2} ${-h / 2}h${w - 8}l8 8v${h - 8}h${-w}z" fill="#e9f1f4" stroke="${v.color}" stroke-width="4"/>` : e.type === 'controller' ? `<rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="10" fill="#173f34" stroke="${v.color}" stroke-width="4"/>` : `<rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="6" fill="${v.color}"/>`}${labels ? `<text text-anchor="middle" y="4" fill="${e.type === 'psu' || e.type === 'distro' ? '#28483d' : 'white'}" font-size="${Math.min(14, w / 5)}" font-weight="700">${e.type === 'box' || e.type === 'field' ? '' : { controller: 'CTRL', psu: 'PSU', distro: 'DIST', aux: 'I/O' }[e.type]}</text>` : ''}`}</g>${labels ? `${e.type === 'box' ? '' : `<text class="room-object-label" x="0" y="${h / 2 + 16}" text-anchor="middle">${E(e.name.length > 30 ? e.name.slice(0, 28) + '…' : e.name)}</text>`}${detail ? `<text class="room-object-detail" x="0" y="${h / 2 + 30}" text-anchor="middle">(${E(detail)})</text>` : ''}` : ''}</g>`;
+  return `<g data-room-node="${E(e.key)}" tabindex="0" role="button" aria-label="Move ${E(e.name)}" transform="translate(${v.x * 100} ${v.y * 100})" class="room-object ${chosen === e.key ? 'chosen' : ''}"><g transform="rotate(${v.rotation})"><rect x="${-w / 2 - 6}" y="${-h / 2 - 6}" width="${w + 12}" height="${h + 12}" rx="7" fill="transparent" class="selection-ring" stroke="${chosen === e.key ? '#153f3d' : 'transparent'}" stroke-width="2"/>${is ? `<svg x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" viewBox="0 0 100 100" preserveAspectRatio="none">${e.o.kind === 'flood' && !pr ? floodSvg(e.o.count, v.color) : propSvg(pr ? { ...pr, color: v.color } : { shape: 'line', count: e.o.count, columns: Math.min(e.o.count, 8), color: v.color }, e.o.count)}</svg><rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" fill="transparent"/>${connected ? '' : `<g class="room-unconnected" transform="translate(${w / 2 - 5} ${-h / 2 + 5})"><circle r="12"/><text y="5" text-anchor="middle">!</text><title>Not connected to a pixel output</title></g>`}` : `${e.type === 'box' ? boxVisual(e.o, w, h) : e.type === 'field' ? fieldVisual(e.o, w, h) : e.type === 'psu' ? `<rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="3" fill="#e7f0e8" stroke="${v.color}" stroke-width="4"/><path d="M${w / 2 - 10} ${-h / 2}v${h}" stroke="${v.color}" stroke-width="5"/>` : e.type === 'distro' ? `<path d="M${-w / 2} ${-h / 2}h${w - 8}l8 8v${h - 8}h${-w}z" fill="#e9f1f4" stroke="${v.color}" stroke-width="4"/>` : e.type === 'controller' ? `<rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="10" fill="#173f34" stroke="${v.color}" stroke-width="4"/>` : `<rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="6" fill="${v.color}"/>`}${labels ? `<text text-anchor="middle" y="4" fill="${e.type === 'psu' || e.type === 'distro' ? '#28483d' : 'white'}" font-size="${Math.min(14, w / 5)}" font-weight="700">${e.type === 'box' || e.type === 'field' ? '' : { controller: 'CTRL', psu: 'PSU', distro: 'DIST', aux: 'I/O' }[e.type]}</text>` : ''}`}</g>${labels ? `${e.type === 'box' ? '' : `<text class="room-object-label" x="0" y="${h / 2 + 16}" text-anchor="middle">${E(e.name.length > 30 ? e.name.slice(0, 28) + '…' : e.name)}</text>`}${detail ? `<text class="room-object-detail" x="0" y="${h / 2 + 30}" text-anchor="middle">(${E(detail)})</text>` : ''}` : ''}</g>`;
 }
 export function propsView(p) {
   ensureScene(p);
@@ -709,12 +713,12 @@ function place(pr, p) {
         const [mode, id, port] = f.get('target').split('|'),
           s = api.newSegment(pr.kind);
         Object.assign(s, { count: pr.count, watts: pr.watts, channels: pr.channels, propId: pr.id });
-        if (mode === 'new')
+        if (mode === 'new' || mode === 'unconnected')
           p.chains.push({
             id: 'r-' + Math.random().toString(36).slice(2, 10),
             name: pr.name,
-            controller: id,
-            port: +port,
+            controller: mode === 'unconnected' ? '' : id,
+            port: mode === 'unconnected' ? 0 : +port,
             segments: [s]
           });
         else p.chains.find(c => c.id === id).segments.push(s);
@@ -740,15 +744,14 @@ function outputOptions(p) {
         free.push([c.id + '|' + port, c.name + ' · port ' + port]);
   return [
     ...free.map(([id, name]) => `<option value="new|${id}">New output: ${E(name)}</option>`),
-    ...p.chains.map(ch => `<option value="append|${ch.id}">Append to ${E(ch.name)} · P${ch.port}</option>`)
+    ...p.chains
+      .filter(ch => ch.controller)
+      .map(ch => `<option value="append|${ch.id}">Append to ${E(ch.name)} · P${ch.port}</option>`),
+    '<option value="unconnected||0">Not connected yet · show warning</option>'
   ];
 }
 function addPixels(p) {
   const targets = outputOptions(p);
-  if (!targets.length) {
-    api.toast('Add a controller first.');
-    return;
-  }
   api.modal(
     'Add pixels or a flood',
     `<label>Pixels / flood<select name="item"><optgroup label="Individual items"><option value="custom|seed">Seed pixel string · 100 pixels</option><option value="custom|bullet">Bullet pixel string · 100 pixels</option><option value="custom|flood">Single flood · 10 W</option></optgroup>${p.presets.length ? `<optgroup label="Saved presets">${p.presets.map(x => `<option value="preset|${x.id}">${E(x.name)} · ${x.count} ${E(x.kind)}</option>`).join('')}</optgroup>` : ''}${
@@ -777,12 +780,12 @@ function addPixels(p) {
           });
         if (pr) Object.assign(s, { count: pr.count, watts: pr.watts, channels: pr.channels, propId: pr.id });
         const name = pr?.name || preset?.name || (sourceId === 'flood' ? 'Flood light' : 'Pixel string');
-        if (mode === 'new')
+        if (mode === 'new' || mode === 'unconnected')
           p.chains.push({
             id: 'r-' + Math.random().toString(36).slice(2, 10),
             name,
-            controller: targetId,
-            port: +port,
+            controller: mode === 'unconnected' ? '' : targetId,
+            port: mode === 'unconnected' ? 0 : +port,
             segments: [s]
           });
         else p.chains.find(ch => ch.id === targetId).segments.push(s);

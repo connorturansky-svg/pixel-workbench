@@ -306,6 +306,16 @@
   stroke: #f9fbfa;
   stroke-width: 2;
 }
+.room-unconnected circle {
+  fill: var(--orange);
+  stroke: white;
+  stroke-width: 2;
+}
+.room-unconnected text {
+  fill: #2c2417;
+  font-size: 16px;
+  font-weight: 800;
+}
 .room-port-label {
   font-size: 7px;
   font-weight: 700;

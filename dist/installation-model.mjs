@@ -935,14 +935,15 @@ export function routeSpecs(p) {
     });
   for (const ch of p.chains)
     ch.segments.forEach((s, i) => {
-      routes.push({
-        id: `data:${s.id}`,
-        from: i ? `segment:${ch.segments[i - 1].id}` : `controller:${ch.controller}`,
-        to: `segment:${s.id}`,
-        kind: 'data',
-        name: `${ch.name} · data ${i + 1}`,
-        port: i ? null : `P${ch.port}`
-      });
+      if (i || ch.controller)
+        routes.push({
+          id: `data:${s.id}`,
+          from: i ? `segment:${ch.segments[i - 1].id}` : `controller:${ch.controller}`,
+          to: `segment:${s.id}`,
+          kind: 'data',
+          name: `${ch.name} · data ${i + 1}`,
+          port: i ? null : `P${ch.port}`
+        });
       if (s.inject)
         routes.push({
           id: `inject:${s.id}`,
@@ -989,7 +990,11 @@ export function routeSpecs(p) {
             spec.fromPort = 'dc' + terminal;
           }
         } else if (spec.id.startsWith('supply:')) spec.toPort = 'in1';
-        else if (spec.id.startsWith('bank:')) spec.toPort = 'bank' + (+spec.id.split(':').at(-1) + 1);
+        else if (spec.id.startsWith('bank:'))
+          spec.toPort =
+            part.snapshot.name === 'BaldrickInput8'
+              ? 'pixel-power'
+              : 'bank' + (+spec.id.split(':').at(-1) + 1);
       }
       return spec;
     })

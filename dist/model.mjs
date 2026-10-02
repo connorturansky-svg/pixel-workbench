@@ -1,12 +1,12 @@
-import { validateScene } from './layout-model.mjs?v=0.55.0';
+import { validateScene } from './layout-model.mjs?v=0.56.0';
 import {
   validateInstallation,
   routeSpecs,
   routeGeometry,
   projectCapacity,
   RESOURCE_LABELS
-} from './installation-model.mjs?v=0.55.0';
-import { ensureWiring, validateWiring } from './wiring-model.mjs?v=0.55.0';
+} from './installation-model.mjs?v=0.56.0';
+import { ensureWiring, validateWiring } from './wiring-model.mjs?v=0.56.0';
 export const AWG = {
   10: 0.003277,
   12: 0.005211,
@@ -39,6 +39,17 @@ export const BOARDS = {
     inputs: 3,
     relays: 0,
     url: 'https://www.baldrickboard.com/en/boards/baldrick17/manual'
+  },
+  input8: {
+    name: 'BaldrickInput8',
+    ports: 2,
+    banks: 1,
+    fuse: 7.5,
+    maxPixels: 750,
+    maxChannels: 2250,
+    inputs: 8,
+    relays: 0,
+    url: 'https://www.baldrickboard.com/'
   }
 };
 export const PSU_MODELS = {
@@ -219,8 +230,9 @@ export function calculate(p) {
   const used = new Set();
   for (const ch of p.chains) {
     const c = p.controllers.find(x => x.id === ch.controller),
-      board = BOARDS[c.model],
-      bank = bankFor(c, ch.port),
+      board = c ? BOARDS[c.model] : null,
+      unconnected = !c,
+      bank = c ? bankFor(c, ch.port) : -1,
       res = {
         watts: 0,
         fullWatts: 0,
@@ -231,6 +243,28 @@ export function calculate(p) {
         minV: Infinity,
         bank
       };
+    if (unconnected) {
+      for (const s of ch.segments) {
+        res.watts += (s.count * s.watts * p.brightness) / 100;
+        res.fullWatts += s.count * s.watts;
+        res.pixels += s.count;
+        res.channels += s.count * s.channels;
+      }
+      res.end = channel + res.channels - 1;
+      channel += res.channels;
+      out.watts += res.watts;
+      out.fullWatts += res.fullWatts;
+      out.pixels += res.pixels;
+      out.channels += res.channels;
+      out.chains[ch.id] = res;
+      warn(
+        'warn',
+        'Pixel group is not connected',
+        `${ch.name}: route it from a pixel output in Room layout.`,
+        ch.id
+      );
+      continue;
+    }
     const key = c.id + ':' + ch.port;
     if (used.has(key)) warn('error', 'Port assigned more than once', `${c.name}, port ${ch.port}`, ch.id);
     used.add(key);
@@ -338,6 +372,7 @@ export function calculate(p) {
   for (const ch of p.chains) {
     const r = out.chains[ch.id],
       c = p.controllers.find(x => x.id === ch.controller);
+    if (!c) continue;
     for (const z of r.zones) {
       if (!z.voltage) continue;
       const first = z.items[0],
@@ -526,7 +561,7 @@ export function validateProject(p) {
       fail('Invalid distro.');
   for (const c of p.controllers) {
     const b = BOARDS[c.model];
-    if (!b || !txt(c.host) || !Array.isArray(c.io) || c.io.length !== 3 || c.io.some(x => !txt(x)))
+    if (!b || !txt(c.host) || !Array.isArray(c.io) || c.io.length !== b.inputs || c.io.some(x => !txt(x)))
       fail('Invalid controller.');
     for (const key of ['bankPsus', 'bankLimits', 'bankM', 'bankAwg'])
       if (!Array.isArray(c[key]) || c[key].length !== b.banks) fail('Invalid power banks.');
@@ -542,9 +577,8 @@ export function validateProject(p) {
   for (const ch of p.chains) {
     const c = p.controllers.find(x => x.id === ch.controller);
     if (
-      !c ||
-      !Number.isInteger(ch.port) ||
-      !num(ch.port, 1, BOARDS[c.model].ports) ||
+      (!c && (ch.controller !== '' || ch.port !== 0)) ||
+      (c && (!Number.isInteger(ch.port) || !num(ch.port, 1, BOARDS[c.model].ports))) ||
       !Array.isArray(ch.segments) ||
       ch.segments.length < 1 ||
       ch.segments.length > 100
