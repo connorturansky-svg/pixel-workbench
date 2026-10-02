@@ -782,7 +782,9 @@ export function exposedPorts(box) {
       .map(x => {
         const component = box.components.find(c => c.id === x.componentId),
           source = component?.snapshot.ports.find(port => port.id === x.portId),
-          same = box.interfacePorts.filter(port => port.edge === x.edge),
+          same = box.interfacePorts.filter(
+            port => port.visible && port.componentId && port.portId && port.edge === x.edge
+          ),
           i = same.indexOf(x);
         return component && source
           ? {
@@ -810,7 +812,13 @@ export function perimeterAnchor(p, boxId, componentId, portId) {
   const box = p.installation?.boxes.find(b => b.id === boxId),
     v = p.scene?.placements?.['box:' + boxId],
     explicit = box?.interfacePorts?.find(port => port.componentId === componentId && port.portId === portId),
-    same = explicit && box.interfacePorts.filter(port => port.edge === explicit.edge),
+    same =
+      explicit &&
+      box.interfacePorts.filter(
+        port =>
+          port.edge === explicit.edge &&
+          (!explicit.visible || (port.visible && port.componentId && port.portId))
+      ),
     source = box?.components
       .find(component => component.id === componentId)
       ?.snapshot.ports.find(port => port.id === portId),
@@ -828,7 +836,7 @@ export function perimeterAnchor(p, boxId, componentId, portId) {
     label = node.port?.label || source?.label || '',
     gap = labelled
       ? edge === 'left' || edge === 'right'
-        ? Math.max(0.2, label.length * 0.05 + 0.16)
+        ? Math.max(0.18, label.length * 0.045 + 0.14)
         : 0.2
       : 0.06;
   return {
@@ -1092,6 +1100,19 @@ export function routeAnchor(p, spec, end) {
   }
   return { x, y };
 }
+function placementLabel(p, key) {
+  const [type, id] = key.split(':');
+  if (type === 'field') return p.installation?.fieldDevices.find(item => item.id === id)?.snapshot.name || '';
+  if (type === 'segment') {
+    for (const chain of p.chains)
+      for (const segment of chain.segments)
+        if (segment.id === id)
+          return (segment.propId && p.props?.find(prop => prop.id === segment.propId)?.name) || chain.name;
+    return '';
+  }
+  const collection = { controller: p.controllers, psu: p.psus, distro: p.distros, aux: p.aux }[type];
+  return collection?.find(item => item.id === id)?.name || '';
+}
 function automaticRoute(p, spec, a, b) {
   const width = p.scene?.width || 10,
     depth = p.scene?.depth || 10,
@@ -1101,14 +1122,50 @@ function automaticRoute(p, spec, a, b) {
     from = spec.from,
     to = spec.to,
     hidden = key => /^(controller|psu|distro|aux):/.test(key) && boxForSource(p, key),
+    labels = p.installation?.showLabels !== false,
     obstacles = Object.entries(p.scene?.placements || {})
-      .filter(([key]) => key !== from && key !== to && !hidden(key))
-      .map(([, v]) => ({
-        l: v.x - v.width / 2 - 0.12,
-        r: v.x + v.width / 2 + 0.12,
-        t: v.y - v.height / 2 - 0.12,
-        b: v.y + v.height / 2 + 0.12
-      })),
+      .filter(([key]) => !hidden(key))
+      .flatMap(([placementKey, v]) => {
+        const endpoint = placementKey === from || placementKey === to;
+        if (endpoint && !placementKey.startsWith('box:')) return [];
+        const result = [
+          {
+            l: v.x - v.width / 2 - 0.12,
+            r: v.x + v.width / 2 + 0.12,
+            t: v.y - v.height / 2 - 0.12,
+            b: v.y + v.height / 2 + 0.12
+          }
+        ];
+        if (!labels || endpoint) return result;
+        if (placementKey.startsWith('box:')) {
+          const box = p.installation.boxes.find(item => 'box:' + item.id === placementKey);
+          for (const { component, port, edge } of box ? exposedPorts(box) : []) {
+            const point = perimeterAnchor(p, box.id, component.id, port.id);
+            if (!point) continue;
+            const halfW =
+                edge === 'top' || edge === 'bottom' ? Math.max(0.12, port.label.length * 0.0225 + 0.07) : 0,
+              halfH = edge === 'left' || edge === 'right' ? 0.06 : 0,
+              innerX = edge === 'left' ? v.x - v.width / 2 : edge === 'right' ? v.x + v.width / 2 : point.x,
+              innerY = edge === 'top' ? v.y - v.height / 2 : edge === 'bottom' ? v.y + v.height / 2 : point.y;
+            result.push({
+              l: Math.min(point.x, innerX) - halfW - 0.06,
+              r: Math.max(point.x, innerX) + halfW + 0.06,
+              t: Math.min(point.y, innerY) - halfH - 0.06,
+              b: Math.max(point.y, innerY) + halfH + 0.06
+            });
+          }
+        } else {
+          const nameLength = Math.min(30, placementLabel(p, placementKey).length),
+            detail = placementKey.startsWith('field:') || placementKey.startsWith('segment:');
+          result.push({
+            l: v.x - nameLength * 0.038 - 0.06,
+            r: v.x + nameLength * 0.038 + 0.06,
+            t: v.y + v.height / 2 + 0.02,
+            b: v.y + v.height / 2 + (detail ? 0.36 : 0.22)
+          });
+        }
+        return result;
+      }),
     blocked = (x, y) => obstacles.some(o => x > o.l && x < o.r && y > o.t && y < o.b),
     cell = q => ({
       x: Math.max(0, Math.min(cols - 1, Math.round(q.x / step))),
@@ -1157,7 +1214,7 @@ function automaticRoute(p, spec, a, b) {
       )
         continue;
       const prev = came.get(ck),
-        turn = prev && (Math.sign(cur.x - prev.x) !== dx || Math.sign(cur.y - prev.y) !== dy) ? 0.02 : 0,
+        turn = prev && (Math.sign(cur.x - prev.x) !== dx || Math.sign(cur.y - prev.y) !== dy) ? 0.75 : 0,
         nk = key(next),
         nextCost = cost.get(ck) + Math.hypot(dx, dy) + turn;
       if (nextCost >= (cost.get(nk) ?? Infinity)) continue;

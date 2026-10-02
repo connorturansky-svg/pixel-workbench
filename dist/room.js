@@ -5,21 +5,21 @@ import {
   makeProp,
   PALETTE,
   clampPosition
-} from './layout-model.mjs?v=0.54.0';
+} from './layout-model.mjs?v=0.55.0';
 import {
   ensureInstallation,
   exposedPorts,
   perimeterAnchor,
   deleteRoute,
   portTypeColour
-} from './installation-model.mjs?v=0.54.0';
+} from './installation-model.mjs?v=0.55.0';
 import {
   routeLayer,
   routeControls,
   routeInspector,
   installRoutes,
   refreshRoutes
-} from './installation-room.mjs?v=0.54.0';
+} from './installation-room.mjs?v=0.55.0';
 let api,
   chosen = '',
   propId = 'prop-smiley',
@@ -242,14 +242,14 @@ function boxVisual(box, w, h) {
     cellW = w / cols,
     cellH = (h - header) / rows,
     labels = api.getProject().installation.showLabels;
-  return `<g><rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="4" fill="#193f39" stroke="#4f806a" stroke-width="3"/>${labels ? `<text x="${-w / 2 + 8}" y="${-h / 2 + 13}" fill="white" font-size="13" font-weight="700">${E(box.name.slice(0, 30))}</text>` : ''}${items
+  return `<g><rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="4" fill="#193f39" stroke="#4f806a" stroke-width="3"/>${labels ? `<text x="${-w / 2 + 8}" y="${-h / 2 + 13}" fill="white" font-size="12" font-weight="700">${E(box.name.slice(0, 30))}</text>` : ''}${items
     .map((part, i) => {
       const x = -w / 2 + (i % cols) * cellW,
         y = -h / 2 + header + Math.floor(i / cols) * cellH,
         c = part.snapshot.color || '#4b8a76',
-        limit = Math.max(4, Math.floor(cellW / 6)),
+        limit = Math.max(4, Math.floor(cellW / 5)),
         shortName = componentShortName(part.snapshot.name);
-      return `<g><rect x="${x + 1}" y="${y + 1}" width="${cellW - 2}" height="${cellH - 2}" fill="${E(c)}" fill-opacity=".9" stroke="white" stroke-width="1"/>${labels ? `<text x="${x + 5}" y="${y + Math.min(16, cellH / 2)}" font-size="11" fill="white" paint-order="stroke" stroke="#153d36" stroke-width="2">${E(shortName.slice(0, limit))}</text>${cellH >= 30 ? `<text x="${x + cellW / 2}" y="${y + Math.min(cellH - 5, 33)}" text-anchor="middle" font-size="16" fill="white" paint-order="stroke" stroke="#153d36" stroke-width="2">${E(part.snapshot.icon)}</text>` : ''}${part.subname && cellH >= 46 ? `<text x="${x + 5}" y="${y + Math.min(cellH - 5, 48)}" font-size="9" fill="white" paint-order="stroke" stroke="#153d36" stroke-width="2">(${E(part.subname.slice(0, limit))})</text>` : ''}` : ''}<title>${E(part.snapshot.name)}${part.subname ? ` (${E(part.subname)})` : ''} · ${E(part.snapshot.ports.length)} ports</title></g>`;
+      return `<g><rect x="${x + 1}" y="${y + 1}" width="${cellW - 2}" height="${cellH - 2}" fill="${E(c)}" fill-opacity=".9" stroke="white" stroke-width="1"/>${labels ? `<text x="${x + 4}" y="${y + Math.min(14, cellH / 2)}" font-size="9" fill="white" paint-order="stroke" stroke="#153d36" stroke-width="1">${E(shortName.slice(0, limit))}</text>${cellH >= 30 ? `<text x="${x + cellW / 2}" y="${y + Math.min(cellH - 5, 32)}" text-anchor="middle" font-size="14" fill="white">${E(part.snapshot.icon)}</text>` : ''}${part.subname && cellH >= 46 ? `<text x="${x + 4}" y="${y + Math.min(cellH - 5, 47)}" font-size="8" fill="white" paint-order="stroke" stroke="#153d36" stroke-width="1">(${E(part.subname.slice(0, limit))})</text>` : ''}` : ''}<title>${E(part.snapshot.name)}${part.subname ? ` (${E(part.subname)})` : ''} · ${E(part.snapshot.ports.length)} ports</title></g>`;
     })
     .join(
       ''
@@ -267,12 +267,12 @@ function boxVisual(box, w, h) {
         innerY = edge === 'top' ? -h / 2 : edge === 'bottom' ? h / 2 : y,
         pillX =
           Math.min(x, innerX) -
-          (edge === 'top' || edge === 'bottom' ? Math.max(12, label.length * 2.5 + 8) : 0),
-        pillY = Math.min(y, innerY) - (edge === 'left' || edge === 'right' ? 7 : 0),
+          (edge === 'top' || edge === 'bottom' ? Math.max(12, label.length * 2.25 + 7) : 0),
+        pillY = Math.min(y, innerY) - (edge === 'left' || edge === 'right' ? 6 : 0),
         pillW =
-          edge === 'left' || edge === 'right' ? Math.abs(x - innerX) : Math.max(24, label.length * 5 + 16),
-        pillH = edge === 'top' || edge === 'bottom' ? Math.abs(y - innerY) : 14;
-      return `<g class="room-external-node" data-room-port="${E(box.id)}:${E(component.id)}:${E(port.id)}" data-anchor-x="${x}" data-anchor-y="${y}"><rect x="${pillX}" y="${pillY}" width="${pillW}" height="${pillH}" rx="7" fill="${E(component.snapshot.color || '#4b8a76')}" stroke="${portTypeColour(port.type)}" stroke-width="2.5"/><title>${E(box.name)} → ${E(component.snapshot.name)}${component.subname ? ` (${E(component.subname)})` : ''} → ${E(port.label)} (${E(port.type)})</title>${labels ? `<text class="room-port-label" x="${(x + innerX) / 2}" y="${(y + innerY) / 2 + 3}" text-anchor="middle">${E(label)}</text>` : ''}</g>`;
+          edge === 'left' || edge === 'right' ? Math.abs(x - innerX) : Math.max(24, label.length * 4.5 + 14),
+        pillH = edge === 'top' || edge === 'bottom' ? Math.abs(y - innerY) : 12;
+      return `<g class="room-external-node" data-room-port="${E(box.id)}:${E(component.id)}:${E(port.id)}" data-anchor-x="${x}" data-anchor-y="${y}"><rect x="${pillX}" y="${pillY}" width="${pillW}" height="${pillH}" rx="6" fill="${E(component.snapshot.color || '#4b8a76')}" stroke="${portTypeColour(port.type)}" stroke-width="2"/><title>${E(box.name)} → ${E(component.snapshot.name)}${component.subname ? ` (${E(component.subname)})` : ''} → ${E(port.label)} (${E(port.type)})</title>${labels ? `<text class="room-port-label" x="${(x + innerX) / 2}" y="${(y + innerY) / 2 + 2.5}" text-anchor="middle">${E(label)}</text>` : ''}</g>`;
     })
     .join('')}</g>`;
 }

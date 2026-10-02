@@ -1,12 +1,12 @@
-import { validateScene } from './layout-model.mjs?v=0.54.0';
+import { validateScene } from './layout-model.mjs?v=0.55.0';
 import {
   validateInstallation,
   routeSpecs,
   routeGeometry,
   projectCapacity,
   RESOURCE_LABELS
-} from './installation-model.mjs?v=0.54.0';
-import { ensureWiring, validateWiring } from './wiring-model.mjs?v=0.54.0';
+} from './installation-model.mjs?v=0.55.0';
+import { ensureWiring, validateWiring } from './wiring-model.mjs?v=0.55.0';
 export const AWG = {
   10: 0.003277,
   12: 0.005211,
