@@ -42,9 +42,38 @@ Generic box-port links are permissive and warn on mismatches. They are documenta
 
 Every change bumps `APP_VERSION` in `dist/version.mjs` and adds a `CHANGELOG` entry at the top with its date in DD/MM/YYYY format. On each change, also review `HOW_TO_USE`, `SHORTCUTS`, `ARCHITECTURE_NOTES` and the diagram in `dist/info.mjs`. When CSS or JS changes, run `node stamp-version.mjs`. It stamps `?v=<APP_VERSION>` onto every module import and asset link so browsers don't mix cached and new files. Pushing to `main` publishes `dist/` to GitHub Pages.
 
+## Feature requests (automatic builds)
+
+The **Suggest a feature** page lets anyone describe an idea and add screenshots. The issue title is generated from the first sentence. The page opens a prefilled `[Feature]` GitHub issue that the requester creates under their own GitHub account. The same page lists every request and its build status from the public GitHub issues API.
+
+Every request is built with no approval step, by `automation/builder.py` on the build PC:
+
+1. Every 5 minutes (Task Scheduler), it takes the oldest open `[Feature]` issue and labels it `in-progress`.
+2. It resets its own worktree (`..\pixel-workbench-build`) to `origin/main` and downloads the issue's screenshots.
+3. It runs the Copilot CLI headlessly under [AGENTS.md](AGENTS.md). The agent gets only file and shell tools: no MCP servers, no web access, no git or gh, and no tokens. Request text is treated as untrusted.
+4. It rejects changes outside `dist/` and `README.md` and any new network or `eval` code. Then it runs `stamp-version.mjs`, the verify scripts and `automation/smoke.py` (headless browser, every page and info tab). The agent gets two rounds to fix failures.
+5. It commits, tags `vX.Y.0` and pushes to `main` as J-Turansky. It then waits for the Pages deploy, comments, labels `shipped` and closes the issue.
+
+Other outcomes:
+
+- If the agent needs detail, it labels the issue `needs-info` and asks a question.
+- Out-of-scope or unsafe requests are labelled `declined` and closed.
+- Failures are rolled back and labelled `build-failed` with the reason.
+- When the requester replies, a `needs-info` or `build-failed` request is retried (up to 3 attempts). Each requester is limited to 4 builds a day.
+
+Set up the builder once on the build PC:
+
+```powershell
+gh auth login -h github.com -w          # as J-Turansky (write access)
+pip install playwright; python -m playwright install chromium
+.\automation\Install-Builder.ps1          # -Remove to uninstall
+```
+
+Logs, screenshots and state are in `%LOCALAPPDATA%\PixelWorkbenchBuilder`. To run it once by hand, use `python automation\builder.py`; add `--dry-run` to build and test without publishing or changing the issue.
+
 ## Checks
 
-Run `node verify.mjs` and `node verify-installation.mjs` for numerical and validation checks. The app also exposes read-plan and set-planning-brightness WebMCP tools where supported.
+Run `node verify.mjs` and `node verify-installation.mjs` for numerical and validation checks. `python automation\smoke.py dist` loads every page and info tab in headless Chromium. The app also exposes read-plan and set-planning-brightness WebMCP tools where supported.
 
 The layout checks cover old-project migration, geometry bounds, state round-trips and rejected unsafe references. Projects remain compatible with the existing v1 JSON format through optional scene/props fields.
 

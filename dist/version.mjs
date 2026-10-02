@@ -1,6 +1,7 @@
 // Every change: bump APP_VERSION, add a CHANGELOG entry at the top (date DD/MM/YYYY), and review HOW_TO_USE, ARCHITECTURE_NOTES / the info.mjs diagram and SHORTCUTS.
-export const APP_VERSION='0.6.2';
+export const APP_VERSION='0.7.0';
 export const CHANGELOG=[
+ {version:'0.7.0',date:'02/10/2026',items:['New Suggest a feature page in the sidebar. Describe an idea and add screenshots (paste, drop or choose files). The issue title is taken from your first sentence. It opens a GitHub issue under your own account.','Every request is built automatically, with no approval step. A builder on the build PC picks it up, implements it with the Copilot CLI, tests it and publishes it, usually within 30 minutes.','The page lists every request with its live status: Queued, Building, Shipped, Needs info, Build failed or Declined.']},
  {version:'0.6.2',date:'02/10/2026',items:['Added a small version badge under the Pixel Workbench logo. Select it to open What’s new. It replaces the version label at the bottom of the sidebar.','Releases now fail to stamp if the newest changelog entry does not match the app version or is missing its date.']},
  {version:'0.6.1',date:'02/10/2026',items:['Fixed the page failing to load after an update when the browser still held cached copies of older files. Every script and stylesheet is now versioned, so each release loads as one consistent set.']},
  {version:'0.6.0',date:'02/10/2026',items:['Info / Help moves from the sidebar into a single i button (top bar) that opens a fixed-size dialog with How to use, What’s new, Architecture and Shortcuts tabs.','Added an About summary, an architecture diagram with technical notes, and a keyboard shortcut reference. Press ? anywhere outside a text field to open it.','The sidebar version label now opens What’s new. Changelog entries now show their release date.']},
@@ -22,6 +23,7 @@ export const HOW_TO_USE=[
  ['Choose physical cables','In Standards, edit your cable colours, connectors and actual lengths. Assign a standard to a room route. Route length, optional slack and spare/shortfall are shown separately.'],
  ['Build controller boxes','Create a box, drag components from the library into it, position or duplicate them, then click or drag between their typed ports. Choose a port and a room target for an external cable route. Link real project hardware to count its use, and save reusable templates.'],
  ['Review and pack','Check per-box and project capacity, then open the Bill of materials. Export project JSON for backup and use the Wiring guide and planning CSV in the field.'],
+ ['Suggest a feature','Open Suggest a feature, describe your idea and add any screenshots, then select Create the GitHub issue. Check it on GitHub, paste in the copied screenshots and select Create. You need a free GitHub account. Every request is built, tested and published automatically, and its status shows on the same page.'],
  ['Get help','Use the i button in the top bar for this guide, the change log, the architecture and keyboard shortcuts. The version badge under the logo opens What’s new.']
 ];
 export const ABOUT='Pixel Workbench is a device-local planner for 12 V pixel systems built on Baldrick controllers and FPP. Use it to lay out a room, size power and injection, design controller boxes and produce a wiring guide, bill of materials and channel CSV. Calculations are planning estimates. Confirm ratings and wiring against the actual equipment.';
@@ -40,5 +42,7 @@ export const ARCHITECTURE_NOTES=[
  'app.js holds the project state and re-renders the whole interface from it. Every view (wiring, room, boxes, standards, BOM, guide) reads the same project, so changes appear in every view.',
  'Calculation and data modules (model, layout-model, installation-model) are UI-free. verify.mjs and verify-installation.mjs exercise them under Node.',
  'Data never leaves the browser. The project and standards library are stored in localStorage. JSON export/import is the backup path, and ?test=1 runs an isolated session that does not save.',
+ 'Suggest a feature (suggest.mjs) drafts a [Feature] GitHub issue that the requester files under their own account. It reads request status from the public GitHub issues API, the only network call the app makes.',
+ 'automation/builder.py runs every 5 minutes on the build PC (Task Scheduler). It builds the oldest open request in its own git worktree with the Copilot CLI, which runs with no web, MCP or git access and follows AGENTS.md. It then rejects off-limits files or new network code, runs stamp-version, verify and a headless browser smoke test, and pushes the release to main as J-Turansky. Finally it comments on the issue and closes it.',
  'version.mjs is the single source for the version, changelog, help text and shortcuts. info.mjs renders the i dialog.'
 ];

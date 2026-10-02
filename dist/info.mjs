@@ -1,4 +1,4 @@
-import {APP_VERSION,CHANGELOG,HOW_TO_USE,ABOUT,SHORTCUTS,ARCHITECTURE_NOTES} from './version.mjs?v=0.6.2';
+import {APP_VERSION,CHANGELOG,HOW_TO_USE,ABOUT,SHORTCUTS,ARCHITECTURE_NOTES} from './version.mjs?v=0.7.0';
 
 const E=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const TABS=[['how','How to use'],['new',"What's new"],['arch','Architecture'],['keys','Shortcuts']];
@@ -7,7 +7,7 @@ let dialog,tab='how';
 const box=(x,y,w,h,title,sub,cls='')=>`<g class="arch-node ${cls}"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="8"/><text x="${x+w/2}" y="${y+(sub?h/2-4:h/2+5)}" class="t">${E(title)}</text>${sub?`<text x="${x+w/2}" y="${y+h/2+13}" class="s">${E(sub)}</text>`:''}</g>`;
 const line=(x1,y1,x2,y2,label='')=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" marker-end="url(#arch-arrow)"/>${label?`<text x="${(x1+x2)/2+6}" y="${(y1+y2)/2-4}" class="l">${E(label)}</text>`:''}`;
 
-function diagram(){return `<svg class="arch-diagram" viewBox="0 0 820 470" role="img" aria-label="Pixel Workbench architecture diagram">
+function diagram(){return `<svg class="arch-diagram" viewBox="0 0 820 560" role="img" aria-label="Pixel Workbench architecture diagram">
 <defs><marker id="arch-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z"/></marker></defs>
 <rect class="arch-zone" x="10" y="10" width="800" height="62" rx="10"/><text class="z" x="24" y="30">HOSTING</text>
 ${box(150,24,240,40,'GitHub repo · dist/','static files, no build step','host')}${box(450,24,240,40,'GitHub Pages','Actions workflow on push to main','host')}
@@ -23,13 +23,16 @@ ${box(625,250,170,48,'installation-ui.mjs','boxes, standards, BOM','ui')}
 ${box(30,320,170,48,'layout-model.mjs','scene & props','calc')}
 ${box(215,320,190,48,'installation-model.mjs','boxes, ports, routes','calc')}
 ${box(420,320,190,48,'demo-project.mjs','disposable sample','calc')}
-${box(625,320,170,48,'version.mjs · info.mjs','version, changelog, i dialog','ui')}
+${box(625,320,170,48,'version · info · suggest','changelog, i dialog, requests','ui')}
 ${line(360,218,115,248)}${line(390,218,310,248)}${line(430,218,515,248)}${line(460,218,710,248)}
 <rect class="arch-zone" x="10" y="400" width="800" height="60" rx="10"/><text class="z" x="24" y="420">PERSISTENCE &amp; OUTPUT</text>
 ${box(210,410,180,40,'localStorage','project + standards library','store')}
 ${box(410,410,180,40,'Project JSON','export / import backup','store')}
 ${box(610,410,180,40,'Guide · CSV · BOM','print & field sheets','store')}
 ${line(300,376,300,408)}${line(500,376,500,408)}${line(700,376,700,408)}
+<rect class="arch-zone" x="10" y="474" width="800" height="76" rx="10"/><text class="z" x="24" y="494">FEATURE REQUESTS</text>
+${box(30,500,150,42,'GitHub issue','[Feature] by requester','host')}${box(215,500,175,42,'builder.py (build PC)','every 5 min, own worktree','core')}${box(425,500,170,42,'Copilot CLI','sandboxed, AGENTS.md','calc')}${box(630,500,165,42,'Checks + push','smoke test, tag, Pages','host')}
+${line(180,521,213,521)}${line(390,521,423,521)}${line(595,521,628,521)}
 </svg>`;}
 
 function body(){
