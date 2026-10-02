@@ -360,6 +360,18 @@ main {
   padding: 0 25px;
   border-right: 1px solid var(--line);
 }
+.summary > div:nth-child(4n + 1) {
+  box-shadow: inset 0 4px #78a98b;
+}
+.summary > div:nth-child(4n + 2) {
+  box-shadow: inset 0 4px #d4a65b;
+}
+.summary > div:nth-child(4n + 3) {
+  box-shadow: inset 0 4px #7f9eb3;
+}
+.summary > div:nth-child(4n) {
+  box-shadow: inset 0 4px #a68bb5;
+}
 .summary > div:last-child {
   border: 0;
 }
@@ -430,11 +442,11 @@ main {
   gap: 20px;
 }
 .panel {
-  border: 1.5px solid var(--line);
+  border: 2px solid var(--line);
   border-radius: 9px;
   background: #fff;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgb(35 74 53 / 5%);
+  box-shadow: 0 3px 10px rgb(35 74 53 / 7%);
 }
 .canvas {
   background-color: #fbfcfb;
@@ -649,11 +661,12 @@ main {
   color: #8e9b90;
 }
 .inspector-title {
-  border-bottom: 1px solid var(--line);
+  border-bottom: 2px solid #cfe3d7;
   padding: 18px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background: #f1f8f3;
 }
 .inspector-title h3 {
   font-size: 14px;
@@ -718,12 +731,13 @@ main {
 }
 .checks {
   margin-top: 20px;
+  border-top-color: #d4a65b;
 }
 .checks-title {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 2px solid #ead9bd;
   padding: 17px 21px;
   cursor: pointer;
   list-style-position: inside;

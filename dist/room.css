@@ -35,6 +35,7 @@
 .room-panel {
   min-width: 0;
   background: #f9fbfa;
+  border-top: 4px solid #78a98b;
 }
 .room-dimensions,
 .room-key {
@@ -114,6 +115,8 @@
 .room-inspector {
   position: sticky;
   top: 15px;
+  border-top: 4px solid #d4a65b;
+  background: #fffbf4;
 }
 .room-inspector h3 {
   overflow-wrap: anywhere;
@@ -164,6 +167,8 @@
 }
 .prop-library {
   padding: 14px;
+  border-top: 4px solid #7f9eb3;
+  background: #f7fafc;
 }
 .prop-library .btn {
   width: 100%;
@@ -202,6 +207,8 @@
 .prop-editor {
   padding: 24px;
   min-width: 0;
+  border-top: 4px solid #78a98b;
+  background: #fbfdfb;
 }
 .prop-edit-grid {
   display: grid;

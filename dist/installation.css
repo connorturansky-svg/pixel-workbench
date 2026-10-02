@@ -20,6 +20,7 @@
 .install-global {
   padding: 18px;
   margin-bottom: 20px;
+  border-top: 4px solid #78a98b;
 }
 .install-global h3,
 .box-editor h3 {
@@ -101,6 +102,8 @@
 .install-palette {
   max-height: 750px;
   overflow: auto;
+  border-top: 4px solid #7f9eb3;
+  background: #f7fafc;
 }
 .part-inspector {
   position: sticky;
@@ -108,6 +111,12 @@
   max-height: min(750px, calc(100vh - 24px));
   overflow: auto;
   overscroll-behavior: contain;
+  border-top: 4px solid #d4a65b;
+  background: #fffbf4;
+}
+.box-editor {
+  border-top: 4px solid #78a98b;
+  background: #fbfdfb;
 }
 .box-details {
   margin: 0 0 18px;
@@ -568,6 +577,18 @@
 }
 .definition-card {
   padding: 13px;
+}
+.definition-card:nth-child(3n + 1) {
+  border-left: 4px solid #78a98b;
+  background: #f8fcf9;
+}
+.definition-card:nth-child(3n + 2) {
+  border-left: 4px solid #d4a65b;
+  background: #fffbf4;
+}
+.definition-card:nth-child(3n) {
+  border-left: 4px solid #7f9eb3;
+  background: #f7fafc;
 }
 .definition-card summary {
   cursor: pointer;

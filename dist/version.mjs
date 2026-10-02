@@ -1,6 +1,13 @@
 // Every change: bump APP_VERSION, add a CHANGELOG entry at the top (date DD/MM/YYYY), and review HOW_TO_USE, ARCHITECTURE_NOTES / the info.mjs diagram and SHORTCUTS.
-export const APP_VERSION = '0.46.0';
+export const APP_VERSION = '0.47.0';
 export const CHANGELOG = [
+  {
+    version: '0.47.0',
+    date: '02/10/2026',
+    items: [
+      'Distinct accent colours, stronger borders and softly tinted work areas now separate summaries, editors, inspectors and card groups across the planning tools. (follow-up to #26)'
+    ]
+  },
   {
     version: '0.46.0',
     date: '02/10/2026',
