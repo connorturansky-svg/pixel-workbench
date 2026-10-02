@@ -1,0 +1,37 @@
+{
+ "limit": 5000,
+ "windowHours": 24,
+ "builds": [
+  {
+   "at": "2026-10-02T11:51:35Z",
+   "issue": 1,
+   "credits": 18.83,
+   "outcome": "shipped"
+  },
+  {
+   "at": "2026-10-02T12:17:45Z",
+   "issue": 3,
+   "credits": 48.15,
+   "outcome": "shipped"
+  },
+  {
+   "at": "2026-10-02T12:31:09Z",
+   "issue": 4,
+   "credits": 42.12,
+   "outcome": "shipped"
+  },
+  {
+   "at": "2026-10-02T12:36:34Z",
+   "issue": 5,
+   "credits": 62.73,
+   "outcome": "shipped"
+  },
+  {
+   "at": "2026-10-02T12:55:43Z",
+   "issue": 6,
+   "credits": 93.65,
+   "outcome": "shipped"
+  }
+ ],
+ "updated": "2026-10-02T12:58:35Z"
+}
