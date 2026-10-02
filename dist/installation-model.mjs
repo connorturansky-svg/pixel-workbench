@@ -16,6 +16,14 @@ export const PORT_TYPES = [
   'gpio',
   'generic'
 ];
+export function portTypeColour(type) {
+  if (type === 'pixel_output' || type === 'pixel_data') return '#55c978';
+  if (type === 'digital_input' || type === 'analogue_input' || type === 'gpio') return '#4da3ff';
+  if (type === 'audio') return '#f1c84b';
+  if (type === 'mains_power') return '#ef5a5a';
+  if (type === 'dmx' || type === 'relay_output') return '#ffffff';
+  return '#d8e1dc';
+}
 export const RESOURCE_LABELS = {
   pixels: 'Pixels',
   pixelOutputs: 'Pixel outputs',
@@ -758,7 +766,13 @@ export function perimeterAnchor(p, boxId, componentId, portId) {
           }));
   if (!v || !node) return null;
   const { edge, t } = node,
-    gap = 0.06;
+    labelled = p.installation?.showLabels !== false,
+    label = node.port?.label || source?.label || '',
+    gap = labelled
+      ? edge === 'left' || edge === 'right'
+        ? Math.max(0.2, label.length * 0.05 + 0.16)
+        : 0.2
+      : 0.06;
   return {
     x:
       v.x +
@@ -959,6 +973,20 @@ function nearestPlacementEdge(v, target) {
     y: v.y + x * Math.sin(back) + y * Math.cos(back)
   };
 }
+function nearestFieldVisualEdge(p, key, v, target) {
+  const device = p.installation?.fieldDevices.find(item => 'field:' + item.id === key),
+    name = device?.snapshot.name.toLowerCase() || '';
+  if (!name.includes('button')) return nearestPlacementEdge(v, target);
+  const size = Math.min(v.width, v.height),
+    visible = {
+      ...v,
+      x: v.x,
+      y: v.y - size * 0.01,
+      width: size * 0.56,
+      height: size * 0.62
+    };
+  return nearestPlacementEdge(visible, target);
+}
 export function routeAnchor(p, spec, end) {
   const key = end === 'start' ? spec.from : spec.to,
     v = p.scene?.placements?.[key];
@@ -989,7 +1017,10 @@ export function routeAnchor(p, spec, end) {
         port = otherEnd === 'start' ? spec.fromPort : spec.toPort;
       target = (component && port && perimeterAnchor(p, otherKey.slice(4), component, port)) || target;
     }
-    if (target) ({ x, y } = nearestPlacementEdge(v, target));
+    if (target)
+      ({ x, y } = key.startsWith('field:')
+        ? nearestFieldVisualEdge(p, key, v, target)
+        : nearestPlacementEdge(v, target));
     else x += end === 'start' ? v.width / 2 : -v.width / 2;
   } else if (end === 'start') x += v.width / 2;
   else x -= v.width / 2;

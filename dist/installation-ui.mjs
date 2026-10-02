@@ -17,7 +17,7 @@ import {
   componentSearch,
   componentSizeGuides,
   deleteRoute
-} from './installation-model.mjs?v=0.51.0';
+} from './installation-model.mjs?v=0.52.0';
 
 const SCHEMATIC_MIN_WIDTH = 1400,
   SCHEMATIC_MIN_HEIGHT = 700;

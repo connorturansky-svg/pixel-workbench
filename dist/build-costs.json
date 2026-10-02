@@ -41,6 +41,7 @@
   {"issue":30,"version":"0.48.0","title":"Edge port visability","outcome":"retry","at":"2026-10-02T16:49:41Z","runs":1,"model":"gpt-5.6-sol","credits":24.76,"tokensIn":146600,"tokensCached":118300,"tokensOut":2900,"seconds":52},
   {"issue":30,"version":"0.49.0","title":"Edge port visability","outcome":"shipped","at":"2026-10-02T16:54:37Z","runs":1,"model":"gpt-5.6-sol","credits":22.82,"tokensIn":137500,"tokensCached":106500,"tokensOut":3100,"seconds":70},
   {"issue":31,"version":"0.50.0","title":"Add pixels on room layout","outcome":"shipped","at":"2026-10-02T17:00:26Z","runs":1,"model":"gpt-5.6-sol","credits":50.25,"tokensIn":363900,"tokensCached":320500,"tokensOut":7900,"seconds":108},
-  {"issue":32,"version":"0.51.0","title":"Layout page cramped","outcome":"shipped","at":"2026-10-02T17:05:25Z","runs":1,"model":"gpt-5.6-sol","credits":49.05,"tokensIn":411200,"tokensCached":374700,"tokensOut":7900,"seconds":114}
+  {"issue":32,"version":"0.51.0","title":"Layout page cramped","outcome":"shipped","at":"2026-10-02T17:05:25Z","runs":1,"model":"gpt-5.6-sol","credits":49.05,"tokensIn":411200,"tokensCached":374700,"tokensOut":7900,"seconds":114},
+  {"issue":33,"version":"0.52.0","title":"Layout cleaning up","outcome":"shipped","at":"2026-10-02T17:10:30Z","runs":1,"model":"gpt-5.6-sol","credits":50.81,"tokensIn":369900,"tokensCached":327300,"tokensOut":8200,"seconds":123}
  ]
 }

@@ -6,8 +6,9 @@ import {
   routeAnchor,
   assignCable,
   routeIssues,
-  deleteRoute
-} from './installation-model.mjs?v=0.51.0';
+  deleteRoute,
+  portTypeColour
+} from './installation-model.mjs?v=0.52.0';
 
 let api,
   selected = '',
@@ -37,6 +38,18 @@ function xy(ev, svg) {
 }
 const path = points => points.map((q, i) => (i ? 'L' : 'M') + `${q.x * 100},${q.y * 100}`).join(' ');
 const visible = (p, s) => p.installation.filters[s.kind] !== false;
+function routePortType(p, spec) {
+  for (const end of ['from', 'to']) {
+    if (!spec[end].startsWith('box:')) continue;
+    const box = p.installation.boxes.find(item => item.id === spec[end].slice(4)),
+      componentId = spec[end + 'Component'] || spec.connection?.[end + 'Component'],
+      portId = spec[end + 'Port'],
+      component = box?.components.find(item => item.id === componentId),
+      port = component?.snapshot.ports.find(item => item.id === portId);
+    if (port) return port.type;
+  }
+  return '';
+}
 export function routeLayer(p) {
   ensureInstallation(p);
   return specs(p)
@@ -45,7 +58,9 @@ export function routeLayer(p) {
       const g = routeGeometry(p, s);
       if (!g) return '';
       const r = routeRecord(p, s.id),
+        portType = routePortType(p, s),
         colour =
+          (portType && portTypeColour(portType)) ||
           r.cableSnapshot?.color ||
           { data: '#458db9', power: '#d18c43', inject: '#bb6d4b', other: '#8a729a' }[s.kind],
         d = path(g.points),

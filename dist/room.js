@@ -5,20 +5,21 @@ import {
   makeProp,
   PALETTE,
   clampPosition
-} from './layout-model.mjs?v=0.51.0';
+} from './layout-model.mjs?v=0.52.0';
 import {
   ensureInstallation,
   exposedPorts,
   perimeterAnchor,
-  deleteRoute
-} from './installation-model.mjs?v=0.51.0';
+  deleteRoute,
+  portTypeColour
+} from './installation-model.mjs?v=0.52.0';
 import {
   routeLayer,
   routeControls,
   routeInspector,
   installRoutes,
   refreshRoutes
-} from './installation-room.mjs?v=0.51.0';
+} from './installation-room.mjs?v=0.52.0';
 let api,
   chosen = '',
   propId = 'prop-smiley',
@@ -232,14 +233,6 @@ const componentShortName = name =>
     .replace(/\bDistribution\b/gi, 'DIST')
     .replace(/\bAmplifier\b/gi, 'AMP')
     .replace(/\bTransformer\b/gi, 'XFMR');
-const portRing = type => {
-  if (type === 'pixel_output' || type === 'pixel_data') return '#55c978';
-  if (type === 'digital_input' || type === 'analogue_input' || type === 'gpio') return '#4da3ff';
-  if (type === 'audio') return '#f1c84b';
-  if (type === 'mains_power') return '#ef5a5a';
-  if (type === 'dmx' || type === 'relay_output') return '#ffffff';
-  return '#d8e1dc';
-};
 function boxVisual(box, w, h) {
   const items = box.components,
     n = items.length,
@@ -270,10 +263,16 @@ function boxVisual(box, w, h) {
         x = (point.x - placement.x) * 100,
         y = (point.y - placement.y) * 100,
         label = port.label.slice(0, 24),
-        tx = x + (edge === 'left' ? -7 : edge === 'right' ? 7 : 0),
-        ty = y + (edge === 'top' ? -7 : edge === 'bottom' ? 11 : 3),
-        anchor = edge === 'left' ? 'end' : edge === 'right' ? 'start' : 'middle';
-      return `<g><circle class="room-external-node" data-room-port="${E(box.id)}:${E(component.id)}:${E(port.id)}" cx="${x}" cy="${y}" r="5" fill="${E(component.snapshot.color || '#4b8a76')}" stroke="${portRing(port.type)}" stroke-width="2.5"><title>${E(box.name)} → ${E(component.snapshot.name)}${component.subname ? ` (${E(component.subname)})` : ''} → ${E(port.label)} (${E(port.type)})</title></circle>${labels ? `<text class="room-port-label" x="${tx}" y="${ty}" text-anchor="${anchor}">${E(label)}</text>` : ''}</g>`;
+        innerX = edge === 'left' ? -w / 2 : edge === 'right' ? w / 2 : x,
+        innerY = edge === 'top' ? -h / 2 : edge === 'bottom' ? h / 2 : y,
+        pillX =
+          Math.min(x, innerX) -
+          (edge === 'top' || edge === 'bottom' ? Math.max(12, label.length * 2.5 + 8) : 0),
+        pillY = Math.min(y, innerY) - (edge === 'left' || edge === 'right' ? 7 : 0),
+        pillW =
+          edge === 'left' || edge === 'right' ? Math.abs(x - innerX) : Math.max(24, label.length * 5 + 16),
+        pillH = edge === 'top' || edge === 'bottom' ? Math.abs(y - innerY) : 14;
+      return `<g class="room-external-node" data-room-port="${E(box.id)}:${E(component.id)}:${E(port.id)}" data-anchor-x="${x}" data-anchor-y="${y}"><rect x="${pillX}" y="${pillY}" width="${pillW}" height="${pillH}" rx="7" fill="${E(component.snapshot.color || '#4b8a76')}" stroke="${portTypeColour(port.type)}" stroke-width="2.5"/><title>${E(box.name)} → ${E(component.snapshot.name)}${component.subname ? ` (${E(component.subname)})` : ''} → ${E(port.label)} (${E(port.type)})</title>${labels ? `<text class="room-port-label" x="${(x + innerX) / 2}" y="${(y + innerY) / 2 + 3}" text-anchor="middle">${E(label)}</text>` : ''}</g>`;
     })
     .join('')}</g>`;
 }
@@ -289,7 +288,7 @@ function node(p, e) {
     : e.type === 'field'
       ? fieldConnectionLabel(p, e.o)
       : '';
-  return `<g data-room-node="${E(e.key)}" tabindex="0" role="button" aria-label="Move ${E(e.name)}" transform="translate(${v.x * 100} ${v.y * 100})" class="room-object ${chosen === e.key ? 'chosen' : ''}"><g transform="rotate(${v.rotation})"><rect x="${-w / 2 - 6}" y="${-h / 2 - 6}" width="${w + 12}" height="${h + 12}" rx="7" fill="transparent" class="selection-ring" stroke="${chosen === e.key ? '#153f3d' : 'transparent'}" stroke-width="2"/>${is ? `<svg x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" viewBox="0 0 100 100" preserveAspectRatio="none">${e.o.kind === 'flood' && !pr ? floodSvg(e.o.count, v.color) : propSvg(pr ? { ...pr, color: v.color } : { shape: 'line', count: e.o.count, columns: Math.min(e.o.count, 8), color: v.color }, e.o.count)}</svg><rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" fill="transparent"/>` : `${e.type === 'box' ? boxVisual(e.o, w, h) : e.type === 'field' ? fieldVisual(e.o, w, h) : e.type === 'psu' ? `<rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="3" fill="#e7f0e8" stroke="${v.color}" stroke-width="4"/><path d="M${w / 2 - 10} ${-h / 2}v${h}" stroke="${v.color}" stroke-width="5"/>` : e.type === 'distro' ? `<path d="M${-w / 2} ${-h / 2}h${w - 8}l8 8v${h - 8}h${-w}z" fill="#e9f1f4" stroke="${v.color}" stroke-width="4"/>` : e.type === 'controller' ? `<rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="10" fill="#173f34" stroke="${v.color}" stroke-width="4"/>` : `<rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="6" fill="${v.color}"/>`}${labels ? `<text text-anchor="middle" y="4" fill="${e.type === 'psu' || e.type === 'distro' ? '#28483d' : 'white'}" font-size="${Math.min(14, w / 5)}" font-weight="700">${e.type === 'box' || e.type === 'field' ? '' : { controller: 'CTRL', psu: 'PSU', distro: 'DIST', aux: 'I/O' }[e.type]}</text>` : ''}`}</g>${labels ? `<text class="room-object-label" x="0" y="${h / 2 + 16}" text-anchor="middle">${E(e.name.length > 30 ? e.name.slice(0, 28) + '…' : e.name)}</text>${detail ? `<text class="room-object-detail" x="0" y="${h / 2 + 30}" text-anchor="middle">(${E(detail)})</text>` : ''}` : ''}</g>`;
+  return `<g data-room-node="${E(e.key)}" tabindex="0" role="button" aria-label="Move ${E(e.name)}" transform="translate(${v.x * 100} ${v.y * 100})" class="room-object ${chosen === e.key ? 'chosen' : ''}"><g transform="rotate(${v.rotation})"><rect x="${-w / 2 - 6}" y="${-h / 2 - 6}" width="${w + 12}" height="${h + 12}" rx="7" fill="transparent" class="selection-ring" stroke="${chosen === e.key ? '#153f3d' : 'transparent'}" stroke-width="2"/>${is ? `<svg x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" viewBox="0 0 100 100" preserveAspectRatio="none">${e.o.kind === 'flood' && !pr ? floodSvg(e.o.count, v.color) : propSvg(pr ? { ...pr, color: v.color } : { shape: 'line', count: e.o.count, columns: Math.min(e.o.count, 8), color: v.color }, e.o.count)}</svg><rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" fill="transparent"/>` : `${e.type === 'box' ? boxVisual(e.o, w, h) : e.type === 'field' ? fieldVisual(e.o, w, h) : e.type === 'psu' ? `<rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="3" fill="#e7f0e8" stroke="${v.color}" stroke-width="4"/><path d="M${w / 2 - 10} ${-h / 2}v${h}" stroke="${v.color}" stroke-width="5"/>` : e.type === 'distro' ? `<path d="M${-w / 2} ${-h / 2}h${w - 8}l8 8v${h - 8}h${-w}z" fill="#e9f1f4" stroke="${v.color}" stroke-width="4"/>` : e.type === 'controller' ? `<rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="10" fill="#173f34" stroke="${v.color}" stroke-width="4"/>` : `<rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="6" fill="${v.color}"/>`}${labels ? `<text text-anchor="middle" y="4" fill="${e.type === 'psu' || e.type === 'distro' ? '#28483d' : 'white'}" font-size="${Math.min(14, w / 5)}" font-weight="700">${e.type === 'box' || e.type === 'field' ? '' : { controller: 'CTRL', psu: 'PSU', distro: 'DIST', aux: 'I/O' }[e.type]}</text>` : ''}`}</g>${labels ? `${e.type === 'box' ? '' : `<text class="room-object-label" x="0" y="${h / 2 + 16}" text-anchor="middle">${E(e.name.length > 30 ? e.name.slice(0, 28) + '…' : e.name)}</text>`}${detail ? `<text class="room-object-detail" x="0" y="${h / 2 + 30}" text-anchor="middle">(${E(detail)})</text>` : ''}` : ''}</g>`;
 }
 export function propsView(p) {
   ensureScene(p);
@@ -568,13 +567,14 @@ function refreshRoomWire(ev) {
     return;
   }
   const start = svg.createSVGPoint();
-  start.x = +source.getAttribute('cx');
-  start.y = +source.getAttribute('cy');
+  start.x = +source.dataset.anchorX;
+  start.y = +source.dataset.anchorY;
   const a = start.matrixTransform(source.getCTM()),
     point = locationAt(ev, svg),
     target = document.elementFromPoint(ev.clientX, ev.clientY)?.closest('[data-room-node]'),
     key = target?.dataset.roomNode;
   if (key?.startsWith('field:') || key?.startsWith('segment:')) target.classList.add('wire-target');
+  path.setAttribute('stroke', source.querySelector('rect')?.getAttribute('stroke') || '#d9982d');
   path.setAttribute('d', `M${a.x} ${a.y} L${point.x * 100} ${point.y * 100}`);
 }
 function down(ev) {
