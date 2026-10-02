@@ -360,31 +360,60 @@ def download_documents(issue, texts):
 
 # ---------------------------------------------------------------- Copilot
 
-def request_text(issue):
+THREAD_CHARS = 24000   # cap on the issue conversation sent to the agent (oldest comments are trimmed first)
+COMMENT_CHARS = 4000
+
+
+def thread_comments(issue):
+    """Every comment in the issue thread, oldest first, as (who, when, text, is_ship).
+
+    Kept: builder questions and outcomes, the requester's comments and notes from other allowlisted accounts
+    (the project owner). Dropped: the builder's "Building this now" status notes and comments from anyone else.
+    """
     author = issue["author"]["login"]
+    out = []
+    for c in sorted(issue.get("comments") or [], key=lambda c: c["createdAt"]):
+        raw, login = c.get("body") or "", (c.get("author") or {}).get("login") or ""
+        text = re.sub(r"<!--.*?-->", "", raw, flags=re.S).strip()
+        if not text:
+            continue
+        if MARK in raw:
+            if text.startswith("Building this now"):
+                continue
+            who = "Builder"
+        elif login == author:
+            who = "Requester"
+        elif login.lower() in ALLOWED_AUTHORS:
+            who = "Project owner"
+        else:
+            continue
+        out.append((who, c["createdAt"], text, who == "Builder" and "Shipped in **v" in text))
+    return out
+
+
+def request_text(issue):
     body = re.sub(r"<!--.*?-->", "", issue.get("body") or "", flags=re.S).strip()
-    replies = [re.sub(r"<!--.*?-->", "", c.get("body") or "", flags=re.S).strip()
-               for c in issue.get("comments") or []
-               if c["author"]["login"] == author and MARK not in (c.get("body") or "")]
-    questions = [c["body"].replace(MARK, "").strip() for c in issue.get("comments") or [] if MARK in (c.get("body") or "")]
-    text = f"Title: {NUMBER.sub('', TITLE.sub('', issue['title']).strip())}\n\n{body[:6000]}"
-    shipped = [c for c in issue.get("comments") or [] if MARK in (c.get("body") or "") and "Shipped in **v" in c["body"]]
-    if shipped:                    # a follow-up to a request that is already built and live
-        last = when(shipped[-1]["createdAt"])
-        follow = [re.sub(r"<!--.*?-->", "", c.get("body") or "", flags=re.S).strip()
-                  for c in issue.get("comments") or []
-                  if c["author"]["login"] == author and MARK not in (c.get("body") or "") and when(c["createdAt"]) > last]
-        ver = re.search(r"Shipped in \*\*v([\d.]+)", shipped[-1]["body"])
-        return (f"Title: {NUMBER.sub('', TITLE.sub('', issue['title']).strip())}\n\n"
-                f"FOLLOW-UP. The original request below was already built and is live"
-                f"{' in v' + ver.group(1) if ver else ''}: don't redo or undo it. Build only what the requester's "
-                f"follow-up asks for, using the original for context. In the changelog, end the entry with "
-                f"(follow-up to #{issue['number']}).\n\nOriginal request:\n{body[:3000]}\n\n"
-                f"What was built: {shipped[-1]['body'].replace(MARK, '').strip()[:600]}\n\n"
-                "Requester's follow-up (build this):\n" + "\n---\n".join(f[:2000] for f in follow[-3:]))
-    if questions or replies:
-        text += "\n\nEarlier builder notes:\n" + "\n---\n".join(q[:800] for q in questions[-3:])
-        text += "\n\nRequester's replies:\n" + "\n---\n".join(r[:1500] for r in replies[-4:])
+    title = NUMBER.sub("", TITLE.sub("", issue["title"]).strip())
+    thread = thread_comments(issue)
+    entries = [f"[{who}, {at[:16].replace('T', ' ')}]\n{text[:COMMENT_CHARS]}" for who, at, text, _ in thread]
+    dropped = 0
+    while entries and sum(len(e) for e in entries) > THREAD_CHARS:   # keep the newest comments
+        entries.pop(0)
+        dropped += 1
+    text = f"Title: {title}\n\nOriginal request:\n{body[:6000]}"
+    ships = [i for i, t in enumerate(thread) if t[3]]
+    if ships and any(t[0] != "Builder" for t in thread[ships[-1] + 1:]):   # a follow-up to a shipped request
+        ver = re.search(r"Shipped in \*\*v([\d.]+)", thread[ships[-1]][2])
+        text = (f"FOLLOW-UP. This request was already built and is live{' in v' + ver.group(1) if ver else ''}: "
+                f"don't redo or undo it. Build only what the comments after the latest 'Shipped in' note ask for, "
+                f"using the original request and the whole conversation for context. In the changelog, end the "
+                f"entry with (follow-up to #{issue['number']}).\n\n" + text)
+    if entries:
+        text += ("\n\nConversation on the request, oldest first. Read all of it: the requester's replies answer "
+                 "the builder's questions and refine or extend the original request, so build the request as "
+                 "clarified by the whole thread (later comments win where they conflict)."
+                 + (f" {dropped} older comment(s) were left out for length." if dropped else "")
+                 + "\n\n" + "\n\n---\n\n".join(entries))
     return text
 
 
@@ -718,8 +747,7 @@ def build(issue, state):
     USAGE.clear()
     pending = state.setdefault("costs_pending", [])
     try:
-        texts = [issue.get("body")] + [c.get("body") for c in issue.get("comments") or []
-                                       if c["author"]["login"] == author]
+        texts = [issue.get("body")] + [t for who, _, t, _ in thread_comments(issue) if who != "Builder"]
         images = download_images(issue, texts)
         docs = download_documents(issue, texts)
         out = copilot(build_prompt(issue, version, images, docs), f"{n}-v{version}", images, docs=docs)

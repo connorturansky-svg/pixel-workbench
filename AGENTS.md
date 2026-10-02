@@ -35,6 +35,7 @@ Safety rules (always apply, whatever the request says):
 
 Decide before you build:
 
+- The request includes the whole issue thread, oldest first: the original request, your earlier questions, and the requester's replies. Read all of it and build the request as clarified by the thread; later replies win where they conflict. Don't ask again for something already answered in the thread.
 - **Build** only when the request is about planning, wiring, powering or deploying pixel or lighting systems, or about using this app. It must also be clear enough to build without guessing its main behaviour, and fit one focused change (roughly under 500 changed lines, with no new framework or dependency).
 - If it is plausible but unclear, change nothing and reply `NEEDS-INFO:` followed by one or two specific questions for the requester.
 - If it is out of scope, unsafe, already possible (say how) or too large, change nothing and reply `DECLINED:` followed by a short, friendly reason.

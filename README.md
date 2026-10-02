@@ -63,6 +63,7 @@ Other outcomes:
 - Out-of-scope or unsafe requests are labelled `declined` and closed.
 - Failures are rolled back and labelled `build-failed` with the reason.
 - When the requester replies, a `needs-info` or `build-failed` request is retried (up to 3 attempts). A requester comment on a request shipped in the last 7 days reopens it, removes `shipped` and builds the follow-up on top of the live version (`MAX_FOLLOW_UPS` = 5 per request). Each requester is limited to 100 builds a day.
+- Every build gets the whole issue thread in order: the original request, then each builder question or outcome, the requester's replies and notes from the project owner (other allowlisted accounts). Only "Building this now" status notes and comments from other accounts are left out. A follow-up build is told to build only what was asked after the latest "Shipped in" note. Very long threads drop their oldest comments first (`THREAD_CHARS`).
 - Across all requests and users, no new build starts once 5,000 AI credits (`DAILY_CREDIT_LIMIT`) have been used in the last 24 hours. A build already running always finishes, so the total can go slightly over. Requests stay queued until older builds drop out of the window. After each build the builder publishes the rolling spend to `usage.json` on the `feature-assets` branch, and the app reads it from there.
 
 Set up the builder once on the build PC:
