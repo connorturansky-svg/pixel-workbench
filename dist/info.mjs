@@ -4,8 +4,9 @@ import {
   HOW_TO_USE,
   ABOUT,
   SHORTCUTS,
-  ARCHITECTURE_NOTES
-} from './version.mjs?v=0.26.0';
+  ARCHITECTURE_NOTES,
+  SUGGEST_GUIDE
+} from './version.mjs?v=0.27.0';
 
 const E = s =>
   String(s ?? '').replace(
@@ -14,6 +15,7 @@ const E = s =>
   );
 const TABS = [
   ['how', 'How to use'],
+  ['suggest', 'Suggest a feature'],
   ['new', "What's new"],
   ['arch', 'Architecture'],
   ['keys', 'Shortcuts']
@@ -51,7 +53,7 @@ ${box(410, 410, 180, 40, 'Project JSON', 'export / import backup', 'store')}
 ${box(610, 410, 180, 40, 'Guide · CSV · BOM', 'print & field sheets', 'store')}
 ${line(300, 376, 300, 408)}${line(500, 376, 500, 408)}${line(700, 376, 700, 408)}
 <rect class="arch-zone" x="10" y="474" width="800" height="76" rx="10"/><text class="z" x="24" y="494">FEATURE REQUESTS</text>
-${box(30, 500, 150, 42, 'GitHub issue', '[Feature] by requester', 'host')}${box(215, 500, 175, 42, 'builder.py (build PC)', 'every 5 min, 5k credits/day', 'core')}${box(425, 500, 170, 42, 'Copilot CLI', 'sandboxed, AGENTS.md', 'calc')}${box(630, 500, 165, 42, 'Checks + push', 'tests, AI cost, tag, Pages', 'host')}
+${box(30, 500, 150, 42, 'GitHub issue', '#n title, replies', 'host')}${box(215, 500, 175, 42, 'builder.py (build PC)', '5 min, follow-ups, 5k/day', 'core')}${box(425, 500, 170, 42, 'Copilot CLI', 'sandboxed, AGENTS.md', 'calc')}${box(630, 500, 165, 42, 'Checks + push', 'tests, AI cost, tag, Pages', 'host')}
 ${line(180, 521, 213, 521)}${line(390, 521, 423, 521)}${line(595, 521, 628, 521)}
 </svg>`;
 }
@@ -59,6 +61,10 @@ ${line(180, 521, 213, 521)}${line(390, 521, 423, 521)}${line(595, 521, 628, 521)
 function body() {
   if (tab === 'how')
     return `<div class="info-about"><strong>About</strong><p>${E(ABOUT)}</p></div>${HOW_TO_USE.map(([t, c]) => `<div class="info-step"><strong>${E(t)}</strong><p>${E(c)}</p></div>`).join('')}`;
+  if (tab === 'suggest')
+    return SUGGEST_GUIDE.map(
+      ([t, c]) => `<div class="info-step"><strong>${E(t)}</strong><p>${E(c)}</p></div>`
+    ).join('');
   if (tab === 'new')
     return CHANGELOG.map(
       c =>

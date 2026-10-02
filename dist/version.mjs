@@ -1,6 +1,17 @@
 // Every change: bump APP_VERSION, add a CHANGELOG entry at the top (date DD/MM/YYYY), and review HOW_TO_USE, ARCHITECTURE_NOTES / the info.mjs diagram and SHORTCUTS.
-export const APP_VERSION = '0.26.0';
+export const APP_VERSION = '0.27.0';
 export const CHANGELOG = [
+  {
+    version: '0.27.0',
+    date: '02/10/2026',
+    items: [
+      'Feature requests now have a Title field. The request number still leads the GitHub issue title, for example “[Feature] #15 Your title”.',
+      'Answer the builder’s questions or retry a failed build straight from the Requests and build status list. Select Answer the question or Reply to retry, read the builder’s latest message and send your reply without opening GitHub.',
+      'A bell in the top bar shows how many of your requests need your reply. Select it to jump to those requests.',
+      'For 7 days after a request ships, select Add a follow-up to say what was missed. The builder reopens the request and builds the follow-up as a new version.',
+      'A new Suggest a feature tab in the i dialog is a complete guide to requesting features, tracking them and replying to the builder.'
+    ]
+  },
   {
     version: '0.26.0',
     date: '02/10/2026',
@@ -267,12 +278,59 @@ export const HOW_TO_USE = [
     'Check per-box and project capacity, then open the Bill of materials. Export project JSON for backup and use the Wiring guide and planning CSV in the field.'
   ],
   [
-    'Suggest a feature',
-    'Open Suggest a feature, describe your idea and add any screenshots, then select Submit. The first time, Connect GitHub with a token (one-time setup, kept only in this browser). Requests from approved GitHub accounts (J-Turansky and connorturansky-svg) are built, tested and published automatically; other accounts’ requests are closed without a build. Status shows on the same page: select All, Queued, Building, Tested or Shipped (or Needs attention) to filter requests by stage. The heading shows the total, and each shipped request shows its release version and its estimated tokens, AI credits and cost. The counter above the tabs totals AI spend across all builds. The Daily build allowance meter shows how much of the shared 5,000-credit, rolling 24-hour allowance has been used. When it’s full, requests wait in the queue until older builds drop out of the window.'
+    'Get help',
+    'Use the i button in the top bar for this guide, the change log, the Suggest a feature manual, the architecture and keyboard shortcuts. The version badge under the logo opens What’s new.'
+  ]
+];
+// The Suggest a feature manual (i dialog → Suggest a feature). Keep in step with suggest.mjs and automation/builder.py.
+export const SUGGEST_GUIDE = [
+  [
+    'What it is',
+    'Suggest a feature lets you ask for a change to Pixel Workbench in plain words. Your request becomes a GitHub issue. An automatic builder then writes the change, tests it and publishes a new version of the app, usually within about half an hour. No coding is needed on your part.'
   ],
   [
-    'Get help',
-    'Use the i button in the top bar for this guide, the change log, the architecture and keyboard shortcuts. The version badge under the logo opens What’s new.'
+    'Who can use it',
+    'Requests are built automatically only for the approved GitHub accounts (J-Turansky and connorturansky-svg). Requests from any other account are closed without a build. Anyone can view the request list.'
+  ],
+  [
+    '1. Connect GitHub (once)',
+    'The first time you submit, select Connect GitHub. Create a token on the GitHub page that opens (the public_repo permission is pre-selected), copy it and paste it into the app. The token is kept only in this browser and is sent only to GitHub. Your requests and replies are posted under your own account. Disconnect removes it from this browser.'
+  ],
+  [
+    '2. Write your request',
+    'Open Suggest a feature in the sidebar. Give it a short Title (at least 5 characters), for example “Voltage drop on room cable routes”. Under What should it do?, describe the idea in a sentence or more: what you want, where in the app and why. Add screenshots by pasting, dropping or choosing files if they help. Submit becomes available once both the title and description are filled in.'
+  ],
+  [
+    '3. Submit',
+    'Select Submit. The request is filed in the background and given a number. On GitHub its title becomes “[Feature] #15 Your title”, with the number always first. The same number identifies it everywhere in the app.'
+  ],
+  [
+    '4. Follow its progress',
+    'The Requests and build status list on the same page shows every request. Filter it with the tabs. Queued means waiting its turn. Building means the builder is working on it now. Tested means it has passed the checks and is being published. Shipped means it is live, with a link to the version it arrived in and its AI cost. The builder checks for work every 5 minutes and builds one request at a time, oldest first. Reload the page to see the newest version once a request ships.'
+  ],
+  [
+    '5. When the builder needs you',
+    'Sometimes the builder needs more detail, or a build fails its checks. The request then moves to Needs attention, and a bell with a number appears in the top bar. Select the bell to jump to those requests. Select Answer the question (or Reply to retry for a failed build), read the builder’s message, type your reply and select Send. Within 5 minutes the builder reads your reply and puts the request back in the queue. The bell clears once you have replied. A request is retried automatically up to 3 times.'
+  ],
+  [
+    '6. Follow-ups after it ships',
+    'If a shipped request missed something, you don’t need a new request. For 7 days after it ships, select Add a follow-up on it and describe what is still missing or wrong. The builder reopens the request, builds only your follow-up on top of what is already live and ships it as a new version. Its AI cost is added to the same request. Each request can have up to 5 follow-ups. After 7 days, or for a different idea, submit a new request instead.'
+  ],
+  [
+    'Replying on GitHub',
+    'Replies and follow-ups can also be posted as comments on the issue on GitHub; they work the same way. Only comments from the person who raised the request count. Other people’s comments are ignored by the builder.'
+  ],
+  [
+    'Declined requests',
+    'The builder declines requests that are out of scope or unsafe, such as anything that would send your data elsewhere. The request is closed with a comment that explains why.'
+  ],
+  [
+    'Costs and the daily allowance',
+    'Each build uses AI credits. The counter above the tabs totals the AI credits, estimated cost and tokens of every build, and each shipped request shows its own. All requests from all users share an allowance of 5,000 AI credits in any rolling 24 hours, shown by the Daily build allowance meter. When it is full, requests wait in the queue until older builds drop out of the 24-hour window.'
+  ],
+  [
+    'Tips for a good request',
+    'Ask for one change per request. Say where in the app it belongs and what should happen, and include examples or numbers if they matter. A screenshot of the area you mean helps the builder find it. If you have two ideas, submit two requests.'
   ]
 ];
 export const ABOUT =
@@ -294,7 +352,7 @@ export const ARCHITECTURE_NOTES = [
   'app.js holds the project state and re-renders the whole interface from it. Every view (wiring, room, boxes, standards, BOM, guide) reads the same project, so changes appear in every view. room.js keeps the room camera zoom and pan while the layout is open. Controller-box instances retain their optional subnames, schematic positions, rotation and stacking layers; enclosure sizes and physical component dimensions are reusable device-library standards.',
   'Calculation and data modules (model, layout-model, installation-model) are UI-free. installation-model also finds live octilinear cable paths around room objects while routes have no manual pivots. verify.mjs and verify-installation.mjs exercise them under Node.',
   'Data never leaves the browser. The project and standards library are stored in localStorage. JSON export/import is the backup path, and ?test=1 runs an isolated session that does not save.',
-  'Suggest a feature (suggest.mjs) files a [Feature] GitHub issue in the background under the requester’s own account, using a token they connect once (stored in this browser, sent only to api.github.com). Screenshots are uploaded to the repo’s feature-assets branch, which is never deployed. It reads request status from the public GitHub issues API and maps shipped requests to versions from builder commit titles (vX.Y.Z: … (#n)); It also reads build-costs.json from the site itself for the AI cost figures, and usage.json from the feature-assets branch for the daily allowance meter. Together these are the only network calls the app makes. Only allowlisted authors (ALLOWED_AUTHORS) are listed.',
-  'automation/builder.py runs every 5 minutes on the build PC (Task Scheduler). Requests from authors outside ALLOWED_AUTHORS are declined and closed. It builds the oldest open allowed request in its own git worktree with the Copilot CLI, which runs with no web, MCP or git access and follows AGENTS.md. To keep AI use low it gives the agent a code map (automation/codemap.py), a single quiet check (check.mjs), Prettier-formatted code it reformats after each run, and resumed sessions for fix rounds. It then rejects off-limits files or new network code, runs stamp-version, verify and a headless browser smoke test, and pushes the release to main as J-Turansky. Each release also appends that build’s AI credits, tokens, model and agent time (read from the Copilot CLI usage summary) to dist/build-costs.json, along with any earlier attempts that didn’t ship. Finally it comments on the issue and closes it. It starts no new build once 5,000 AI credits have been used in the last 24 hours (DAILY_CREDIT_LIMIT). After each build it publishes that rolling spend to usage.json on the feature-assets branch.',
+  'Suggest a feature (suggest.mjs) files a [Feature] GitHub issue, titled with its number and the requester’s title, in the background under the requester’s own account, using a token they connect once (stored in this browser, sent only to api.github.com). Screenshots are uploaded to the repo’s feature-assets branch, which is never deployed. It reads request status from the public GitHub issues API and maps shipped requests to versions from builder commit titles (vX.Y.Z: … (#n)); It also reads build-costs.json from the site itself for the AI cost figures, and usage.json from the feature-assets branch for the daily allowance meter. It reads the builder’s latest issue comment and posts the requester’s replies and follow-ups as issue comments; a top-bar bell counts the requester’s requests that need a reply. Together these are the only network calls the app makes. Only allowlisted authors (ALLOWED_AUTHORS) are listed.',
+  'automation/builder.py runs every 5 minutes on the build PC (Task Scheduler). Requests from authors outside ALLOWED_AUTHORS are declined and closed. It builds the oldest open allowed request in its own git worktree with the Copilot CLI, which runs with no web, MCP or git access and follows AGENTS.md. To keep AI use low it gives the agent a code map (automation/codemap.py), a single quiet check (check.mjs), Prettier-formatted code it reformats after each run, and resumed sessions for fix rounds. It then rejects off-limits files or new network code, runs stamp-version, verify and a headless browser smoke test, and pushes the release to main as J-Turansky. Each release also appends that build’s AI credits, tokens, model and agent time (read from the Copilot CLI usage summary) to dist/build-costs.json, along with any earlier attempts that didn’t ship. Finally it comments on the issue and closes it. A requester comment on a request shipped within the last 7 days (FOLLOW_UP_DAYS) reopens it, and the builder builds only that follow-up on top of the live version. It starts no new build once 5,000 AI credits have been used in the last 24 hours (DAILY_CREDIT_LIMIT). After each build it publishes that rolling spend to usage.json on the feature-assets branch.',
   'version.mjs is the single source for the version, changelog, help text and shortcuts. info.mjs renders the i dialog.'
 ];

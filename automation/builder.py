@@ -53,6 +53,8 @@ FIX_ROUNDS = 2
 PRETTIER = "prettier@3.9.9"   # formats changed dist files after each Copilot run (settings in .prettierrc)
 SESSIONS = {}                 # Copilot session id -> its cumulative usage so far (resumed runs report totals)
 MAX_ATTEMPTS = 3            # automatic retries per issue (each requester reply retries a failed build)
+FOLLOW_UP_DAYS = 7          # a requester's comment on a request shipped this recently reopens and rebuilds it
+MAX_FOLLOW_UPS = 5          # follow-up builds per request
 PER_AUTHOR_DAY = 100         # builds per requester per 24 hours
 # Only these GitHub accounts can have requests built; everyone else is declined and closed.
 ALLOWED_AUTHORS = {"j-turansky", "connorturansky-svg"}
@@ -170,7 +172,33 @@ def requester_replied(issue):
                                   and when(c["createdAt"]) > last_bot for c in issue.get("comments") or [])
 
 
+def reopen_follow_ups(state):
+    """Reopen recently shipped requests whose requester has commented since the builder's last comment."""
+    items = json.loads(gh("issue", "list", "-R", REPO, "--state", "closed", "--label", "shipped", "--limit", "30",
+                          "--json", "number,title,labels,closedAt,author,comments"))
+    now = datetime.now(timezone.utc)
+    done = state.setdefault("follow_ups", {})
+    for i in items:
+        n = i["number"]
+        if i["author"]["login"].lower() not in ALLOWED_AUTHORS or not i.get("closedAt"):
+            continue
+        if (now - when(i["closedAt"])).total_seconds() > FOLLOW_UP_DAYS * 86400 or not requester_replied(i):
+            continue
+        if done.get(str(n), 0) >= MAX_FOLLOW_UPS:
+            continue
+        if DRY:
+            log(f"#{n} [dry-run] follow-up comment found; would reopen")
+            continue
+        done[str(n)] = done.get(str(n), 0) + 1
+        state["attempts"][str(n)] = 0
+        gh("issue", "reopen", str(n), "-R", REPO, check=False)
+        label(n, remove=["shipped"])
+        log(f"#{n} follow-up from the requester: reopened and queued")
+        save_state(state)
+
+
 def next_request(state):
+    reopen_follow_ups(state)
     items = json.loads(gh("issue", "list", "-R", REPO, "--state", "open", "--limit", "60", "--json",
                           "number,title,body,labels,createdAt,author,comments"))
     now = datetime.now(timezone.utc)
@@ -293,7 +321,21 @@ def request_text(issue):
                for c in issue.get("comments") or []
                if c["author"]["login"] == author and MARK not in (c.get("body") or "")]
     questions = [c["body"].replace(MARK, "").strip() for c in issue.get("comments") or [] if MARK in (c.get("body") or "")]
-    text = f"Title: {TITLE.sub('', issue['title']).strip()}\n\n{body[:6000]}"
+    text = f"Title: {NUMBER.sub('', TITLE.sub('', issue['title']).strip())}\n\n{body[:6000]}"
+    shipped = [c for c in issue.get("comments") or [] if MARK in (c.get("body") or "") and "Shipped in **v" in c["body"]]
+    if shipped:                    # a follow-up to a request that is already built and live
+        last = when(shipped[-1]["createdAt"])
+        follow = [re.sub(r"<!--.*?-->", "", c.get("body") or "", flags=re.S).strip()
+                  for c in issue.get("comments") or []
+                  if c["author"]["login"] == author and MARK not in (c.get("body") or "") and when(c["createdAt"]) > last]
+        ver = re.search(r"Shipped in \*\*v([\d.]+)", shipped[-1]["body"])
+        return (f"Title: {NUMBER.sub('', TITLE.sub('', issue['title']).strip())}\n\n"
+                f"FOLLOW-UP. The original request below was already built and is live"
+                f"{' in v' + ver.group(1) if ver else ''}: don't redo or undo it. Build only what the requester's "
+                f"follow-up asks for, using the original for context. In the changelog, end the entry with "
+                f"(follow-up to #{issue['number']}).\n\nOriginal request:\n{body[:3000]}\n\n"
+                f"What was built: {shipped[-1]['body'].replace(MARK, '').strip()[:600]}\n\n"
+                "Requester's follow-up (build this):\n" + "\n---\n".join(f[:2000] for f in follow[-3:]))
     if questions or replies:
         text += "\n\nEarlier builder notes:\n" + "\n---\n".join(q[:800] for q in questions[-3:])
         text += "\n\nRequester's replies:\n" + "\n---\n".join(r[:1500] for r in replies[-4:])

@@ -1,4 +1,4 @@
-import { APP_VERSION } from './version.mjs?v=0.26.0';
+import { APP_VERSION } from './version.mjs?v=0.27.0';
 
 // Suggest a feature: submits a `[Feature]` GitHub issue in the background under the requester's own GitHub account
 // (a token they connect once, kept only in this browser and sent only to api.github.com). Screenshots are uploaded
@@ -27,7 +27,7 @@ const E = s =>
     c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]
   );
 const testing = new URLSearchParams(location.search).has('test');
-const draft = { desc: '', images: [] },
+const draft = { title: '', desc: '', images: [] },
   AUTH_KEY = 'pw-gh-auth',
   ASSETS = 'feature-assets',
   API = `https://api.github.com/repos/${REPO}`;
@@ -54,17 +54,8 @@ const gh = (url, opts = {}) =>
       ...opts.headers
     }
   });
-const ready = () => draft.desc.trim().length >= 15;
-// Issue title: the description's first sentence or line, cut at a word boundary.
-export function titleFrom(desc) {
-  const t = String(desc).replace(/\s+/g, ' ').trim(),
-    first = (t.match(/^.+?[.!?](?=\s|$)/)?.[0] || t).replace(/[.!?]+$/, '');
-  const cap = x => x.charAt(0).toUpperCase() + x.slice(1);
-  if (first.length <= 70) return cap(first) || 'Feature request';
-  const cut = first.slice(0, 70),
-    i = cut.lastIndexOf(' ');
-  return cap((i > 30 ? cut.slice(0, i) : cut).replace(/[,;:\-–—]+$/, '')) + '…';
-}
+const ready = () => draft.title.trim().length >= 5 && draft.desc.trim().length >= 15;
+export const FOLLOW_UP_DAYS = 7; // automation/builder.py FOLLOW_UP_DAYS must match
 let list = { state: 'idle', items: [], error: '', at: 0 },
   toast = () => {},
   stage = 'all';
@@ -149,7 +140,7 @@ async function submit() {
     paint();
     return;
   }
-  const title = titleFrom(draft.desc),
+  const title = draft.title.replace(/\s+/g, ' ').trim().slice(0, 100),
     folder = `requests/${new Date().toISOString().replace(/\D/g, '').slice(0, 14)}-${auth.login}`;
   sub = { state: 'sending', msg: 'Submitting…', number: 0, url: '' };
   paint();
@@ -187,7 +178,7 @@ async function submit() {
       if (pr.ok) issue.title = nt;
     } catch {}
     draft.images.forEach(im => URL.revokeObjectURL(im.url));
-    Object.assign(draft, { desc: '', images: [] });
+    Object.assign(draft, { title: '', desc: '', images: [] });
     sub = { state: 'done', msg: '', number: issue.number, url: issue.html_url };
     list = { ...list, items: [issue, ...list.items.filter(x => x.number !== issue.number)] };
     try {
@@ -352,6 +343,91 @@ function spendHtml() {
   return `<div class="sg-spend" title="AI usage of every automatic build, read from build-costs.json. 1 AI credit = $${s.rate} (GitHub’s rate).">
 <div><b>${fmtCredits(t.credits)}</b><span>AI credits</span></div><div><b>${usd(t.credits, s.rate)}</b><span>est. cost</span></div><div><b>${fmtTok(t.tokens)}</b><span>tokens</span></div><div><b>${t.builds}</b><span>build${t.builds === 1 ? '' : 's'}${other ? ` (${other} not shipped)` : ''}</span></div></div>${limitHtml()}`;
 }
+const mine = i => !!auth && String(i.user?.login || '').toLowerCase() === auth.login.toLowerCase();
+const REPLIED_KEY = 'pw-sg-replied';
+let replied = (() => {
+    try {
+      return JSON.parse(localStorage.getItem(REPLIED_KEY) || '{}') || {};
+    } catch {
+      return {};
+    }
+  })(),
+  reply = { open: 0, text: '', busy: false, error: '', notes: {} };
+// The status a reply was sent from; once the builder changes the status, the request needs nothing from the user.
+const repliedNow = i => replied[i.number] && replied[i.number] === statusOf(i) + '|' + (i.closed_at || '');
+// Requests waiting on their requester: a builder question, or a failed build to retry.
+export const needsReply = i => mine(i) && ['info', 'failed'].includes(statusOf(i)) && !repliedNow(i);
+// Shipped requests can take a follow-up comment for a few days; the builder reopens and rebuilds them.
+const canFollowUp = i =>
+  mine(i) &&
+  statusOf(i) === 'shipped' &&
+  Date.now() - new Date(i.closed_at || 0).getTime() < FOLLOW_UP_DAYS * 86400000 &&
+  !repliedNow(i);
+export function attentionItems() {
+  return list.items.filter(needsReply);
+}
+export function bellHtml() {
+  const n = attentionItems().length;
+  if (!n) return '<span data-sg-bell hidden></span>';
+  return `<button type="button" class="btn sg-bell" data-action="page:suggest" data-sg-bell title="${n} feature request${n > 1 ? 's need' : ' needs'} your reply" aria-label="${n} feature request${n > 1 ? 's need' : ' needs'} your reply"><span aria-hidden="true">🔔</span><span class="sg-bell-n">${n}</span></button>`;
+}
+function replyHtml(i) {
+  const s = statusOf(i),
+    due = needsReply(i),
+    follow = canFollowUp(i);
+  if (replied[i.number] && repliedNow(i))
+    return `<p class="sg-replied">Reply sent. The builder picks it up within 5 minutes.</p>`;
+  if (!due && !follow) return '';
+  const label = s === 'info' ? 'Answer the question' : s === 'failed' ? 'Reply to retry' : 'Add a follow-up';
+  if (reply.open !== i.number)
+    return `<button type="button" class="text-btn sg-reply-open${due ? ' sg-reply-due' : ''}" data-sg="reply:${i.number}">${label}</button>`;
+  const note = reply.notes[i.number],
+    lead =
+      s === 'shipped'
+        ? `Missed something? Describe what still needs changing. The builder reopens #${i.number} and builds it as a new version (within ${FOLLOW_UP_DAYS} days of shipping).`
+        : s === 'info'
+          ? 'The builder needs more detail before it can build this.'
+          : 'Add detail or corrections, and the builder tries again.';
+  return `<div class="sg-reply"><p>${E(lead)}</p>${note === undefined ? '<p class="sg-note">Loading the builder’s latest message…</p>' : note ? `<blockquote class="sg-note">${E(note)}</blockquote>` : ''}<textarea rows="4" maxlength="4000" data-sg-field="reply" aria-label="Your reply to #${i.number}" placeholder="${s === 'shipped' ? 'e.g. The main ask was … which still isn’t there.' : 'Your answer'}">${E(reply.text)}</textarea>${reply.error ? `<p class="sg-error">${E(reply.error)}</p>` : ''}<div class="sg-reply-actions"><button type="button" class="btn primary" data-sg="send-reply:${i.number}" ${reply.busy || reply.text.trim().length < 5 ? 'disabled' : ''}>${reply.busy ? 'Sending…' : 'Send'}</button><button type="button" class="text-btn" data-sg="reply-cancel">Cancel</button></div></div>`;
+}
+async function loadNote(n) {
+  try {
+    const r = await fetch(`${API}/issues/${n}/comments?per_page=100`, {
+      headers: { Accept: 'application/vnd.github+json' }
+    });
+    const c = r.ok ? (await r.json()).filter(x => /<!-- pw-builder -->/.test(x.body || '')) : [];
+    reply.notes[n] = c.length
+      ? c[c.length - 1].body
+          .replace(/<!--[\s\S]*?-->/g, '')
+          .replace(/\*\*/g, '')
+          .trim()
+          .slice(0, 1200)
+      : '';
+  } catch {
+    reply.notes[n] = '';
+  }
+  paintList();
+}
+async function sendReply(n) {
+  const i = list.items.find(x => x.number === n),
+    text = reply.text.trim();
+  if (!i || !auth || text.length < 5 || reply.busy) return;
+  reply = { ...reply, busy: true, error: '' };
+  paintList();
+  try {
+    const r = await gh(`/issues/${n}/comments`, { method: 'POST', body: JSON.stringify({ body: text }) });
+    if (!r.ok) await fail(r, 'post your reply');
+    replied[n] = statusOf(i) + '|' + (i.closed_at || '');
+    try {
+      localStorage.setItem(REPLIED_KEY, JSON.stringify(replied));
+    } catch {}
+    reply = { open: 0, text: '', busy: false, error: '', notes: reply.notes };
+    toast(`Reply sent on #${n}. The builder picks it up within 5 minutes.`);
+  } catch (e) {
+    reply = { ...reply, busy: false, error: e.message || 'Network error. Try again.' };
+  }
+  paintList();
+}
 export const titleText = t =>
   String(t || '')
     .replace(/^\s*\[Feature\]\s*/i, '')
@@ -370,7 +446,7 @@ function listHtml() {
     .map(i => {
       const s = statusOf(i),
         [label, help] = STATUS[s];
-      return `<li class="sg-item"><span class="sg-state"><span class="sg-pill sg-${s}" title="${E(help)}">${label}</span>${s === 'shipped' && list.versions?.[i.number] ? `<a class="sg-ver" href="https://github.com/${REPO}/releases/tag/v${E(list.versions[i.number])}" target="_blank" rel="noopener" title="Released in this version">v${E(list.versions[i.number])}</a>` : ''}</span><div class="sg-item-main"><a href="${E(i.html_url)}" target="_blank" rel="noopener"><span class="sg-num">#${i.number}</span> ${E(titleText(i.title))}</a><small>${E(i.user?.login || '')} · ${date(i.created_at)}${s === 'shipped' && i.closed_at ? ` · shipped ${date(i.closed_at)}` : ''}${i.comments ? ` · ${i.comments} comment${i.comments > 1 ? 's' : ''}` : ''}</small>${s === 'shipped' ? costHtml(i.number) : ''}</div></li>`;
+      return `<li class="sg-item${needsReply(i) ? ' sg-item-due' : ''}"><span class="sg-state"><span class="sg-pill sg-${s}" title="${E(help)}">${label}</span>${s === 'shipped' && list.versions?.[i.number] ? `<a class="sg-ver" href="https://github.com/${REPO}/releases/tag/v${E(list.versions[i.number])}" target="_blank" rel="noopener" title="Released in this version">v${E(list.versions[i.number])}</a>` : ''}</span><div class="sg-item-main"><a href="${E(i.html_url)}" target="_blank" rel="noopener"><span class="sg-num">#${i.number}</span> ${E(titleText(i.title))}</a><small>${E(i.user?.login || '')} · ${date(i.created_at)}${s === 'shipped' && i.closed_at ? ` · shipped ${date(i.closed_at)}` : ''}${i.comments ? ` · ${i.comments} comment${i.comments > 1 ? 's' : ''}` : ''}</small>${s === 'shipped' ? costHtml(i.number) : ''}${replyHtml(i)}</div></li>`;
     })
     .join('')}</ul>`;
 }
@@ -379,11 +455,12 @@ export function suggestView() {
   return `<div class="sg-grid">
 <section class="panel sg-form"><h3>Describe your idea</h3>
 <p class="sg-lead">Tell us what you'd like Pixel Workbench to do. Your request is filed as a GitHub issue under your own GitHub account. Requests from approved accounts (${ALLOWED_AUTHORS.map(E).join(' and ')}) are built, tested and published automatically, usually within 30 minutes. Requests from other accounts are closed without a build.</p>
+<label>Title<input type="text" maxlength="100" data-sg-field="title" placeholder="e.g. Voltage drop on room cable routes" value="${E(draft.title)}"></label>
 <label>What should it do?<textarea rows="7" maxlength="5000" data-sg-field="desc" placeholder="e.g. Show the voltage drop on each room cable route. Highlight routes over 5% so I know where to inject power.">${E(draft.desc)}</textarea></label>
 <div class="sg-drop" data-sg-drop tabindex="0" role="button" aria-label="Add screenshots: paste, drop or choose files"><strong>Add screenshots</strong><span>Paste (Ctrl+V), drop images here, or <u>choose files</u>. Up to ${MAX_IMAGES}.</span><input type="file" accept="image/*" multiple hidden data-sg-file></div>
 ${imagesHtml()}
 ${connectHtml()}
-<div class="sg-actions"><button type="button" class="btn primary" data-sg="submit" ${ready() && sub.state !== 'sending' ? '' : 'disabled'}>${sub.state === 'sending' ? 'Submitting…' : 'Submit'}</button><small>${sub.state === 'sending' ? E(sub.msg) : ready() ? (auth ? 'Your request is built, tested and published automatically.' : "You'll be asked to connect GitHub once.") : 'Describe your idea in a sentence or more. The title is taken from your first sentence.'}</small></div>
+<div class="sg-actions"><button type="button" class="btn primary" data-sg="submit" ${ready() && sub.state !== 'sending' ? '' : 'disabled'}>${sub.state === 'sending' ? 'Submitting…' : 'Submit'}</button><small>${sub.state === 'sending' ? E(sub.msg) : ready() ? (auth ? 'Your request is built, tested and published automatically.' : "You'll be asked to connect GitHub once.") : 'Give it a short title and describe your idea in a sentence or more.'}</small></div>
 ${resultHtml()}
 </section>
 <section class="panel sg-status"><div class="sg-status-head"><h3>Requests and build status <span data-sg-count>(${list.items.length})</span></h3><button type="button" class="text-btn" data-sg="refresh">Refresh</button></div>
@@ -415,6 +492,8 @@ function paintList() {
   if (sp) sp.innerHTML = spendHtml();
   if (el) el.innerHTML = listHtml();
   if (count) count.textContent = `(${list.items.length})`;
+  const bell = document.querySelector('[data-sg-bell]');
+  if (bell) bell.outerHTML = bellHtml();
 }
 
 export async function loadRequests(force = false) {
@@ -502,9 +581,29 @@ export function afterSuggestRender() {
 
 export function installSuggest(opts = {}) {
   toast = opts.toast || toast;
+  document.addEventListener(
+    'click',
+    e => {
+      if (e.target.closest?.('[data-sg-bell]')) stage = 'attention';
+    },
+    true
+  );
+  // Keep the top-bar bell current for a connected requester (their own requests only).
+  if (auth && !testing) {
+    loadRequests();
+    setInterval(() => document.visibilityState === 'visible' && auth && loadRequests(true), 300000);
+  }
   document.addEventListener('input', e => {
     const f = e.target.dataset?.sgField;
     if (!f) return;
+    if (f === 'reply') {
+      const was = reply.text.trim().length >= 5;
+      reply.text = e.target.value;
+      const btn = document.querySelector('[data-sg^="send-reply:"]');
+      if (btn && was !== reply.text.trim().length >= 5)
+        btn.disabled = reply.busy || reply.text.trim().length < 5;
+      return;
+    }
     const was = ready();
     draft[f] = e.target.value;
     const now = ready();
@@ -581,6 +680,15 @@ export function installSuggest(opts = {}) {
       if (im) URL.revokeObjectURL(im.url);
       paint();
     } else if (a === 'refresh') loadRequests(true);
+    else if (a === 'reply') {
+      reply = { open: +n, text: '', busy: false, error: '', notes: reply.notes };
+      paintList();
+      document.querySelector('[data-sg-field="reply"]')?.focus();
+      if (!((+n) in reply.notes)) loadNote(+n);
+    } else if (a === 'reply-cancel') {
+      reply = { ...reply, open: 0, text: '', error: '' };
+      paintList();
+    } else if (a === 'send-reply') sendReply(+n);
     else if (a === 'stage') {
       stage = n;
       paintList();
