@@ -1,6 +1,13 @@
 // Every change: bump APP_VERSION, add a CHANGELOG entry at the top (date DD/MM/YYYY), and review HOW_TO_USE, ARCHITECTURE_NOTES / the info.mjs diagram and SHORTCUTS.
-export const APP_VERSION = '0.43.0';
+export const APP_VERSION = '0.44.0';
 export const CHANGELOG = [
+  {
+    version: '0.44.0',
+    date: '02/10/2026',
+    items: [
+      'Long text and data panels now scroll independently, useful headings can collapse, and stronger colour accents and borders make each section easier to scan. (suggested in #26)'
+    ]
+  },
   {
     version: '0.43.0',
     date: '02/10/2026',
@@ -387,7 +394,7 @@ export const HOW_TO_USE = [
   ],
   [
     'Review and pack',
-    'Review the notification strip at the top of any page for grouped electrical, Room layout and component issues; use each category link to open the relevant workspace. Check per-box and project capacity, then open the Bill of materials. Export project JSON for backup and use the Wiring guide and planning CSV in the field.'
+    'Review the notification strip at the top of any page for grouped electrical, Room layout and component issues; use each category link to open the relevant workspace. Long text and table panels scroll independently, and headings with an arrow can collapse; most start open, while large hardware lists start closed. Check per-box and project capacity, then open the Bill of materials. Export project JSON for backup and use the Wiring guide and planning CSV in the field.'
   ],
   [
     'Get help',

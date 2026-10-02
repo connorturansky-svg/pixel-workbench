@@ -1,6 +1,6 @@
-import { ensureScene } from './layout-model.mjs?v=0.43.0';
-import { roomView, propsView, installRoom } from './room.js?v=0.43.0';
-import { wiringGraph, installGraph, drawGraph } from './wiring-graph.mjs?v=0.43.0';
+import { ensureScene } from './layout-model.mjs?v=0.44.0';
+import { roomView, propsView, installRoom } from './room.js?v=0.44.0';
+import { wiringGraph, installGraph, drawGraph } from './wiring-graph.mjs?v=0.44.0';
 import {
   defaultLibrary,
   ensureLibrary,
@@ -13,7 +13,7 @@ import {
   routeSpecs,
   routeGeometry,
   routeIssues
-} from './installation-model.mjs?v=0.43.0';
+} from './installation-model.mjs?v=0.44.0';
 import {
   boxesView,
   standardsView,
@@ -22,11 +22,11 @@ import {
   drawBoxConnections,
   openBox,
   physicalIssues
-} from './installation-ui.mjs?v=0.43.0';
-import { APP_VERSION } from './version.mjs?v=0.43.0';
-import { installInfo } from './info.mjs?v=0.43.0';
-import { suggestView, installSuggest, afterSuggestRender, bellHtml } from './suggest.mjs?v=0.43.0';
-import { createDemoProject } from './demo-project.mjs?v=0.43.0';
+} from './installation-ui.mjs?v=0.44.0';
+import { APP_VERSION } from './version.mjs?v=0.44.0';
+import { installInfo } from './info.mjs?v=0.44.0';
+import { suggestView, installSuggest, afterSuggestRender, bellHtml } from './suggest.mjs?v=0.44.0';
+import { createDemoProject } from './demo-project.mjs?v=0.44.0';
 import {
   tailoredInitial,
   calculate,
@@ -37,7 +37,7 @@ import {
   PSU_MODELS,
   newSegment,
   uid
-} from './model.mjs?v=0.43.0';
+} from './model.mjs?v=0.44.0';
 const testing = new URLSearchParams(location.search).has('test');
 let project = tailoredInitial(),
   view = 'room',
@@ -188,7 +188,7 @@ function render() {
   if (migrated) save();
 }
 function checks(r) {
-  return `<div class="checks panel"><div class="checks-title"><h3>Plan checks <span>${r.warnings.length}</span></h3><small>Includes 100% white checks</small></div>${r.warnings.map(w => `<div class="check"><span class="check-icon ${w.level}">${w.level === 'info' ? 'i' : '!'}</span><div><strong>${esc(w.title)}</strong><p>${esc(w.detail)}</p></div>${w.chain ? btn('View', 'select:' + w.chain, 'text-btn') : ''}</div>`).join('') || '<p class="empty">No calculated limits exceeded. Verify the assumptions before building.</p>'}</div>`;
+  return `<details class="checks panel" open><summary class="checks-title"><h3>Plan checks <span>${r.warnings.length}</span></h3><small>Includes 100% white checks</small></summary><div class="scroll-list">${r.warnings.map(w => `<div class="check"><span class="check-icon ${w.level}">${w.level === 'info' ? 'i' : '!'}</span><div><strong>${esc(w.title)}</strong><p>${esc(w.detail)}</p></div>${w.chain ? btn('View', 'select:' + w.chain, 'text-btn') : ''}</div>`).join('') || '<p class="empty">No calculated limits exceeded. Verify the assumptions before building.</p>'}</div></details>`;
 }
 function powerCards(r) {
   return `<div class="power-strip">${project.psus

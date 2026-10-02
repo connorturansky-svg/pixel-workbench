@@ -430,10 +430,11 @@ main {
   gap: 20px;
 }
 .panel {
-  border: 1px solid var(--line);
+  border: 1.5px solid var(--line);
   border-radius: 9px;
   background: #fff;
   overflow: hidden;
+  box-shadow: 0 2px 8px rgb(35 74 53 / 5%);
 }
 .canvas {
   background-color: #fbfcfb;
@@ -724,6 +725,9 @@ main {
   justify-content: space-between;
   border-bottom: 1px solid var(--line);
   padding: 17px 21px;
+  cursor: pointer;
+  list-style-position: inside;
+  background: #fbf7ef;
 }
 .checks-title h3 {
   font-size: 14px;
@@ -749,6 +753,12 @@ main {
 }
 .check:last-child {
   border: 0;
+}
+.scroll-list {
+  max-height: min(26rem, 55vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 .check-icon {
   border-radius: 50%;

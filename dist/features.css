@@ -382,7 +382,30 @@ select {
   color: #2b7957;
 }
 .table-panel {
-  overflow-x: auto;
+  max-height: min(34rem, 65vh);
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+.table-panel thead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+.hardware-card:nth-child(3n + 1),
+.standard-card:nth-child(3n + 1) {
+  border-top: 4px solid #78a98b;
+  background: linear-gradient(180deg, #f7fbf8 0, #fff 80px);
+}
+.hardware-card:nth-child(3n + 2),
+.standard-card:nth-child(3n + 2) {
+  border-top: 4px solid #d4a65b;
+  background: linear-gradient(180deg, #fffaf1 0, #fff 80px);
+}
+.hardware-card:nth-child(3n),
+.standard-card:nth-child(3n) {
+  border-top: 4px solid #7f9eb3;
+  background: linear-gradient(180deg, #f5f9fc 0, #fff 80px);
 }
 table {
   width: 100%;
@@ -1119,6 +1142,11 @@ h1 {
     break-after: avoid;
   }
   .guide .checks {
+    overflow: visible;
+  }
+  .scroll-list,
+  .hardware-defs {
+    max-height: none;
     overflow: visible;
   }
   .check {

@@ -25,6 +25,47 @@
 .box-editor h3 {
   margin: 0 0 12px;
 }
+.install-disclosure > summary,
+.box-text-section > summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--ink);
+}
+.install-disclosure > summary {
+  margin: -18px;
+  padding: 18px;
+  background: #f3f8f4;
+}
+.install-disclosure[open] > summary {
+  margin-bottom: 0;
+  border-bottom: 2px solid #d7e6dc;
+}
+.install-disclosure-body {
+  padding-top: 12px;
+}
+.box-text-section {
+  margin-top: 18px;
+  border: 1px solid #d6e3da;
+  border-radius: 7px;
+  background: #fbfdfb;
+}
+.box-text-section > summary {
+  padding: 11px 13px;
+  background: #eef6f0;
+}
+.box-text-section[open] > summary {
+  border-bottom: 2px solid #d6e3da;
+}
+.box-text-section .install-scroll-list,
+.box-text-section .install-disclosure-body {
+  padding: 0 13px;
+}
+.install-scroll-list {
+  max-height: min(20rem, 45vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
 .capacity-row {
   max-width: 850px;
   margin: 10px 0;
@@ -519,6 +560,11 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 12px;
+  max-height: min(46rem, 72vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  padding: 2px 7px 2px 2px;
 }
 .definition-card {
   padding: 13px;
