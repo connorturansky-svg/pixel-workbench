@@ -1,4 +1,4 @@
-import {APP_VERSION} from './version.mjs?v=0.11.0';
+import {APP_VERSION} from './version.mjs?v=0.12.0';
 
 // Suggest a feature: submits a `[Feature]` GitHub issue in the background under the requester's own GitHub account
 // (a token they connect once, kept only in this browser and sent only to api.github.com). Screenshots are uploaded
@@ -21,11 +21,17 @@ const gh=(url,opts={})=>fetch(url.startsWith('http')?url:API+url,{...opts,header
 const ready=()=>draft.desc.trim().length>=15;
 // Issue title: the description's first sentence or line, cut at a word boundary.
 export function titleFrom(desc){const t=String(desc).replace(/\s+/g,' ').trim(),first=(t.match(/^.+?[.!?](?=\s|$)/)?.[0]||t).replace(/[.!?]+$/,'');const cap=x=>x.charAt(0).toUpperCase()+x.slice(1);if(first.length<=70)return cap(first)||'Feature request';const cut=first.slice(0,70),i=cut.lastIndexOf(' ');return cap((i>30?cut.slice(0,i):cut).replace(/[,;:\-–—]+$/,''))+'…';}
-let list={state:'idle',items:[],error:'',at:0},toast=()=>{};
+let list={state:'idle',items:[],error:'',at:0},toast=()=>{},stage='all';
+// Status-pane tabs: the build stages in order, plus failed/needs-info requests (shown only when there are any).
+const STAGES=[['all','All',()=>true],['queued','Queued',s=>s==='queued'],['building','Building',s=>s==='building'],['tested','Tested',s=>s==='tested'],['shipped','Shipped',s=>s==='shipped'],['attention','Needs attention',s=>s==='failed'||s==='info']];
+const stageOf=k=>STAGES.find(x=>x[0]===k)||STAGES[0];
+function stagesHtml(){const n=k=>list.items.filter(i=>stageOf(k)[2](statusOf(i))).length;if(stage==='attention'&&!n('attention'))stage='all';
+ return STAGES.filter(([k])=>k!=='attention'||n(k)).map(([k,label])=>`<button type="button" role="tab" class="sg-stage${k==='all'?' sg-stage-all':''}${k==='attention'?' sg-stage-warn':''}" aria-selected="${stage===k}" data-sg="stage:${k}">${label} <span class="sg-stage-n">${n(k)}</span></button>`).join('');}
 
 const STATUS={
  queued:['Queued','Waiting for the builder (it checks every 5 minutes).'],
  building:['Building','Being built and tested on the build PC.'],
+ tested:['Tested','Passed every check; being published to the site.'],
  shipped:['Shipped','Live on the site. Reload the page to get it.'],
  failed:['Build failed','Not released. The issue says why.'],
  info:['Needs info','The builder asked a question on the issue.'],
@@ -35,7 +41,7 @@ const STATUS={
 const date=s=>{const d=new Date(s);return isNaN(d)?'':`${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;};
 function statusOf(i){const l=new Set((i.labels||[]).map(x=>x.name));
  if(l.has('shipped'))return 'shipped';if(l.has('declined'))return 'declined';if(l.has('build-failed'))return 'failed';
- if(l.has('needs-info'))return 'info';if(l.has('in-progress'))return 'building';return i.state==='closed'?'closed':'queued';}
+ if(l.has('needs-info'))return 'info';if(l.has('tested'))return 'tested';if(l.has('in-progress'))return 'building';return i.state==='closed'?'closed':'queued';}
 
 function issueBody(shots){
  return `<!-- pixel-workbench-feature -->\n### What should it do?\n${draft.desc.trim().slice(0,5000)}\n\n### Screenshots\n${shots.length?shots.map((u,i)=>`![Screenshot ${i+1}](${u})`).join('\n\n'):'_None_'}\n\n---\n_Suggested from Pixel Workbench v${APP_VERSION}_`;
@@ -105,7 +111,9 @@ function listHtml(){
  if(list.state==='loading'&&!list.items.length)return '<p class="empty">Loading requests…</p>';
  if(list.state==='error'&&!list.items.length)return `<p class="empty">Couldn't load the request list (${E(list.error)}). <a href="https://github.com/${REPO}/issues?q=%5BFeature%5D" target="_blank" rel="noopener">See them on GitHub</a>.</p>`;
  if(!list.items.length)return '<p class="empty">No feature requests yet. Be the first.</p>';
- return `<ul class="sg-list">${list.items.map(i=>{const s=statusOf(i),[label,help]=STATUS[s];return `<li class="sg-item"><span class="sg-state"><span class="sg-pill sg-${s}" title="${E(help)}">${label}</span>${s==='shipped'&&list.versions?.[i.number]?`<a class="sg-ver" href="https://github.com/${REPO}/releases/tag/v${E(list.versions[i.number])}" target="_blank" rel="noopener" title="Released in this version">v${E(list.versions[i.number])}</a>`:''}</span><div class="sg-item-main"><a href="${E(i.html_url)}" target="_blank" rel="noopener">${E(i.title.replace(/^\[Feature\]\s*/i,''))}</a><small>#${i.number} · ${E(i.user?.login||'')} · ${date(i.created_at)}${s==='shipped'&&i.closed_at?` · shipped ${date(i.closed_at)}`:''}${i.comments?` · ${i.comments} comment${i.comments>1?'s':''}`:''}</small></div></li>`;}).join('')}</ul>`;
+ const [,stageLabel,match]=stageOf(stage),shown=list.items.filter(i=>match(statusOf(i)));
+ if(!shown.length)return `<p class="empty">Nothing is ${stage==='attention'?'waiting for attention':stageLabel.toLowerCase()} right now.</p>`;
+ return `<ul class="sg-list">${shown.map(i=>{const s=statusOf(i),[label,help]=STATUS[s];return `<li class="sg-item"><span class="sg-state"><span class="sg-pill sg-${s}" title="${E(help)}">${label}</span>${s==='shipped'&&list.versions?.[i.number]?`<a class="sg-ver" href="https://github.com/${REPO}/releases/tag/v${E(list.versions[i.number])}" target="_blank" rel="noopener" title="Released in this version">v${E(list.versions[i.number])}</a>`:''}</span><div class="sg-item-main"><a href="${E(i.html_url)}" target="_blank" rel="noopener">${E(i.title.replace(/^\[Feature\]\s*/i,''))}</a><small>#${i.number} · ${E(i.user?.login||'')} · ${date(i.created_at)}${s==='shipped'&&i.closed_at?` · shipped ${date(i.closed_at)}`:''}${i.comments?` · ${i.comments} comment${i.comments>1?'s':''}`:''}</small></div></li>`;}).join('')}</ul>`;
 }
 
 export function suggestView(){
@@ -120,12 +128,12 @@ ${connectHtml()}
 ${resultHtml()}
 </section>
 <section class="panel sg-status"><div class="sg-status-head"><h3>Requests and build status <span data-sg-count>(${list.items.length})</span></h3><button type="button" class="text-btn" data-sg="refresh">Refresh</button></div>
-<ol class="sg-pipeline" aria-label="How a request is built"><li>Queued</li><li>Building</li><li>Tested</li><li>Shipped</li></ol>
+<div class="sg-stages" role="tablist" aria-label="Filter requests by build stage" data-sg-stages>${stagesHtml()}</div>
 <div data-sg-list>${listHtml()}</div></section></div>`;
 }
 
 function paint(){const root=document.querySelector('.sg-grid');if(!root)return;const focus=document.activeElement?.dataset?.sgField,pos=document.activeElement?.selectionStart;root.outerHTML=suggestView();if(focus){const el=document.querySelector(`[data-sg-field="${focus}"]`);el?.focus();try{el.setSelectionRange(pos,pos);}catch{}}}
-function paintList(){const el=document.querySelector('[data-sg-list]'),count=document.querySelector('[data-sg-count]');if(el)el.innerHTML=listHtml();if(count)count.textContent=`(${list.items.length})`;}
+function paintList(){const el=document.querySelector('[data-sg-list]'),count=document.querySelector('[data-sg-count]'),st=document.querySelector('[data-sg-stages]');if(st)st.innerHTML=stagesHtml();if(el)el.innerHTML=listHtml();if(count)count.textContent=`(${list.items.length})`;}
 
 export async function loadRequests(force=false){
  if(testing)return;
@@ -168,5 +176,6 @@ export function installSuggest(opts={}){
   else if(a==='disconnect'){auth=null;try{localStorage.removeItem(AUTH_KEY);}catch{}paint();toast('Disconnected. The token is removed from this browser; you can also delete it on GitHub.');}
   else if(a==='remove'){const [im]=draft.images.splice(+n,1);if(im)URL.revokeObjectURL(im.url);paint();}
   else if(a==='refresh')loadRequests(true);
+  else if(a==='stage'){stage=n;paintList();}
  });
 }

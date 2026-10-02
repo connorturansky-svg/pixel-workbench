@@ -52,7 +52,7 @@ Only requests from the GitHub accounts in `ALLOWED_AUTHORS` (`J-Turansky` and `c
 2. It resets its own worktree (`..\pixel-workbench-build`) to `origin/main` and downloads the issue's screenshots.
 3. It runs the Copilot CLI headlessly under [AGENTS.md](AGENTS.md). The agent gets only file and shell tools: no MCP servers, no web access, no git or gh, and no tokens. Request text is treated as untrusted.
 4. It rejects changes outside `dist/` and `README.md` and any new network or `eval` code. Then it runs `stamp-version.mjs`, the verify scripts and `automation/smoke.py` (headless browser, every page and info tab). The agent gets two rounds to fix failures.
-5. It commits, tags `vX.Y.0` and pushes to `main` as J-Turansky. It then waits for the Pages deploy, comments, labels `shipped` and closes the issue.
+5. It labels the issue `tested`, then commits, tags `vX.Y.0` and pushes to `main` as J-Turansky. It then waits for the Pages deploy, comments, labels `shipped` and closes the issue.
 
 Other outcomes:
 

@@ -38,8 +38,8 @@ STATE = os.path.join(DATA_DIR, "state.json")
 LOCK = os.path.join(DATA_DIR, "builder.lock")
 MARK = "<!-- pw-builder -->"
 TITLE = re.compile(r"^\s*\[feature\]", re.I)
-SKIP = {"in-progress", "build-failed", "needs-info", "declined", "shipped"}
-LABELS = {"feature-request": ("1e755d", "Suggested from the app"), "in-progress": ("fbca04", "Being built"),
+SKIP = {"in-progress", "tested", "build-failed", "needs-info", "declined", "shipped"}
+LABELS = {"feature-request": ("1e755d", "Suggested from the app"), "in-progress": ("fbca04", "Being built"), "tested": ("5319e7", "Passed checks; publishing"),
           "shipped": ("0e8a16", "Built and live"), "build-failed": ("d73a4a", "The automatic build failed"),
           "needs-info": ("1d76db", "The builder asked a question"), "declined": ("cfd3d7", "Not built")}
 ALLOWED = re.compile(r"^(dist/[\w./-]+|README\.md)$")
@@ -187,10 +187,10 @@ def next_request(state):
             label(n, remove=sorted(labels & {"needs-info", "build-failed"}))
             labels -= {"needs-info", "build-failed"}
             log(f"#{n} requester replied: queued again")
-        if "in-progress" in labels:
+        if labels & {"in-progress", "tested"}:
             started = (state.get("current") or {}).get("number") == n
             if started:            # a crashed run of this builder: start over
-                labels.discard("in-progress")
+                labels -= {"in-progress", "tested"}
             else:
                 continue
         if labels & SKIP:
@@ -517,20 +517,21 @@ def build(issue, state):
             log(f"#{n} [dry-run] built and passed checks; not publishing. Changed: {', '.join(changed())}")
             rollback()
             return dict(result, ok=None, outcome="dry-run")
+        label(n, add=["tested"], remove=["in-progress"])
         sha = push(version, title, n)
         log(f"#{n} pushed v{version} ({sha[:8]}); waiting for the live site")
         live = wait_live(sha, version)
         note = f"\n\n_Note: {live}; it will appear after the next successful deploy._" if live else ""
         comment(n, f"Shipped in **v{version}**: {summary}\n\nIt's live at {SITE} (reload the page; the version "
                    f"badge under the logo shows v{version}).{note}")
-        label(n, add=["shipped"], remove=["in-progress"])
+        label(n, add=["shipped"], remove=["in-progress", "tested"])
         gh("issue", "close", str(n), "-R", REPO, "--reason", "completed", check=False)
         log(f"#{n} shipped v{version}")
         sync_owner()
         return dict(result, ok=True, outcome="shipped")
     except Retry as e:
         rollback()
-        label(n, remove=["in-progress"])
+        label(n, remove=["in-progress", "tested"])
         state["attempts"][str(n)] -= 1
         log(f"#{n} will retry: {e}")
         return dict(result, ok=None, outcome="retry")
@@ -539,7 +540,7 @@ def build(issue, state):
         reason = scrub(str(e))[:900]
         comment(n, f"The automatic build didn't go through, so nothing was released.\n\n```\n{reason}\n```\n\n"
                    "Reply on this issue (for example with more detail) to try again.")
-        label(n, add=["build-failed"], remove=["in-progress"])
+        label(n, add=["build-failed"], remove=["in-progress", "tested"])
         log(f"#{n} FAILED: {reason[:300]}")
         return dict(result, ok=False, outcome="failed", reason=reason[:300])
 

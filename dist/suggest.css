@@ -20,9 +20,14 @@
 .sg-connect ol{margin:0;padding-left:20px}.sg-connect li{margin:3px 0}.sg-connect a{color:var(--green);font-weight:600}
 .sg-connect-row{display:flex;gap:8px}.sg-connect-row input{flex:1;min-width:0;border:1px solid #d8e2de;border-radius:6px;padding:8px 10px;font:13px ui-monospace,Consolas,monospace}
 .sg-status-head{display:flex;justify-content:space-between;align-items:center}
-.sg-pipeline{list-style:none;display:flex;margin:0;padding:0;counter-reset:sg;font-size:12px;color:#55696a}
-.sg-pipeline li{flex:1;position:relative;padding:8px 6px 0;border-top:3px solid #cfe3d8;text-align:center}
-.sg-pipeline li:last-child{border-color:var(--green);color:var(--green);font-weight:600}
+.sg-stages{display:flex;flex-wrap:wrap;row-gap:4px;border-bottom:1px solid var(--line)}
+.sg-stage{flex:1 0 auto;position:relative;border:0;background:none;padding:8px 9px 9px;font:inherit;font-size:12px;color:#55696a;cursor:pointer;white-space:nowrap;border-top:3px solid #cfe3d8}
+.sg-stage:not(.sg-stage-all):not(.sg-stage-warn)+.sg-stage:not(.sg-stage-warn)::before{content:'›';position:absolute;left:-4px;top:8px;color:#a9bdb6}
+.sg-stage-all{flex:0 0 auto;border-top-color:transparent}.sg-stage-warn{border-top-color:#f0c7bd;color:#9a3a27}
+.sg-stage:hover{color:var(--ink);background:#f5f8f6}.sg-stage:focus-visible{outline:2px solid var(--green);outline-offset:-2px}
+.sg-stage[aria-selected=true]{border-top-color:var(--green);color:var(--green);font-weight:700;background:var(--mint)}.sg-stage-warn[aria-selected=true]{border-top-color:#c4553d;color:#9a3a27;background:#fdf1ee}
+.sg-stage-n{display:inline-block;min-width:18px;margin-left:3px;padding:0 5px;border-radius:999px;background:#eef2f0;font-size:11px;font-weight:700;line-height:17px;text-align:center}.sg-stage[aria-selected=true] .sg-stage-n{background:#fff}
+.sg-tested{background:#ece6fb;color:#4b2f8f}
 .sg-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
 .sg-item{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-top:1px solid var(--line)}
 .sg-item-main{min-width:0;display:flex;flex-direction:column;gap:3px}
