@@ -1,6 +1,7 @@
 // Every change: bump APP_VERSION, add a CHANGELOG entry at the top (date DD/MM/YYYY), and review HOW_TO_USE, ARCHITECTURE_NOTES / the info.mjs diagram and SHORTCUTS.
-export const APP_VERSION='0.21.0';
+export const APP_VERSION='0.22.0';
 export const CHANGELOG=[
+ {version:'0.22.0',date:'02/10/2026',items:['BaldrickInput and BaldrickInput8 are now separate options for project hardware and controller-box plans, with one or eight assignable inputs respectively. (suggested in #10)']},
  {version:'0.21.0',date:'02/10/2026',items:['The hardware library now includes a step-down transformer with typed mains-primary and low-voltage AC-secondary ports, plus reminders to verify its electrical ratings and protection. Existing device libraries receive it once. (suggested in #9)']},
  {version:'0.20.0',date:'02/10/2026',items:['Controller boxes now have Schematic and scale Physical layout views, with rotatable component drawings, enclosure bounds, stacking layers and overlap warnings.','A measurement bell creates a ticket for every component with an unknown footprint. Confirmed dimensions are kept in the device-local hardware library for reuse across projects. (suggested in #7)']},
  {version:'0.19.0',date:'02/10/2026',items:['Feature request titles now start with their number, for example “[Feature] #7 …”, on GitHub and in the Suggest a feature list.','New requests are numbered as soon as they’re submitted, and the builder numbers any request that was raised directly on GitHub.']},
@@ -31,7 +32,7 @@ export const HOW_TO_USE=[
  ['Start with a box','Create a Controller box, then add internal hardware in its editor or choose the destination box in Hardware & power. Older loose components are placed in an Unassigned infrastructure box for review.'],
  ['Connect field devices','In Room layout, add a field device from the searchable library. Click a coloured node on a box edge, then click the field device or pixel group. The node identifies its box, internal component and exact port.'],
  ['Inspect cable warnings','Select a route for cable length, slack, pivots and the full issue list. A highlighted line and ! indicate short or incompatible wiring; an unassigned physical length is neutral. Delete a custom cable or injection from the route inspector.'],
- ['Start a plan','Use Hardware & power to add supplies, distros and Baldrick boards. Add outputs in the Wiring workspace. Data entry and Visual stay in sync.'],
+ ['Start a plan','Use Hardware & power to add supplies, distros, Baldrick controllers, BaldrickInput or BaldrickInput8 boards. Add outputs in the Wiring workspace. Data entry and Visual stay in sync.'],
  ['Wire the system','Drag between terminals in Visual. Use Split / inject here for a separately fed section. Review capacity and voltage warnings before building.'],
  ['Lay out the room','Switch to Room layout. Set room dimensions in metres, drag objects, use the mouse wheel to zoom and drag empty space to pan. The corner controls zoom or return the view home. Auto route finds a live 45-degree path around room objects; double-click a route or use Add pivot to make and edit a manual path. Drag pivots and endpoints to follow the real cable, and use Labels to hide or show object and box-port labels.'],
  ['Choose physical cables','In Standards, edit your cable colours, connectors and actual lengths. Assign a standard to a room route. Route length, optional slack and spare/shortfall are shown separately.'],

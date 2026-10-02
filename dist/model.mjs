@@ -1,6 +1,6 @@
-import {validateScene} from './layout-model.mjs?v=0.21.0';
-import {validateInstallation,routeSpecs,routeGeometry,projectCapacity,RESOURCE_LABELS} from './installation-model.mjs?v=0.21.0';
-import {ensureWiring,validateWiring} from './wiring-model.mjs?v=0.21.0';
+import {validateScene} from './layout-model.mjs?v=0.22.0';
+import {validateInstallation,routeSpecs,routeGeometry,projectCapacity,RESOURCE_LABELS} from './installation-model.mjs?v=0.22.0';
+import {ensureWiring,validateWiring} from './wiring-model.mjs?v=0.22.0';
 export const AWG={10:0.003277,12:0.005211,14:0.008286,16:0.01317,18:0.02095,20:0.03331,22:0.05296,24:0.08422};
 export const BOARDS={b8:{name:'Baldrick8',ports:8,banks:2,fuse:7.5,maxPixels:750,maxChannels:2250,inputs:3,relays:0,url:'https://www.baldrickboard.com/en/boards/baldrick8/manual'},b17:{name:'Baldrick17',ports:17,banks:5,fuse:7.5,maxPixels:750,maxChannels:2250,inputs:3,relays:0,url:'https://www.baldrickboard.com/en/boards/baldrick17/manual'}};
 export const PSU_MODELS={unconfirmed:{name:'Mean Well 320 W · confirm model',voltage:12,watts:320},rsp320:{name:'Mean Well RSP-320-12',voltage:12,watts:320.4},lrs350:{name:'Mean Well LRS-350-12',voltage:12,watts:348},custom:{name:'Custom PSU',voltage:12,watts:320}};
@@ -54,7 +54,7 @@ export function validateProject(p){
  for(const c of p.controllers){const b=BOARDS[c.model];if(!b||!txt(c.host)||!Array.isArray(c.io)||c.io.length!==3||c.io.some(x=>!txt(x)))fail('Invalid controller.');for(const key of ['bankPsus','bankLimits','bankM','bankAwg'])if(!Array.isArray(c[key])||c[key].length!==b.banks)fail('Invalid power banks.');for(let i=0;i<b.banks;i++)if(!psu(c.bankPsus[i])||!num(c.bankLimits[i],0,1000)||!num(c.bankM[i],0,10000)||!AWG[c.bankAwg[i]])fail('Invalid bank supply.');}
  for(const ch of p.chains){const c=p.controllers.find(x=>x.id===ch.controller);if(!c||!Number.isInteger(ch.port)||!num(ch.port,1,BOARDS[c.model].ports)||!Array.isArray(ch.segments)||ch.segments.length<1||ch.segments.length>100)fail('Invalid port or segment list.');for(const s of ch.segments){if(!validSeg(s)||!validId(s.id)||ids.has(s.id)||typeof s.inject!=='boolean'||!num(s.feedM,0,10000)||!AWG[s.feedAwg]||!num(s.fuse,.1,100))fail('Invalid segment.');ids.add(s.id);if(s.inject&&!p.distros.some(d=>d.id===s.distro&&d.psu===s.psu))fail('Injection must have a matching PSU and distro.');}}
  for(const s of p.presets)if(!validSeg({...s,leadM:0,leadAwg:18}))fail('Invalid preset.');
- for(const a of p.aux)if(!['switchy','input1'].includes(a.model)||!psu(a.psu)||!num(a.watts,0,1000)||!Array.isArray(a.labels)||a.labels.length!==(a.model==='switchy'?4:1)||a.labels.some(x=>!txt(x)))fail('Invalid accessory board.');
+ for(const a of p.aux)if(!['switchy','input1','input8'].includes(a.model)||!psu(a.psu)||!num(a.watts,0,1000)||!Array.isArray(a.labels)||a.labels.length!==(a.model==='switchy'?4:a.model==='input8'?8:1)||a.labels.some(x=>!txt(x)))fail('Invalid accessory board.');
  ensureWiring(p);validateWiring(p);validateScene(p);validateInstallation(p);return p;
 }
 export function recommendSections(project,chainId,index,distroId){
@@ -75,4 +75,3 @@ export function recommendSections(project,chainId,index,distroId){
  const before=prefix.reduce((n,s)=>n+s.count,0);let position=before;const boundaries=sections.map((s,i)=>{const start=position+1;position+=s.count;return {start,end:position,count:s.count,newFeed:i>0};});
  return {project:p,sections:boundaries,addedFeeds:sections.length-1};
 }
-

@@ -21,7 +21,7 @@ Project state is saved in this browser's local storage. Export/import JSON for b
 - Bill of materials, a physical cable schedule in the wiring guide, project and per-box resource summaries, route filters and optional flow animation.
 - A single **i** button (top bar) opens the info dialog with How to use (About summary first), What's new, Architecture (diagram and technical notes) and Shortcuts tabs. Press `?` to open Shortcuts. The version badge under the logo opens What's new.
 
-- Baldrick8 and Baldrick17 port/bank mapping; editable inputs and Switchy/Input1 connection labels.
+- Baldrick8 and Baldrick17 port/bank mapping; editable controller inputs and connection labels for Switchy, BaldrickInput and BaldrickInput8 boards.
 - Independent data chains and isolated power sections, multiple PSUs and configurable fused distros.
 - Seeds, bullets, 10/20/30 W floods, custom presets and ordered mixed chains.
 - Linked visual and form views, copper wire-drop estimates including string pitch, and injection suggestions.
