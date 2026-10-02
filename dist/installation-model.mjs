@@ -851,6 +851,28 @@ export function boxPortOffset(part, portId, width, height) {
     y: (part.y / 100 - 0.5) * height + (index - (same.length - 1) / 2) * 0.035
   };
 }
+function nearestPlacementEdge(v, target) {
+  const angle = (-(v.rotation || 0) * Math.PI) / 180,
+    cos = Math.cos(angle),
+    sin = Math.sin(angle),
+    dx = target.x - v.x,
+    dy = target.y - v.y,
+    local = { x: dx * cos - dy * sin, y: dx * sin + dy * cos },
+    half = { x: v.width / 2, y: v.height / 2 };
+  let x = Math.max(-half.x, Math.min(half.x, local.x)),
+    y = Math.max(-half.y, Math.min(half.y, local.y));
+  if (Math.abs(local.x) < half.x && Math.abs(local.y) < half.y) {
+    const gapX = half.x - Math.abs(local.x),
+      gapY = half.y - Math.abs(local.y);
+    if (gapX < gapY) x = (local.x < 0 ? -1 : 1) * half.x;
+    else y = (local.y < 0 ? -1 : 1) * half.y;
+  }
+  const back = -angle;
+  return {
+    x: v.x + x * Math.cos(back) - y * Math.sin(back),
+    y: v.y + x * Math.sin(back) + y * Math.cos(back)
+  };
+}
 export function routeAnchor(p, spec, end) {
   const key = end === 'start' ? spec.from : spec.to,
     v = p.scene?.placements?.[key];
@@ -868,6 +890,21 @@ export function routeAnchor(p, spec, end) {
       x = node.x;
       y = node.y;
     } else x += end === 'start' ? v.width / 2 : -v.width / 2;
+  } else if (key.startsWith('field:') || key.startsWith('segment:')) {
+    const otherKey = end === 'start' ? spec.to : spec.from,
+      otherEnd = end === 'start' ? 'end' : 'start',
+      otherPlacement = p.scene?.placements?.[otherKey];
+    let target = otherPlacement;
+    if (otherKey?.startsWith('box:')) {
+      const component =
+          otherEnd === 'start'
+            ? spec.fromComponent || spec.connection?.fromComponent
+            : spec.toComponent || spec.connection?.toComponent,
+        port = otherEnd === 'start' ? spec.fromPort : spec.toPort;
+      target = (component && port && perimeterAnchor(p, otherKey.slice(4), component, port)) || target;
+    }
+    if (target) ({ x, y } = nearestPlacementEdge(v, target));
+    else x += end === 'start' ? v.width / 2 : -v.width / 2;
   } else if (end === 'start') x += v.width / 2;
   else x -= v.width / 2;
   if (key.startsWith('controller:') && spec.id.startsWith('data:') && end === 'start') {

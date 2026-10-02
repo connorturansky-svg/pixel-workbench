@@ -25,6 +25,7 @@
   {"issue":16,"version":"0.32.0","title":"Box builder real world port representation","outcome":"shipped","at":"2026-10-02T14:55:34Z","runs":1,"model":"gpt-5.6-sol","credits":63.43,"tokensIn":604300,"tokensCached":558700,"tokensOut":9100,"seconds":154},
   {"issue":19,"version":"0.33.0","title":"Box builder component size guide","outcome":"shipped","at":"2026-10-02T15:00:00Z","runs":1,"model":"gpt-5.6-sol","credits":34.48,"tokensIn":181700,"tokensCached":145400,"tokensOut":5300,"seconds":82},
   {"issue":20,"version":"0.34.0","title":"Schematic view of box builder needs more space","outcome":"shipped","at":"2026-10-02T15:10:26Z","runs":1,"model":"gpt-5.6-sol","credits":38.33,"tokensIn":216800,"tokensCached":180100,"tokensOut":6400,"seconds":114},
-  {"issue":21,"version":"0.35.0","title":"Wiring workspace room layout view changes","outcome":"shipped","at":"2026-10-02T15:15:02Z","runs":1,"model":"gpt-5.6-sol","credits":32.23,"tokensIn":194800,"tokensCached":163700,"tokensOut":5100,"seconds":82}
+  {"issue":21,"version":"0.35.0","title":"Wiring workspace room layout view changes","outcome":"shipped","at":"2026-10-02T15:15:02Z","runs":1,"model":"gpt-5.6-sol","credits":32.23,"tokensIn":194800,"tokensCached":163700,"tokensOut":5100,"seconds":82},
+  {"issue":21,"version":"0.36.0","title":"Wiring workspace room layout view changes","outcome":"shipped","at":"2026-10-02T15:35:27Z","runs":1,"model":"gpt-5.6-sol","credits":59.21,"tokensIn":385500,"tokensCached":335700,"tokensOut":10400,"seconds":138}
  ]
 }

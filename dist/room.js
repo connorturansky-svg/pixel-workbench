@@ -5,20 +5,20 @@ import {
   makeProp,
   PALETTE,
   clampPosition
-} from './layout-model.mjs?v=0.35.0';
+} from './layout-model.mjs?v=0.36.0';
 import {
   ensureInstallation,
   exposedPorts,
   perimeterAnchor,
   deleteRoute
-} from './installation-model.mjs?v=0.35.0';
+} from './installation-model.mjs?v=0.36.0';
 import {
   routeLayer,
   routeControls,
   routeInspector,
   installRoutes,
   refreshRoutes
-} from './installation-room.mjs?v=0.35.0';
+} from './installation-room.mjs?v=0.36.0';
 let api,
   chosen = '',
   propId = 'prop-smiley',
@@ -84,8 +84,76 @@ function propSvg(pr, count = pr.count, numbered = false) {
 function floodSvg(count, color) {
   return Array.from({ length: Math.min(count, 8) }, (_, i) => {
     const x = 8 + i * (84 / Math.max(1, Math.min(count, 8)));
-    return `<g transform="translate(${x} 48)"><path d="M0 1L-5 30H10L5 1" fill="${color}" opacity=".16"/><rect x="-4" y="-5" width="12" height="8" rx="1" fill="#263c3d"/><rect x="-2" y="2" width="8" height="3" fill="${color}"/></g>`;
+    return `<g transform="translate(${x} 50)"><path d="M-5-7v-5h14v5M-3 8v5h10V8" fill="none" stroke="#54625e" stroke-width="2"/><rect x="-6" y="-8" width="16" height="16" rx="2" fill="#364541" stroke="#182824" stroke-width="1.5"/><rect x="-3" y="-5" width="10" height="10" rx="1" fill="${color}" stroke="#f3d984" stroke-width="1.5"/><path d="M-2 8L-8 27H12L6 8" fill="${color}" opacity=".18"/></g>`;
   }).join('');
+}
+function fieldVisual(device, w, h) {
+  const name = device.snapshot.name.toLowerCase(),
+    frame = body =>
+      `<svg x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" aria-hidden="true">${body}</svg>`;
+  if (name.includes('button'))
+    return frame(
+      `<rect x="22" y="38" width="56" height="42" rx="8" fill="#505c58" stroke="#243a34" stroke-width="4"/><ellipse cx="50" cy="40" rx="23" ry="18" fill="${E(device.snapshot.name.includes('Illuminated') ? '#f1c75b' : '#dc654f')}" stroke="#f5f7f4" stroke-width="5"/><ellipse cx="50" cy="36" rx="13" ry="8" fill="#ffffff55"/>`
+    );
+  if (name.includes('switch'))
+    return frame(
+      `<rect x="22" y="25" width="56" height="55" rx="8" fill="#d9dedb" stroke="#344942" stroke-width="4"/><circle cx="50" cy="55" r="14" fill="#65736e"/><path d="M50 54L65 20" stroke="#263934" stroke-width="8" stroke-linecap="round"/><circle cx="67" cy="17" r="8" fill="#d5dcd8" stroke="#263934" stroke-width="3"/>`
+    );
+  if (/(pir|motion)/.test(name))
+    return frame(
+      `<rect x="24" y="22" width="52" height="62" rx="9" fill="#4d7770" stroke="#27453f" stroke-width="4"/><circle cx="50" cy="48" r="20" fill="#eef3e8" stroke="#b8c6bd" stroke-width="3"/><path d="M34 48h32M37 39h26M37 57h26" stroke="#cad5ce" stroke-width="2"/>`
+    );
+  if (/(beam|proximity|ultrasonic|ir sensor)/.test(name))
+    return frame(
+      `<rect x="17" y="28" width="66" height="48" rx="8" fill="#397c68" stroke="#22483d" stroke-width="4"/><circle cx="36" cy="50" r="12" fill="#dbe8e2" stroke="#233a34" stroke-width="4"/><circle cx="65" cy="50" r="12" fill="#dbe8e2" stroke="#233a34" stroke-width="4"/><path d="M25 82h50" stroke="#526962" stroke-width="5"/>`
+    );
+  if (/(pressure mat|force sensor|load cell)/.test(name))
+    return frame(
+      `<rect x="10" y="25" width="80" height="52" rx="6" fill="#577c70" stroke="#263f38" stroke-width="4"/><rect x="20" y="35" width="60" height="32" rx="3" fill="#7fa899"/><path d="M29 43h42M29 51h42M29 59h42" stroke="#dce9e2" stroke-width="3"/>`
+    );
+  if (/(encoder|potentiometer)/.test(name))
+    return frame(
+      `<rect x="22" y="22" width="56" height="62" rx="7" fill="#477867" stroke="#253e36" stroke-width="4"/><circle cx="50" cy="48" r="22" fill="#d9dfdc" stroke="#364a44" stroke-width="4"/><path d="M50 48V30" stroke="#364a44" stroke-width="5" stroke-linecap="round"/><path d="M35 84v10M50 84v10M65 84v10" stroke="#a68243" stroke-width="4"/>`
+    );
+  if (name.includes('light sensor'))
+    return frame(
+      `<rect x="22" y="20" width="56" height="64" rx="8" fill="#477867" stroke="#253e36" stroke-width="4"/><circle cx="50" cy="50" r="16" fill="#e8d574" stroke="#fff2a6" stroke-width="4"/><path d="M50 19v10M50 71v10M19 50h10M71 50h10M28 28l7 7M65 65l7 7M72 28l-7 7M35 65l-7 7" stroke="#e8d574" stroke-width="4" stroke-linecap="round"/>`
+    );
+  if (/(rfid|nfc)/.test(name))
+    return frame(
+      `<rect x="17" y="17" width="66" height="70" rx="7" fill="#e8eee9" stroke="#304a42" stroke-width="4"/><rect x="28" y="29" width="27" height="35" rx="3" fill="#5b8d79"/><path d="M61 36q17 14 0 28M67 29q25 21 0 42" fill="none" stroke="#3f7460" stroke-width="4" stroke-linecap="round"/>`
+    );
+  if (name.includes('microphone'))
+    return frame(
+      `<rect x="37" y="15" width="26" height="49" rx="13" fill="#52645e" stroke="#263d36" stroke-width="4"/><path d="M29 48v5a21 21 0 0042 0v-5M50 74v14M36 88h28" fill="none" stroke="#263d36" stroke-width="5" stroke-linecap="round"/>`
+    );
+  if (name.includes('speaker'))
+    return frame(
+      `<path d="M17 39h17l23-19v60L34 61H17Z" fill="#52665f" stroke="#263c35" stroke-width="4"/><path d="M67 36q16 14 0 28M75 27q27 23 0 46" fill="none" stroke="#3d6657" stroke-width="5" stroke-linecap="round"/>`
+    );
+  if (name.includes('fan'))
+    return frame(
+      `<circle cx="50" cy="50" r="39" fill="#d9e1dd" stroke="#2c463e" stroke-width="4"/><circle cx="50" cy="50" r="8" fill="#31483f"/><path d="M50 42C38 12 68 8 61 38M58 50c30-12 34 18 4 11M50 58c12 30-18 34-11 4M42 50c-30 12-34-18-4-11" fill="#568b77"/>`
+    );
+  if (/(motor|servo|actuator)/.test(name))
+    return frame(
+      `<rect x="15" y="28" width="62" height="49" rx="9" fill="#678079" stroke="#283f38" stroke-width="4"/><rect x="77" y="42" width="16" height="18" fill="#b2bbb7" stroke="#394e47" stroke-width="3"/><circle cx="39" cy="52" r="15" fill="#d7dfdb" stroke="#3c514a" stroke-width="3"/><path d="M39 37v30M24 52h30" stroke="#8c9994" stroke-width="2"/>`
+    );
+  if (/(light|fixture|projector|display)/.test(name))
+    return frame(
+      `<path d="M20 28h60l-7 46H27Z" fill="#3f4e4a" stroke="#1f312c" stroke-width="4"/><rect x="31" y="36" width="38" height="29" rx="4" fill="#f0d06d" stroke="#fff1ae" stroke-width="4"/><path d="M29 78h42M36 78v10M64 78v10" stroke="#52635e" stroke-width="5" stroke-linecap="round"/>`
+    );
+  if (/(smoke|fog|haze|bubble|snow)/.test(name))
+    return frame(
+      `<rect x="18" y="42" width="55" height="38" rx="5" fill="#505f5b" stroke="#263b35" stroke-width="4"/><path d="M73 51h15v17H73" fill="#788680" stroke="#263b35" stroke-width="3"/><path d="M75 36c8-13 19-5 13-17M61 34c5-10 14-6 11-17" fill="none" stroke="#9bb1aa" stroke-width="5" stroke-linecap="round"/>`
+    );
+  if (/(relay|solenoid|magnet|maglock)/.test(name))
+    return frame(
+      `<rect x="17" y="23" width="66" height="59" rx="7" fill="#4b7d6c" stroke="#263f37" stroke-width="4"/><path d="M28 56h10c0-20 24-20 24 0h10M35 35h30" fill="none" stroke="#e3eee8" stroke-width="5"/><circle cx="28" cy="68" r="4" fill="#dfbd61"/><circle cx="72" cy="68" r="4" fill="#dfbd61"/>`
+    );
+  return frame(
+    `<rect x="18" y="20" width="64" height="64" rx="10" fill="${E(device.snapshot.color || '#4b8a76')}" stroke="#244d43" stroke-width="4"/><circle cx="50" cy="52" r="17" fill="#e8f1ec" stroke="#34594d" stroke-width="4"/><path d="M50 35v34M33 52h34" stroke="#6a8f82" stroke-width="3"/>`
+  );
 }
 export function roomView(p) {
   ensureInstallation(p);
@@ -166,7 +234,7 @@ function node(p, e) {
     w = v.width * 100,
     h = v.height * 100,
     labels = p.installation.showLabels;
-  return `<g data-room-node="${E(e.key)}" tabindex="0" role="button" aria-label="Move ${E(e.name)}" transform="translate(${v.x * 100} ${v.y * 100})" class="room-object ${chosen === e.key ? 'chosen' : ''}"><g transform="rotate(${v.rotation})"><rect x="${-w / 2 - 6}" y="${-h / 2 - 6}" width="${w + 12}" height="${h + 12}" rx="7" fill="transparent" class="selection-ring" stroke="${chosen === e.key ? '#153f3d' : 'transparent'}" stroke-width="2"/>${is ? `<svg x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" viewBox="0 0 100 100" preserveAspectRatio="none">${e.o.kind === 'flood' && !pr ? floodSvg(e.o.count, v.color) : propSvg(pr ? { ...pr, color: v.color } : { shape: 'line', count: e.o.count, columns: Math.min(e.o.count, 8), color: v.color }, e.o.count)}</svg><rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" fill="transparent"/>` : `${e.type === 'box' ? boxVisual(e.o, w, h) : e.type === 'field' ? `<path d="M0 ${-h / 2}L${w / 2} 0L0 ${h / 2}L${-w / 2} 0Z" fill="${E(v.color)}" stroke="#244d43" stroke-width="3"/>${labels ? `<text text-anchor="middle" y="4" font-size="12" fill="white">${E(e.o.snapshot.icon || '◆')}</text>` : ''}` : e.type === 'psu' ? `<rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="3" fill="#e7f0e8" stroke="${v.color}" stroke-width="4"/><path d="M${w / 2 - 10} ${-h / 2}v${h}" stroke="${v.color}" stroke-width="5"/>` : e.type === 'distro' ? `<path d="M${-w / 2} ${-h / 2}h${w - 8}l8 8v${h - 8}h${-w}z" fill="#e9f1f4" stroke="${v.color}" stroke-width="4"/>` : e.type === 'controller' ? `<rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="10" fill="#173f34" stroke="${v.color}" stroke-width="4"/>` : `<rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="6" fill="${v.color}"/>`}${labels ? `<text text-anchor="middle" y="4" fill="${e.type === 'psu' || e.type === 'distro' ? '#28483d' : 'white'}" font-size="${Math.min(14, w / 5)}" font-weight="700">${e.type === 'box' || e.type === 'field' ? '' : { controller: 'CTRL', psu: 'PSU', distro: 'DIST', aux: 'I/O' }[e.type]}</text>` : ''}`}</g>${labels ? `<text class="room-object-label" x="0" y="${h / 2 + 16}" text-anchor="middle">${E(e.name.length > 30 ? e.name.slice(0, 28) + '…' : e.name)}</text>${is ? `<text class="room-object-detail" x="0" y="${h / 2 + 30}" text-anchor="middle">P${e.chain.port} · ${e.o.count} pixels</text>` : ''}` : ''}</g>`;
+  return `<g data-room-node="${E(e.key)}" tabindex="0" role="button" aria-label="Move ${E(e.name)}" transform="translate(${v.x * 100} ${v.y * 100})" class="room-object ${chosen === e.key ? 'chosen' : ''}"><g transform="rotate(${v.rotation})"><rect x="${-w / 2 - 6}" y="${-h / 2 - 6}" width="${w + 12}" height="${h + 12}" rx="7" fill="transparent" class="selection-ring" stroke="${chosen === e.key ? '#153f3d' : 'transparent'}" stroke-width="2"/>${is ? `<svg x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" viewBox="0 0 100 100" preserveAspectRatio="none">${e.o.kind === 'flood' && !pr ? floodSvg(e.o.count, v.color) : propSvg(pr ? { ...pr, color: v.color } : { shape: 'line', count: e.o.count, columns: Math.min(e.o.count, 8), color: v.color }, e.o.count)}</svg><rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" fill="transparent"/>` : `${e.type === 'box' ? boxVisual(e.o, w, h) : e.type === 'field' ? fieldVisual(e.o, w, h) : e.type === 'psu' ? `<rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="3" fill="#e7f0e8" stroke="${v.color}" stroke-width="4"/><path d="M${w / 2 - 10} ${-h / 2}v${h}" stroke="${v.color}" stroke-width="5"/>` : e.type === 'distro' ? `<path d="M${-w / 2} ${-h / 2}h${w - 8}l8 8v${h - 8}h${-w}z" fill="#e9f1f4" stroke="${v.color}" stroke-width="4"/>` : e.type === 'controller' ? `<rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="10" fill="#173f34" stroke="${v.color}" stroke-width="4"/>` : `<rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="6" fill="${v.color}"/>`}${labels ? `<text text-anchor="middle" y="4" fill="${e.type === 'psu' || e.type === 'distro' ? '#28483d' : 'white'}" font-size="${Math.min(14, w / 5)}" font-weight="700">${e.type === 'box' || e.type === 'field' ? '' : { controller: 'CTRL', psu: 'PSU', distro: 'DIST', aux: 'I/O' }[e.type]}</text>` : ''}`}</g>${labels ? `<text class="room-object-label" x="0" y="${h / 2 + 16}" text-anchor="middle">${E(e.name.length > 30 ? e.name.slice(0, 28) + '…' : e.name)}</text>${is ? `<text class="room-object-detail" x="0" y="${h / 2 + 30}" text-anchor="middle">P${e.chain.port} · ${e.o.count} pixels</text>` : ''}` : ''}</g>`;
 }
 export function propsView(p) {
   ensureScene(p);
