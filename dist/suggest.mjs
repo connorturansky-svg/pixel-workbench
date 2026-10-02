@@ -1,10 +1,15 @@
-import {APP_VERSION} from './version.mjs?v=0.8.0';
+import {APP_VERSION} from './version.mjs?v=0.9.0';
 
 // Suggest a feature: drafts a `[Feature]` GitHub issue that the requester submits under their own GitHub account,
 // and lists every request with its build status (read from the public GitHub API; nothing is sent anywhere else).
 // The builder on the owner's PC (automation/builder.py) picks each issue up, builds it, tests it and publishes it.
 export const REPO='connorturansky-svg/pixel-workbench';
-const MAX_IMAGES=6,MAX_BYTES=10*1024*1024,CACHE_MS=60000,KEY='pw-suggest-status';
+// Only these GitHub accounts' requests are built (automation/builder.py ALLOWED_AUTHORS must match).
+export const ALLOWED_AUTHORS=['J-Turansky','connorturansky-svg'];
+const allowed=u=>ALLOWED_AUTHORS.some(a=>a.toLowerCase()===String(u||'').toLowerCase());
+// Builder commits are titled `vX.Y.Z: <title> (#n)`, which maps each shipped request to its release.
+export function versionsFrom(commits){const m={};for(const c of commits||[]){const r=/^v(\d+\.\d+\.\d+):.*\(#(\d+)\)\s*$/.exec(String(c?.commit?.message||'').split('\n')[0]);if(r&&!m[r[2]])m[r[2]]=r[1];}return m;}
+const MAX_IMAGES=6,MAX_BYTES=10*1024*1024,CACHE_MS=60000,KEY='pw-suggest-status-2';
 const E=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const testing=new URLSearchParams(location.search).has('test');
 const draft={desc:'',images:[],opened:false};
@@ -42,13 +47,13 @@ function listHtml(){
  if(list.state==='loading'&&!list.items.length)return '<p class="empty">Loading requests…</p>';
  if(list.state==='error'&&!list.items.length)return `<p class="empty">Couldn't load the request list (${E(list.error)}). <a href="https://github.com/${REPO}/issues?q=%5BFeature%5D" target="_blank" rel="noopener">See them on GitHub</a>.</p>`;
  if(!list.items.length)return '<p class="empty">No feature requests yet. Be the first.</p>';
- return `<ul class="sg-list">${list.items.map(i=>{const s=statusOf(i),[label,help]=STATUS[s];return `<li class="sg-item"><span class="sg-pill sg-${s}" title="${E(help)}">${label}</span><div class="sg-item-main"><a href="${E(i.html_url)}" target="_blank" rel="noopener">${E(i.title.replace(/^\[Feature\]\s*/i,''))}</a><small>#${i.number} · ${E(i.user?.login||'')} · ${date(i.created_at)}${s==='shipped'&&i.closed_at?` · shipped ${date(i.closed_at)}`:''}${i.comments?` · ${i.comments} comment${i.comments>1?'s':''}`:''}</small></div></li>`;}).join('')}</ul>`;
+ return `<ul class="sg-list">${list.items.map(i=>{const s=statusOf(i),[label,help]=STATUS[s];return `<li class="sg-item"><span class="sg-state"><span class="sg-pill sg-${s}" title="${E(help)}">${label}</span>${s==='shipped'&&list.versions?.[i.number]?`<a class="sg-ver" href="https://github.com/${REPO}/releases/tag/v${E(list.versions[i.number])}" target="_blank" rel="noopener" title="Released in this version">v${E(list.versions[i.number])}</a>`:''}</span><div class="sg-item-main"><a href="${E(i.html_url)}" target="_blank" rel="noopener">${E(i.title.replace(/^\[Feature\]\s*/i,''))}</a><small>#${i.number} · ${E(i.user?.login||'')} · ${date(i.created_at)}${s==='shipped'&&i.closed_at?` · shipped ${date(i.closed_at)}`:''}${i.comments?` · ${i.comments} comment${i.comments>1?'s':''}`:''}</small></div></li>`;}).join('')}</ul>`;
 }
 
 export function suggestView(){
  return `<div class="sg-grid">
 <section class="panel sg-form"><h3>Describe your idea</h3>
-<p class="sg-lead">Tell us what you'd like Pixel Workbench to do. Your request becomes a GitHub issue under your own GitHub account (a free account is needed). There's no approval step: every request is built, tested and published automatically, usually within 30 minutes.</p>
+<p class="sg-lead">Tell us what you'd like Pixel Workbench to do. Your request becomes a GitHub issue under your own GitHub account. Requests from approved accounts (${ALLOWED_AUTHORS.map(E).join(' and ')}) are built, tested and published automatically, usually within 30 minutes. Requests from other accounts are closed without a build.</p>
 <label>What should it do?<textarea rows="7" maxlength="5000" data-sg-field="desc" placeholder="e.g. Show the voltage drop on each room cable route. Highlight routes over 5% so I know where to inject power.">${E(draft.desc)}</textarea></label>
 <div class="sg-drop" data-sg-drop tabindex="0" role="button" aria-label="Add screenshots: paste, drop or choose files"><strong>Add screenshots</strong><span>Paste (Ctrl+V), drop images here, or <u>choose files</u>. Up to ${MAX_IMAGES}.</span><input type="file" accept="image/*" multiple hidden data-sg-file></div>
 ${imagesHtml()}
@@ -65,12 +70,13 @@ function paintList(){const el=document.querySelector('[data-sg-list]'),count=doc
 
 export async function loadRequests(force=false){
  if(testing)return;
- try{const c=JSON.parse(sessionStorage.getItem(KEY)||'null');if(!force&&c&&Date.now()-c.at<CACHE_MS){list={state:'ok',items:c.items,error:'',at:c.at};paintList();return;}}catch{}
+ try{const c=JSON.parse(sessionStorage.getItem(KEY)||'null');if(!force&&c&&Date.now()-c.at<CACHE_MS){list={state:'ok',items:c.items,versions:c.versions||{},error:'',at:c.at};paintList();return;}}catch{}
  list.state='loading';paintList();
  try{const r=await fetch(`https://api.github.com/repos/${REPO}/issues?state=all&per_page=50&sort=created&direction=desc`,{headers:{Accept:'application/vnd.github+json'}});
   if(!r.ok)throw new Error(r.status===403?'GitHub rate limit, try again later':'GitHub returned '+r.status);
-  const items=(await r.json()).filter(i=>!i.pull_request&&/^\[Feature\]/i.test(i.title));
-  list={state:'ok',items,error:'',at:Date.now()};try{sessionStorage.setItem(KEY,JSON.stringify({at:list.at,items}));}catch{}
+  const items=(await r.json()).filter(i=>!i.pull_request&&/^\[Feature\]/i.test(i.title)&&allowed(i.user?.login));
+  let versions={};try{const cr=await fetch(`https://api.github.com/repos/${REPO}/commits?sha=main&per_page=100`,{headers:{Accept:'application/vnd.github+json'}});if(cr.ok)versions=versionsFrom(await cr.json());}catch{}
+  list={state:'ok',items,versions,error:'',at:Date.now()};try{sessionStorage.setItem(KEY,JSON.stringify({at:list.at,items,versions}));}catch{}
  }catch(e){list={...list,state:'error',error:e.message||'network error'};}
  paintList();
 }

@@ -28,3 +28,4 @@
 .sg-queued{background:#eef2f0;color:#4c5f5c}.sg-building{background:#fff1dc;color:#8a4c12}.sg-shipped{background:var(--mint);color:#17604b}
 .sg-failed{background:#fbe4df;color:#9a3a27}.sg-info{background:#e5eefc;color:#2c4f8c}.sg-declined,.sg-closed{background:#efefef;color:#5d5d5d}
 @media(max-width:1100px){.sg-grid{grid-template-columns:1fr}}
+.sg-state{flex:none;display:flex;flex-direction:column;align-items:center;gap:4px}.sg-ver{font:600 11px/1.2 ui-monospace,SFMono-Regular,Consolas,monospace;color:#1e755d;text-decoration:none}.sg-ver:hover{text-decoration:underline}

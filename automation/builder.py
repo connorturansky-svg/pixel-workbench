@@ -50,6 +50,8 @@ BUILD_TIMEOUT = 60 * 60
 FIX_ROUNDS = 2
 MAX_ATTEMPTS = 3            # automatic retries per issue (each requester reply retries a failed build)
 PER_AUTHOR_DAY = 4          # builds per requester per 24 hours
+# Only these GitHub accounts can have requests built; everyone else is declined and closed.
+ALLOWED_AUTHORS = {"j-turansky", "connorturansky-svg"}
 MAX_IMAGES, MAX_IMAGE_BYTES = 6, 10 * 1024 * 1024
 NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 DRY = "--dry-run" in sys.argv
@@ -170,6 +172,15 @@ def next_request(state):
         n = i["number"]
         if "feature-request" not in labels:
             label(n, add=["feature-request"])
+        if i["author"]["login"].lower() not in ALLOWED_AUTHORS:
+            if "declined" not in labels:
+                comment(n, "Thanks for the suggestion. Automatic builds are limited to approved GitHub accounts, "
+                           "so this request won't be built. The project owner may still pick it up.")
+                label(n, add=["declined"], remove=sorted(labels & (SKIP - {"declined"})))
+                if not DRY:
+                    gh("issue", "close", str(n), "-R", REPO, "--reason", "not planned", check=False)
+                log(f"#{n} declined: {i['author']['login']} is not on the allowlist")
+            continue
         if labels & {"needs-info", "build-failed"} and requester_replied(i):
             if state["attempts"].get(str(n), 0) >= MAX_ATTEMPTS:
                 continue
