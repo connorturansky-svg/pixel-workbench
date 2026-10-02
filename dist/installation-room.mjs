@@ -7,7 +7,7 @@ import {
   assignCable,
   routeIssues,
   deleteRoute
-} from './installation-model.mjs?v=0.47.0';
+} from './installation-model.mjs?v=0.48.0';
 
 let api,
   selected = '',

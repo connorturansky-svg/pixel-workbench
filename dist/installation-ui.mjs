@@ -17,7 +17,7 @@ import {
   componentSearch,
   componentSizeGuides,
   deleteRoute
-} from './installation-model.mjs?v=0.47.0';
+} from './installation-model.mjs?v=0.48.0';
 
 let api,
   boxId = '',
@@ -170,9 +170,10 @@ const schematicPart = (c, linkedPorts) => {
 };
 const interfacePorts = box => {
   if (!Array.isArray(box.interfacePorts)) return '';
+  const visiblePorts = box.interfacePorts.filter(port => port.visible);
   const groups = { top: [], right: [], bottom: [], left: [] };
-  for (const port of box.interfacePorts) groups[port.edge].push(port);
-  return box.interfacePorts
+  for (const port of visiblePorts) groups[port.edge].push(port);
+  return visiblePorts
     .map(port => {
       const list = groups[port.edge],
         component = box.components.find(item => item.id === port.componentId),
