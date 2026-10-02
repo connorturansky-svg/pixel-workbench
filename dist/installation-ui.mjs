@@ -17,8 +17,10 @@ import {
   componentSearch,
   componentSizeGuides,
   deleteRoute
-} from './installation-model.mjs?v=0.50.0';
+} from './installation-model.mjs?v=0.51.0';
 
+const SCHEMATIC_MIN_WIDTH = 1400,
+  SCHEMATIC_MIN_HEIGHT = 700;
 let api,
   boxId = '',
   partId = '',
@@ -30,7 +32,7 @@ let api,
   openInterfaceGroups = new Set(),
   schematicZoom = 1,
   schematicCanvasWidth = 1,
-  schematicCanvasHeight = 450,
+  schematicCanvasHeight = SCHEMATIC_MIN_HEIGHT,
   showTickets = false,
   boxDetailsOpen = false;
 const E = s =>
@@ -300,7 +302,7 @@ export function boxesView(p, lib) {
                 .filter(x => x.type !== 'size')
                 .map(x => `<p class="layout-warning">⚠ ${E(x.text)}</p>`)
                 .join('')}`
-            : `<div class="box-canvas-toolbar"><div>${B('−', 'box-zoom:out', 'btn box-zoom-button')}${B(`${Math.round(schematicZoom * 100)}%`, 'box-zoom:home', 'btn box-zoom-readout')}${B('+', 'box-zoom:in', 'btn box-zoom-button')}</div>${B('Auto layout', 'auto-layout')}</div><div class="box-stage-scroll" tabindex="0" aria-label="Scrollable box schematic"><div class="box-stage" id="box-stage" style="width:${Math.max(1, schematicCanvasWidth * schematicZoom) * 100}%;min-height:${Math.max(450, schematicCanvasHeight * schematicZoom)}px;--schematic-zoom:${schematicZoom}"><svg id="box-wires" aria-hidden="true"></svg>${box.components.map(c => schematicPart(c, linkedPorts)).join('')}${interfacePorts(box)}</div></div>${interfaceEditor(box)}<div class="external-targets"><strong>Room route targets</strong><p>Choose an internal port, then click or drag it to a target.</p><div>${[...p.chains.flatMap(ch => ch.segments.map(v => ['segment:' + v.id, ch.name + ' · ' + v.kind])), ...p.installation.fieldDevices.map(v => ['field:' + v.id, v.name + ' · field'])].map(([key, label]) => `<button type="button" data-box-target="${E(key)}">${E(label)}</button>`).join('')}</div></div><div class="box-wire-help">Drag between exact hardware ports for internal connections. Activated edge ports become route targets in Room layout; hover a port or wire to trace its connection.</div>`
+            : `<div class="box-canvas-toolbar"><div>${B('−', 'box-zoom:out', 'btn box-zoom-button')}${B(`${Math.round(schematicZoom * 100)}%`, 'box-zoom:home', 'btn box-zoom-readout')}${B('+', 'box-zoom:in', 'btn box-zoom-button')}</div>${B('Auto layout', 'auto-layout')}</div><div class="box-stage-scroll" tabindex="0" aria-label="Scrollable box schematic"><div class="box-stage" id="box-stage" style="width:${Math.max(1, schematicCanvasWidth * schematicZoom) * 100}%;min-width:${SCHEMATIC_MIN_WIDTH * schematicZoom}px;min-height:${Math.max(SCHEMATIC_MIN_HEIGHT, schematicCanvasHeight * schematicZoom)}px;--schematic-zoom:${schematicZoom}"><svg id="box-wires" aria-hidden="true"></svg>${box.components.map(c => schematicPart(c, linkedPorts)).join('')}${interfacePorts(box)}</div></div>${interfaceEditor(box)}<div class="external-targets"><strong>Room route targets</strong><p>Choose an internal port, then click or drag it to a target.</p><div>${[...p.chains.flatMap(ch => ch.segments.map(v => ['segment:' + v.id, ch.name + ' · ' + v.kind])), ...p.installation.fieldDevices.map(v => ['field:' + v.id, v.name + ' · field'])].map(([key, label]) => `<button type="button" data-box-target="${E(key)}">${E(label)}</button>`).join('')}</div></div><div class="box-wire-help">Drag between exact hardware ports for internal connections. Activated edge ports become route targets in Room layout; hover a port or wire to trace its connection.</div>`
         }<details class="box-text-section" open><summary>Connections</summary><div class="install-scroll-list">${
           p.installation.connections
             .filter(x => x.boxId === box.id)
@@ -398,7 +400,7 @@ export function openBox(id) {
   boxDetailsOpen = false;
   schematicZoom = 1;
   schematicCanvasWidth = 1;
-  schematicCanvasHeight = 450;
+  schematicCanvasHeight = SCHEMATIC_MIN_HEIGHT;
 }
 function setSchematicZoom(next, clientX, clientY) {
   const scroll = document.querySelector('.box-stage-scroll'),
@@ -411,7 +413,8 @@ function setSchematicZoom(next, clientX, clientY) {
     ratio = next / schematicZoom;
   schematicZoom = next;
   stage.style.width = Math.max(1, schematicCanvasWidth * schematicZoom) * 100 + '%';
-  stage.style.minHeight = Math.max(450, schematicCanvasHeight * schematicZoom) + 'px';
+  stage.style.minWidth = SCHEMATIC_MIN_WIDTH * schematicZoom + 'px';
+  stage.style.minHeight = Math.max(SCHEMATIC_MIN_HEIGHT, schematicCanvasHeight * schematicZoom) + 'px';
   stage.style.setProperty('--schematic-zoom', schematicZoom);
   scroll.scrollLeft = (scroll.scrollLeft + x) * ratio - x;
   scroll.scrollTop = (scroll.scrollTop + y) * ratio - y;
@@ -474,8 +477,8 @@ function autoLayout(box, project) {
     scroll = document.querySelector('.box-stage-scroll'),
     baseWidth = scroll?.clientWidth || 800;
   schematicZoom = 1;
-  schematicCanvasWidth = Math.max(1, (groups.length * 280 + 48) / baseWidth);
-  schematicCanvasHeight = Math.max(450, maxRows * 210 + 48);
+  schematicCanvasWidth = Math.max(1, SCHEMATIC_MIN_WIDTH / baseWidth, (groups.length * 280 + 48) / baseWidth);
+  schematicCanvasHeight = Math.max(SCHEMATIC_MIN_HEIGHT, maxRows * 210 + 48);
   api.render();
   requestAnimationFrame(() => {
     const stage = document.querySelector('#box-stage');

@@ -194,7 +194,7 @@
 }
 .box-stage {
   position: relative;
-  min-height: 450px;
+  min-height: 700px;
   background-color: #f5faf6;
   background-image:
     linear-gradient(#e6eee8 1px, transparent 1px), linear-gradient(90deg, #e6eee8 1px, transparent 1px);
@@ -666,9 +666,6 @@
 @media (max-width: 760px) {
   .box-layout {
     grid-template-columns: 1fr;
-  }
-  .box-stage {
-    min-height: 500px;
   }
   .install-palette {
     grid-column: auto;
