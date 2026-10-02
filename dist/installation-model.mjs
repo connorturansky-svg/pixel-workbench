@@ -1,0 +1,136 @@
+// Physical installation planning. Definitions live in the device-local library;
+// projects retain snapshots so later library edits never rewrite old plans.
+export const PORT_TYPES=['pixel_data','pixel_output','digital_input','analogue_input','relay_output','ethernet','dmx','audio','usb','low_voltage_power','mains_power','gpio','generic'];
+export const RESOURCE_LABELS={pixels:'Pixels',pixelOutputs:'Pixel outputs',distroOutputs:'Distro outputs',digitalInputs:'Digital inputs',analogueInputs:'Analogue inputs',relayOutputs:'Relay outputs',dmxOutputs:'DMX outputs',ethernetPorts:'Ethernet ports',audioOutputs:'Audio outputs',amplifierChannels:'Amplifier channels',psuWatts:'PSU watts',psuAmps:'PSU amps'};
+export function componentPlacement(def){if(['internal','field','both'].includes(def.placement))return def.placement;return ['Controller','Power','Input board','DMX','Relay board','Signal board','Computer','Audio','Network'].includes(def.category)?'internal':'field';}
+export function componentSearch(def){return [def.name,def.category,def.manufacturer,def.model,def.notes,...(def.tags||[])].join(' ').toLowerCase();}
+const copy=x=>structuredClone(x),id=()=>Math.random().toString(36).slice(2,10);
+const out=(type,n,prefix)=>Array.from({length:n},(_,i)=>({id:prefix+(i+1),label:prefix.toUpperCase()+' '+(i+1),type,direction:'out'}));
+const inp=(type,n,prefix)=>Array.from({length:n},(_,i)=>({id:prefix+(i+1),label:prefix.toUpperCase()+' '+(i+1),type,direction:'in'}));
+function definition(name,category,icon,ports=[],resources={},notes=''){return {id:'def-'+id(),version:1,name,category,icon,color:'#4b8a76',manufacturer:'',model:'',notes,ports,resources,operatingLimits:{}};}
+export function defaultLibrary(){
+ const cable=(name,type,lengthM,pins,color)=>({id:'cable-'+id(),version:1,name,type,lengthM,pins,color,connector:'',notes:''});
+ const components=[
+  definition('Baldrick8','Controller','▦',[...out('pixel_output',8,'p'),...inp('digital_input',3,'in'),...inp('low_voltage_power',2,'bank')],{pixelOutputs:8,pixels:6000,digitalInputs:3},'750 pixels per output is the current planning reference.'),
+  definition('Baldrick17','Controller','▦',[...out('pixel_output',17,'p'),...inp('digital_input',3,'in'),...inp('low_voltage_power',5,'bank')],{pixelOutputs:17,pixels:12750,digitalInputs:3},'750 pixels per output is the current planning reference.'),
+  definition('12 V PSU','Power','ϟ',out('low_voltage_power',3,'dc'),{},'Enter the actual PSU rating before using power capacity.'),
+  definition('Fused distro','Power','▤',[...inp('low_voltage_power',1,'in'),...out('low_voltage_power',6,'f')],{distroOutputs:6},'Set the actual output count on the placed component.'),
+  definition('BaldrickInput','Input board','◎',inp('digital_input',1,'in'),{digitalInputs:1}),
+  definition('BaldrickDMX','DMX','◇',out('dmx',1,'dmx'),{dmxOutputs:1}),
+  definition('BaldrickSwitchy','Relay board','⌁',out('relay_output',4,'r'),{relayOutputs:4}),
+  definition('BaldrickSignals','Signal board','◈',[...out('generic',1,'out'),...inp('generic',1,'in')]),
+  definition('Raspberry Pi','Computer','▣',[...out('ethernet',1,'eth'),...out('usb',4,'usb')]),
+  definition('USB sound card','Audio','♫',[...inp('usb',1,'usb'),...out('audio',2,'out')],{audioOutputs:2}),
+  definition('Audio amplifier','Audio','◖',[...inp('audio',2,'in'),...out('audio',2,'out')],{amplifierChannels:2}),
+  definition('Network switch','Network','≋',[...inp('ethernet',1,'uplink'),...out('ethernet',4,'eth')],{ethernetPorts:5})
+ ];
+ const sensors=['Push button','Illuminated button','Wireless button / remote','Toggle switch','Limit switch','Reed switch','Magnetic / Hall sensor','Beam-break sensor','PIR sensor','Motion sensor','IR sensor','Proximity sensor','Ultrasonic distance sensor','Pressure mat','FSR / force sensor','Load cell / weight sensor','RFID reader','NFC reader','Capacitive touch sensor','Rotary encoder','Potentiometer','Light sensor','Microphone / sound trigger'];
+ const effects=['Relay','Solenoid','Electromagnet','Maglock','Servo','DC motor','Stepper motor','Linear actuator','Fan','Speaker','Projector','Display','DMX fixture','Moving light','Smoke / fog machine','Haze machine','Bubble machine','Snow / effect machine'];
+ for(const name of sensors)components.push(definition(name,'Sensor','○',out(['Load cell / weight sensor','FSR / force sensor','Potentiometer','Light sensor'].includes(name)?'analogue_input':'digital_input',1,'signal')));
+ for(const name of effects)components.push(definition(name,'Output / effect','◆',inp(name.includes('DMX')||name==='Moving light'?'dmx':name==='Speaker'?'audio':'relay_output',1,'control')));
+ return {version:1,cables:[cable('Grey 3m 4 pin EXT','Extension',3,4,'#899096'),cable('Blue 3m 3 pin EXT','Extension',3,3,'#5288c4'),cable('Yellow 5m 3 pin EXT','Extension',5,3,'#deb83f'),cable('Red 5m 4 pin EXT','Extension',5,4,'#cc5b58'),cable('Orange Dual Inject 4 pin','Dual injection',1,4,'#e1944d'),cable('Green 1m 4 pin EXT','Extension',1,4,'#539c6c')],components,boxTemplates:[]};
+}
+export function ensureInstallation(p){p.installation??={slack:{mode:'off',value:0},routes:{},boxes:[],connections:[],fieldDevices:[],animate:false,filters:{data:true,power:true,inject:true,other:true}};const a=p.installation;a.slack??={mode:'off',value:0};a.routes??={};a.boxes??=[];a.connections??=[];a.fieldDevices??=[];a.animate??=false;a.filters??={data:true,power:true,inject:true,other:true};return p;}
+export function addFieldDevice(p,def,name=def.name){ensureInstallation(p);const device={id:'field-'+id(),name,definitionId:def.id,definitionVersion:def.version,snapshot:copy(def)};p.installation.fieldDevices.push(device);return device;}
+export function makeBox(name='Controller box'){return {id:'box-'+id(),name,description:'',templateRef:null,components:[],width:4,height:2.5};}
+export function makeInstance(def,sourceKey=''){return {id:'part-'+id(),definitionId:def.id,definitionVersion:def.version,snapshot:copy(def),sourceKey,x:15,y:15,operatingLimits:{}};}
+export function boxForSource(p,key){return p.installation?.boxes?.find(b=>b.components.some(c=>c.sourceKey===key))||null;}
+export function addInfrastructure(p,lib,key,boxId){ensureInstallation(p);let box=p.installation.boxes.find(b=>b.id===boxId)||p.installation.boxes[0];if(!box){box=makeBox('Infrastructure box 1');p.installation.boxes.push(box);}const [type,id]=key.split(':'),item=({controller:p.controllers,psu:p.psus,distro:p.distros,aux:p.aux})[type]?.find(v=>v.id===id);if(!item)return box;const name=type==='controller'?(item.model==='b17'?'Baldrick17':'Baldrick8'):type==='psu'?'12 V PSU':type==='distro'?'Fused distro':item.model==='switchy'?'BaldrickSwitchy':'BaldrickInput';const def=lib.components.find(d=>d.name===name);if(def&&!box.components.some(c=>c.sourceKey===key)){const c=makeInstance(def,key);if(type==='controller'&&!c.snapshot.ports.some(v=>v.id==='bank1'))c.snapshot.ports.push(...inp('low_voltage_power',item.model==='b17'?5:2,'bank'));if(type==='distro'){c.snapshot.ports=[...c.snapshot.ports.filter(v=>!/^f[0-9]+$/.test(v.id)),...out('low_voltage_power',item.outputs,'f')];c.snapshot.resources.distroOutputs=item.outputs;}c.snapshot.color=({controller:'#b85b58',psu:'#d19a4c',distro:'#6588aa',aux:'#9b75bd'})[type];c.x=12+box.components.length%4*21;c.y=12+Math.floor(box.components.length/4)*25;box.components.push(c);}return box;}
+export function migrateInfrastructure(p,lib){ensureInstallation(p);if(p.installation.infrastructureMigrated)return false;const linked=new Set(p.installation.boxes.flatMap(b=>b.components.map(c=>c.sourceKey).filter(Boolean)));const keys=[...p.controllers.map(x=>'controller:'+x.id),...p.psus.map(x=>'psu:'+x.id),...p.distros.map(x=>'distro:'+x.id),...p.aux.map(x=>'aux:'+x.id)].filter(k=>!linked.has(k));if(keys.length){let box=p.installation.boxes.find(b=>b.legacyUnassigned);if(!box){box=makeBox('Unassigned infrastructure');box.legacyUnassigned=true;box.description='Migrated from the earlier loose-hardware layout. Review this box and split it into physical enclosures when ready.';p.installation.boxes.push(box);}for(const key of keys)addInfrastructure(p,lib,key,box.id);const old=p.scene?.placements?.[keys[0]];if(old&&p.scene?.placements)p.scene.placements['box:'+box.id]={...copy(old),width:2.4,height:1.7};}p.installation.infrastructureMigrated=true;return !!keys.length;}
+export function exposedPorts(box){const entries=box.components.flatMap(c=>c.snapshot.ports.map(port=>({component:c,port})));const groups={top:[],right:[],bottom:[],left:[]};let pixelIndex=0;for(const entry of entries){const t=entry.port.type;const edge=t==='pixel_output'||t==='pixel_data'?(pixelIndex++%2?'bottom':'right'):t.includes('power')?'bottom':t.includes('input')?'left':t==='audio'||t==='dmx'||t==='ethernet'||t==='usb'?'top':entry.port.direction==='in'?'left':'right';groups[edge].push(entry);}return Object.entries(groups).flatMap(([edge,list])=>list.map((entry,i)=>({...entry,edge,t:(i+1)/(list.length+1)})));}
+export function perimeterAnchor(p,boxId,componentId,portId){const box=p.installation?.boxes.find(b=>b.id===boxId),v=p.scene?.placements?.['box:'+boxId],node=box&&exposedPorts(box).find(e=>e.component.id===componentId&&e.port.id===portId);if(!v||!node)return null;const {edge,t}=node;return {x:v.x+(edge==='left'?-v.width/2:edge==='right'?v.width/2:(t-.5)*v.width),y:v.y+(edge==='top'?-v.height/2:edge==='bottom'?v.height/2:(t-.5)*v.height)};}
+export function addBoxFromTemplate(p,t){ensureInstallation(p);const box=makeBox(t.name);box.description=t.description;box.templateRef={id:t.id,version:t.version};box.components=t.components.map(c=>({...copy(c),id:'part-'+id(),sourceKey:''}));p.installation.boxes.push(box);return box;}
+export function saveBoxTemplate(lib,box){let existing=lib.boxTemplates.find(t=>t.id===box.templateRef?.id);if(existing){existing.version++;existing.name=box.name;existing.description=box.description;existing.components=copy(box.components).map(c=>({...c,sourceKey:''}));box.templateRef={id:existing.id,version:existing.version};return existing;}const t={id:'template-'+id(),version:1,name:box.name,description:box.description,components:copy(box.components).map(c=>({...c,sourceKey:''}))};lib.boxTemplates.push(t);box.templateRef={id:t.id,version:t.version};return t;}
+export function updateBoxFromTemplate(box,t){box.name=t.name;box.description=t.description;box.components=copy(t.components).map(c=>({...c,id:'part-'+id(),sourceKey:''}));box.templateRef={id:t.id,version:t.version};}
+export function routeSpecs(p){ensureInstallation(p);const routes=[];for(const c of p.controllers)c.bankPsus.forEach((ps,i)=>routes.push({id:`bank:${c.id}:${i}`,from:`psu:${ps}`,to:`controller:${c.id}`,kind:'power',name:`${c.name} bank ${i+1}`}));for(const d of p.distros)routes.push({id:`supply:${d.id}`,from:`psu:${d.psu}`,to:`distro:${d.id}`,kind:'power',name:`${d.name} supply`});for(const ch of p.chains)ch.segments.forEach((s,i)=>{routes.push({id:`data:${s.id}`,from:i?`segment:${ch.segments[i-1].id}`:`controller:${ch.controller}`,to:`segment:${s.id}`,kind:'data',name:`${ch.name} · data ${i+1}`,port:i?null:`P${ch.port}`});if(s.inject)routes.push({id:`inject:${s.id}`,from:`distro:${s.distro}`,to:`segment:${s.id}`,kind:'inject',name:`${ch.name} · injection ${i+1}`,port:`F${s.distroPort||'?'}`});});for(const x of p.installation.connections)if(x.fromKey&&x.toKey){routes.push({id:`custom:${x.id}`,from:x.fromKey,to:x.toKey,kind:x.kind||'other',name:x.name||'Custom connection',fromPort:x.fromPort,toPort:x.toPort,connection:x});}return routes.map(spec=>{for(const end of ['from','to']){const key=spec[end],box=boxForSource(p,key);if(!box)continue;const part=box.components.find(c=>c.sourceKey===key);spec[end]='box:'+box.id;spec[end+'Component']=part.id;if(end==='from'){if(spec.id.startsWith('data:'))spec.fromPort='p'+String(spec.port||'P1').slice(1);else if(spec.id.startsWith('inject:'))spec.fromPort='f'+String(spec.port||'F1').slice(1);else if(key.startsWith('psu:')){let terminal=1;if(spec.id.startsWith('bank:')){const bits=spec.id.split(':'),ctrl=p.controllers.find(c=>c.id===bits[1]);terminal=ctrl?.bankPsuPorts[+bits[2]]||1;}else if(spec.id.startsWith('supply:'))terminal=p.distros.find(d=>d.id===spec.id.slice(7))?.psuPort||1;spec.fromPort='dc'+terminal;}}else if(spec.id.startsWith('supply:'))spec.toPort='in1';else if(spec.id.startsWith('bank:'))spec.toPort='bank'+(+spec.id.split(':').at(-1)+1);}return spec;}).filter(spec=>spec.from!==spec.to||spec.from.startsWith('segment:'));}
+export function routeRecord(p,id){ensureInstallation(p);return p.installation.routes[id]??={points:[],startOffset:{x:0,y:0},endOffset:{x:0,y:0},cableRef:null,cableSnapshot:null,physicalM:null,slackOverride:null};}
+export function boxPortOffset(part,portId,width,height){const port=part.snapshot.ports.find(v=>v.id===portId);if(!port)return null;const same=part.snapshot.ports.filter(v=>v.direction===port.direction),index=same.findIndex(v=>v.id===portId);return {x:(part.x/100-.5)*width+(port.direction==='in'?-0.12:0.12),y:(part.y/100-.5)*height+(index-(same.length-1)/2)*0.035};}
+export function routeAnchor(p,spec,end){const key=end==='start'?spec.from:spec.to,v=p.scene?.placements?.[key];if(!v)return null;let x=v.x,y=v.y;
+ if(key.startsWith('box:')){const component=end==='start'?spec.fromComponent||spec.connection?.fromComponent:spec.toComponent||spec.connection?.toComponent,port=end==='start'?spec.fromPort:spec.toPort,node=component&&port&&perimeterAnchor(p,key.slice(4),component,port);if(node){x=node.x;y=node.y;}else x+=end==='start'?v.width/2:-v.width/2;}
+ else if(end==='start')x+=v.width/2;else x-=v.width/2;
+ if(key.startsWith('controller:')&&spec.id.startsWith('data:')&&end==='start'){const m=/P(\d+)/.exec(spec.port||'');if(m)y+=((+m[1]-4.5)/9)*v.height;}
+ if(key.startsWith('controller:')&&spec.id.startsWith('bank:')&&end==='end'){const bank=+(spec.id.split(':').at(-1));y+=(bank-.5)*v.height*.55;}
+ return {x,y};}
+export function routeGeometry(p,spec){const a=routeAnchor(p,spec,'start'),b=routeAnchor(p,spec,'end'),r=routeRecord(p,spec.id);if(!a||!b)return null;const pts=[{x:a.x+(r.startOffset?.x||0),y:a.y+(r.startOffset?.y||0)},...r.points,{x:b.x+(r.endOffset?.x||0),y:b.y+(r.endOffset?.y||0)}];let length=0;for(let i=1;i<pts.length;i++)length+=Math.hypot(pts[i].x-pts[i-1].x,pts[i].y-pts[i-1].y);const slack=r.slackOverride||p.installation.slack,allowance=slack.mode==='percent'?length*slack.value/100:slack.mode==='fixed'?slack.value:0,required=length+allowance,physical=r.cableSnapshot?.lengthM??r.physicalM,spare=physical==null?null:physical-required;return {points:pts,routeM:length,allowanceM:allowance,requiredM:required,physicalM:physical,spareM:spare,shortByM:spare!=null&&spare<0?-spare:0};}
+export function assignCable(p,routeId,standard){const r=routeRecord(p,routeId);r.cableRef=standard?{id:standard.id,version:standard.version}:null;r.cableSnapshot=standard?copy(standard):null;}
+export function connectionWarnings(p,x){const box=p.installation.boxes.find(b=>b.id===x.boxId),a=box?.components.find(c=>c.id===x.fromComponent),b=box?.components.find(c=>c.id===x.toComponent),ap=a?.snapshot.ports.find(v=>v.id===x.fromPort),bp=b?.snapshot.ports.find(v=>v.id===x.toPort);const result=[];if(x.fromKey?.startsWith('field:')&&x.toKey?.startsWith('box:')){
+ const field=p.installation.fieldDevices.find(d=>'field:'+d.id===x.fromKey),source=field?.snapshot.ports.find(v=>v.id===x.fromPort)||field?.snapshot.ports[0];
+ if(!source||!bp)return ['Port no longer exists'];
+ if(source.direction==='in'||bp.direction==='out')result.push('Expected field output to box input');
+ if(source.type!==bp.type&&source.type!=='generic'&&bp.type!=='generic')result.push('Expected '+bp.type.replaceAll('_',' ')+'; connected to '+source.type.replaceAll('_',' '));
+ return result;
+}if(x.toKey){if(!ap)return ['Source port no longer exists'];if(ap.direction==='in')result.push('External route starts at an input port');if(x.toKey.startsWith('field:')){const field=p.installation.fieldDevices.find(d=>'field:'+d.id===x.toKey),target=field?.snapshot.ports[0];if(target&&ap.type!==target.type&&ap.type!=='generic'&&target.type!=='generic')result.push('Expected '+target.type.replaceAll('_',' ')+'; connected to '+ap.type.replaceAll('_',' '));}
+if(x.toKey.startsWith('segment:')&&!['pixel_output','pixel_data','low_voltage_power','generic'].includes(ap.type))result.push(`Pixel group expects pixel data or low-voltage power; got ${ap.type.replaceAll('_',' ')}`);return result;}if(!ap||!bp)return ['Port no longer exists'];if(ap.direction!=='out'||bp.direction!=='in')result.push(`Expected output → input; got ${ap.direction} → ${bp.direction}`);if(ap.type!==bp.type&&ap.type!=='generic'&&bp.type!=='generic')result.push(`Expected ${bp.type.replaceAll('_',' ')}; connected to ${ap.type.replaceAll('_',' ')}`);return result;}
+export function routeIssues(p,spec){
+ const geometry=routeGeometry(p,spec),issues=spec.connection?connectionWarnings(p,spec.connection):[];
+ if(geometry?.shortByM>0)issues.unshift('Cable is '+geometry.shortByM.toFixed(2)+' m too short');
+ return {state:geometry?.physicalM==null?'unknown':geometry.shortByM>0?'short':'valid',issues,geometry};
+}
+export function deleteRoute(p,routeId){
+ ensureInstallation(p);
+ if(routeId.startsWith('custom:'))p.installation.connections=p.installation.connections.filter(x=>x.id!==routeId.slice(7));
+ else if(routeId.startsWith('inject:')){const seg=p.chains.flatMap(ch=>ch.segments).find(s=>s.id===routeId.slice(7));if(seg)seg.inject=false;}
+ else return false;
+ delete p.installation.routes[routeId];
+ return true;
+}
+function addResource(target,key,n){target[key]=(target[key]||0)+n;}
+function psuLoad(p,id){let watts=0;for(const ch of p.chains){const c=p.controllers.find(v=>v.id===ch.controller);if(!c)continue;const bank=Math.min(c.bankPsus.length-1,Math.floor((ch.port-1)/Math.ceil((c.model==='b17'?17:8)/c.bankPsus.length)));let source=c.bankPsus[bank];for(const seg of ch.segments){if(seg.inject)source=seg.psu;if(source===id)watts+=seg.count*seg.watts*p.brightness/100;}}for(const aux of p.aux)if(aux.psu===id)watts+=aux.watts;return watts;}
+function distroUse(p,id){return p.chains.reduce((n,ch)=>n+ch.segments.filter(s=>s.inject&&s.distro===id).length,0);}
+export function boxCapacity(p,box){
+ const capacity={},reference={},used={};
+ const perPart=new Map();
+ for(const item of box.components){
+  const def=item.snapshot,usage={};perPart.set(item.id,usage);
+  for(const [key,n] of Object.entries(def.resources||{})){
+   if(typeof n!=='number')continue;
+   const limit=item.operatingLimits?.[key]??def.operatingLimits?.[key]??n;
+   addResource(capacity,key,limit);addResource(reference,key,n);
+  }
+  if(item.sourceKey?.startsWith('controller:')){
+   const id=item.sourceKey.slice(11),chains=p.chains.filter(ch=>ch.controller===id),ctrl=p.controllers.find(c=>c.id===id);
+   usage.pixelOutputs=chains.length;
+   usage.pixels=chains.reduce((v,ch)=>v+ch.segments.reduce((a,s)=>a+s.count,0),0);
+   usage.digitalInputs=ctrl?.io.filter(Boolean).length||0;
+  }else if(item.sourceKey?.startsWith('psu:')){
+   const id=item.sourceKey.slice(4),ps=p.psus.find(v=>v.id===id);
+   if(ps){
+    if(!('psuWatts' in (def.resources||{}))){addResource(capacity,'psuWatts',item.operatingLimits?.psuWatts??ps.watts);addResource(reference,'psuWatts',ps.watts);}
+    if(!('psuAmps' in (def.resources||{}))){addResource(capacity,'psuAmps',item.operatingLimits?.psuAmps??(item.operatingLimits?.psuWatts??ps.watts)/ps.voltage);addResource(reference,'psuAmps',ps.watts/ps.voltage);}
+    usage.psuWatts=psuLoad(p,id);usage.psuAmps=usage.psuWatts/ps.voltage;
+   }
+  }else if(item.sourceKey?.startsWith('distro:')){
+   const id=item.sourceKey.slice(7),d=p.distros.find(v=>v.id===id);
+   if(d){
+    if(!('distroOutputs' in (def.resources||{}))){addResource(capacity,'distroOutputs',item.operatingLimits?.distroOutputs??d.outputs);addResource(reference,'distroOutputs',d.outputs);}
+    usage.distroOutputs=distroUse(p,id);
+   }
+  }
+ }
+ const generic=new Map(),seenPorts=new Set();
+ const track=(item,port)=>{
+  if(!item||!port)return;
+  const resource=port.resource||{pixel_output:'pixelOutputs',digital_input:'digitalInputs',analogue_input:'analogueInputs',relay_output:'relayOutputs',dmx:'dmxOutputs',ethernet:'ethernetPorts',audio:'audioOutputs'}[port.type];
+  if(!resource||!item.snapshot.resources?.[resource])return;
+  const key=item.id+':'+port.id;if(seenPorts.has(key))return;seenPorts.add(key);
+  const counts=generic.get(item.id)||{};addResource(counts,resource,1);generic.set(item.id,counts);
+ };
+ for(const link of p.installation.connections.filter(v=>v.boxId===box.id)){
+  const from=box.components.find(c=>c.id===link.fromComponent),to=box.components.find(c=>c.id===link.toComponent);
+  const fromPort=from?.snapshot.ports.find(v=>v.id===link.fromPort),toPort=to?.snapshot.ports.find(v=>v.id===link.toPort);
+  if(fromPort?.direction==='out'||fromPort?.direction==='bidirectional')track(from,fromPort);
+  if(toPort?.direction==='in'||toPort?.direction==='bidirectional')track(to,toPort);
+  if(link.toKey?.startsWith('segment:')&&fromPort?.type==='pixel_output'&&from){const segment=p.chains.flatMap(ch=>ch.segments).find(s=>'segment:'+s.id===link.toKey);if(segment){const counts=generic.get(from.id)||{};addResource(counts,'pixels',segment.count);generic.set(from.id,counts);}}
+ }
+ for(const item of box.components){
+  const bound=perPart.get(item.id),links=generic.get(item.id)||{};
+  for(const key of new Set([...Object.keys(bound),...Object.keys(links)]))addResource(used,key,Math.max(bound[key]||0,links[key]||0));
+ }
+ return {capacity,reference,used};
+}
+export function projectCapacity(p){ensureInstallation(p);const total={capacity:{},reference:{},used:{}};const linked=new Set();for(const box of p.installation.boxes){const v=boxCapacity(p,box);for(const k of ['capacity','reference','used'])for(const [key,n] of Object.entries(v[k]))addResource(total[k],key,n);for(const c of box.components)if(c.sourceKey)linked.add(c.sourceKey);}for(const c of p.controllers)if(!linked.has('controller:'+c.id)){const count=c.model==='b17'?17:8;addResource(total.capacity,'pixelOutputs',count);addResource(total.reference,'pixelOutputs',count);addResource(total.capacity,'pixels',count*750);addResource(total.reference,'pixels',count*750);addResource(total.capacity,'digitalInputs',3);addResource(total.reference,'digitalInputs',3);const chains=p.chains.filter(ch=>ch.controller===c.id);addResource(total.used,'pixelOutputs',chains.length);addResource(total.used,'pixels',chains.reduce((v,ch)=>v+ch.segments.reduce((a,s)=>a+s.count,0),0));addResource(total.used,'digitalInputs',c.io.filter(Boolean).length);}for(const ps of p.psus)if(!linked.has('psu:'+ps.id)){addResource(total.capacity,'psuWatts',ps.watts);addResource(total.reference,'psuWatts',ps.watts);addResource(total.used,'psuWatts',psuLoad(p,ps.id));addResource(total.capacity,'psuAmps',ps.watts/ps.voltage);addResource(total.reference,'psuAmps',ps.watts/ps.voltage);addResource(total.used,'psuAmps',psuLoad(p,ps.id)/ps.voltage);}for(const d of p.distros)if(!linked.has('distro:'+d.id)){addResource(total.capacity,'distroOutputs',d.outputs);addResource(total.reference,'distroOutputs',d.outputs);addResource(total.used,'distroOutputs',distroUse(p,d.id));}return total;}
+export function billOfMaterials(p,boxId=null){ensureInstallation(p);const rows=new Map(),add=(category,name,qty=1,unit='pcs')=>{const key=category+'|'+name+'|'+unit,v=rows.get(key)||{category,name,quantity:0,unit};v.quantity+=qty;rows.set(key,v);};const boxes=boxId?p.installation.boxes.filter(b=>b.id===boxId):p.installation.boxes,linked=new Set();for(const b of boxes){add('Controller boxes',b.name);for(const c of b.components){add('Hardware',c.snapshot.name);if(c.sourceKey)linked.add(c.sourceKey);}}if(boxId){for(const spec of routeSpecs(p).filter(s=>s.from==='box:'+boxId||s.to==='box:'+boxId)){const rec=p.installation.routes[spec.id];if(rec?.cableSnapshot)add('Cables',rec.cableSnapshot.name);else if(rec?.physicalM!=null)add('Cables','Custom cable '+rec.physicalM+' m');}}if(!boxId){for(const field of p.installation.fieldDevices||[])add('Field devices',field.snapshot.name);for(const c of p.controllers)if(!linked.has('controller:'+c.id))add('Hardware',c.model==='b17'?'Baldrick17':'Baldrick8');for(const ps of p.psus)if(!linked.has('psu:'+ps.id))add('Power',ps.name);for(const d of p.distros)if(!linked.has('distro:'+d.id))add('Power',d.name);for(const a of p.aux)if(!linked.has('aux:'+a.id))add('Hardware',a.name);for(const ch of p.chains)for(const s of ch.segments)add('Pixels / lights',s.kind==='flood'?`${s.watts} W flood`:s.kind+' pixel',s.count);for(const spec of routeSpecs(p)){const rec=p.installation.routes[spec.id];if(rec?.cableSnapshot)add('Cables',rec.cableSnapshot.name);else if(rec?.physicalM!=null)add('Cables','Custom cable '+rec.physicalM+' m');}}return [...rows.values()].sort((a,b)=>a.category.localeCompare(b.category)||a.name.localeCompare(b.name));}
+export function validateInstallation(p){if(!p.installation)return;const x=p.installation,fail=()=>{throw Error('Invalid installation planning data.');},num=(v,a,b)=>typeof v==='number'&&Number.isFinite(v)&&v>=a&&v<=b,key=v=>typeof v==='string'&&/^[\w:-]{1,200}$/.test(v),txt=v=>typeof v==='string'&&v.length<=200;if(!x.slack||!['off','percent','fixed'].includes(x.slack.mode)||!num(x.slack.value,0,1000)||!x.routes||Array.isArray(x.routes)||!Array.isArray(x.boxes)||x.boxes.length>200||!Array.isArray(x.connections)||x.connections.length>2000||!Array.isArray(x.fieldDevices||[])||(x.fieldDevices||[]).length>2000||typeof x.animate!=='boolean')fail();for(const [k,r] of Object.entries(x.routes)){if(!key(k)||!Array.isArray(r.points)||r.points.length>100||r.points.some(q=>!num(q.x,-100,200)||!num(q.y,-100,200))||!r.startOffset||!r.endOffset||[r.startOffset,r.endOffset].some(q=>!num(q.x,-100,100)||!num(q.y,-100,100))||r.physicalM!=null&&!num(r.physicalM,0,10000))fail();if(r.cableSnapshot&&(!txt(r.cableSnapshot.name)||!num(r.cableSnapshot.lengthM,0,10000)||!/^#[0-9a-f]{6}$/i.test(r.cableSnapshot.color)))fail();}for(const b of x.boxes){if(!key(b.id)||!txt(b.name)||!txt(b.description)||!Array.isArray(b.components)||b.components.length>200||!num(b.width,.1,50)||!num(b.height,.1,50))fail();for(const c of b.components)if(!key(c.id)||!num(c.x,0,100)||!num(c.y,0,100)||!c.snapshot||!txt(c.snapshot.name)||!Array.isArray(c.snapshot.ports)||c.snapshot.ports.length>100)fail();}}
+
+
+
