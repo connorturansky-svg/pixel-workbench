@@ -5,7 +5,7 @@ import {
   makeProp,
   PALETTE,
   clampPosition
-} from './layout-model.mjs?v=0.61.0';
+} from './layout-model.mjs?v=0.62.0';
 import {
   ensureInstallation,
   BUTTON_COLOURS,
@@ -13,14 +13,14 @@ import {
   perimeterAnchor,
   deleteRoute,
   portTypeColour
-} from './installation-model.mjs?v=0.61.0';
+} from './installation-model.mjs?v=0.62.0';
 import {
   routeLayer,
   routeControls,
   routeInspector,
   installRoutes,
   refreshRoutes
-} from './installation-room.mjs?v=0.61.0';
+} from './installation-room.mjs?v=0.62.0';
 let api,
   chosen = '',
   propId = 'prop-smiley',
@@ -197,7 +197,7 @@ export function roomView(p) {
                 'item.color',
                 'color'
               )
-        }${e.type === 'field' ? '' : `<div class="colour-swatches">${PALETTE.map(c => `<button data-room="colour:${c}" style="background:${c}" aria-label="Use colour ${c}"></button>`).join('')}</div>`}${e.type === 'box' ? b('Edit box internals', 'open-box:' + e.id) : ''}${e.type === 'field' ? b('Remove field device', 'delete-field:' + e.id, 'text-btn danger') : ''}${e.type === 'segment' ? `${b('Edit wiring for this group', 'wire:' + e.chain.id)}<p class="micro">${e.o.count} ${E(e.o.kind)} pixels${e.o.propId ? ' · ' + E(p.props.find(pr => pr.id === e.o.propId)?.name) : ''}. Size and colour are layout labels, not output brightness or LED colours.</p>` : '<p class="micro">Box dimensions are a layout reference. Edit electrical ratings in Hardware & power.</p>'}</div></details>`
+        }${e.type === 'field' ? '' : `<div class="colour-swatches">${PALETTE.map(c => `<button data-room="colour:${c}" style="background:${c}" aria-label="Use colour ${c}"></button>`).join('')}</div>`}${e.type === 'box' ? b('Edit box internals', 'open-box:' + e.id) : ''}${e.type === 'segment' ? b('Edit wiring for this group', 'wire:' + e.chain.id) : ''}${b('Remove selected object', 'delete-object', 'text-btn danger')}${e.type === 'segment' ? `<p class="micro">${e.o.count} ${E(e.o.kind)} pixels${e.o.propId ? ' · ' + E(p.props.find(pr => pr.id === e.o.propId)?.name) : ''}. Size and colour are layout labels, not output brightness or LED colours.</p>` : '<p class="micro">Plan dimensions use measured enclosure or device sizes when available, otherwise a practical approximation. Edit electrical ratings in Hardware & power.</p>'}</div></details>`
       : ''
   }${routeInspector(p, api.getLibrary())}<details class="room-inspector-section"><summary>Room settings</summary><div class="room-inspector-section-body"><div class="two">${field('Width (m)', p.scene.width, 'scene.width', 'number', 2, 100)}${field('Depth (m)', p.scene.depth, 'scene.depth', 'number', 2, 100)}</div>${pick(
     'Snap to grid',
@@ -358,6 +358,51 @@ function completeRoomWire(key) {
   roomWire = null;
   api.linkRoom(source, key);
 }
+function removeRoomObject(p) {
+  const e = entities(p).find(item => item.key === chosen);
+  if (!e) return;
+  if (
+    (e.type === 'psu' &&
+      (p.psus.length === 1 ||
+        p.controllers.some(c => c.bankPsus.includes(e.id)) ||
+        p.distros.some(d => d.psu === e.id) ||
+        p.aux.some(x => x.psu === e.id))) ||
+    (e.type === 'distro' && p.chains.some(c => c.segments.some(s => s.inject && s.distro === e.id))) ||
+    (e.type === 'controller' && p.controllers.length === 1)
+  ) {
+    api.toast(
+      e.type === 'controller'
+        ? 'Keep at least one controller.'
+        : `Reassign this ${e.type === 'psu' ? 'PSU’s loads' : 'distro’s feeds'} first.`
+    );
+    return;
+  }
+  api.confirmAction('Remove selected object?', `${e.name} will be removed from the project.`, () => {
+    const keys = new Set([e.key]);
+    if (e.type === 'box') {
+      p.installation.boxes = p.installation.boxes.filter(box => box.id !== e.id);
+      p.installation.infrastructureMigrated = false;
+    } else if (e.type === 'field')
+      p.installation.fieldDevices = p.installation.fieldDevices.filter(device => device.id !== e.id);
+    else if (e.type === 'segment') {
+      e.chain.segments.splice(e.index, 1);
+      if (!e.chain.segments.length) p.chains = p.chains.filter(chain => chain.id !== e.chain.id);
+    } else if (e.type === 'controller') {
+      for (const chain of p.chains.filter(chain => chain.controller === e.id))
+        for (const segment of chain.segments) keys.add('segment:' + segment.id);
+      p.controllers = p.controllers.filter(controller => controller.id !== e.id);
+      p.chains = p.chains.filter(chain => chain.controller !== e.id);
+    } else if (e.type === 'psu') p.psus = p.psus.filter(psu => psu.id !== e.id);
+    else if (e.type === 'distro') p.distros = p.distros.filter(distro => distro.id !== e.id);
+    else if (e.type === 'aux') p.aux = p.aux.filter(board => board.id !== e.id);
+    for (const link of p.installation.connections.filter(
+      link => link.boxId === e.id || keys.has(link.fromKey) || keys.has(link.toKey)
+    ))
+      deleteRoute(p, 'custom:' + link.id);
+    for (const key of keys) delete p.scene.placements[key];
+    chosen = '';
+  });
+}
 function onClick(ev) {
   const external = ev.target.closest('[data-room-port]');
   if (external) {
@@ -400,14 +445,8 @@ function onClick(ev) {
     addPixels(p);
     return;
   }
-  if (action === 'delete-field') {
-    api.transact(() => {
-      p.installation.fieldDevices = p.installation.fieldDevices.filter(x => x.id !== id);
-      for (const link of p.installation.connections.filter(
-        x => x.toKey === 'field:' + id || x.fromKey === 'field:' + id
-      ))
-        deleteRoute(p, 'custom:' + link.id);
-    });
+  if (action === 'delete-object') {
+    removeRoomObject(p);
     return;
   }
   if (action === 'grid') showGrid = !showGrid;

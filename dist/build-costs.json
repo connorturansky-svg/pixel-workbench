@@ -52,6 +52,7 @@
   {"issue":37,"version":"0.58.0","title":"each button needs to have a colour section from a dropdown.","outcome":"shipped","at":"2026-10-02T17:55:13Z","runs":1,"model":"gpt-5.6-sol","credits":33.8,"tokensIn":263400,"tokensCached":234100,"tokensOut":4900,"seconds":93},
   {"issue":38,"version":"0.59.0","title":"adjust button box graphics","outcome":"shipped","at":"2026-10-02T17:59:50Z","runs":1,"model":"gpt-5.6-sol","credits":27.35,"tokensIn":155800,"tokensCached":124400,"tokensOut":3300,"seconds":70},
   {"issue":39,"version":"0.60.0","title":"layout inspector should scroll","outcome":"shipped","at":"2026-10-02T18:06:11Z","runs":1,"model":"gpt-5.6-sol","credits":36.08,"tokensIn":186600,"tokensCached":154800,"tokensOut":7000,"seconds":97},
-  {"issue":36,"version":"0.61.0","title":"schematic view is still not clear","outcome":"shipped","at":"2026-10-02T18:16:02Z","runs":1,"model":"gpt-5.6-sol","credits":44.85,"tokensIn":354800,"tokensCached":321700,"tokensOut":7700,"seconds":130}
+  {"issue":36,"version":"0.61.0","title":"schematic view is still not clear","outcome":"shipped","at":"2026-10-02T18:16:02Z","runs":1,"model":"gpt-5.6-sol","credits":44.85,"tokensIn":354800,"tokensCached":321700,"tokensOut":7700,"seconds":130},
+  {"issue":40,"version":"0.62.0","title":"Room layout delete components","outcome":"shipped","at":"2026-10-02T18:20:59Z","runs":1,"model":"gpt-5.6-sol","credits":62.64,"tokensIn":481900,"tokensCached":426400,"tokensOut":8900,"seconds":137}
  ]
 }

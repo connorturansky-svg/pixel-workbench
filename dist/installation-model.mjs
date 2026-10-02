@@ -529,6 +529,13 @@ export function ensureInstallation(p) {
     }
   }
   for (const box of a.boxes) {
+    if (box.width === 4 && box.height === 2.5) {
+      box.width = Math.max(0.1, (box.physicalWidthMm || 400) / 1000);
+      box.height = Math.max(0.1, (box.physicalDepthMm || 250) / 1000);
+    } else if (box.kind === 'button' && box.width === 1.5 && box.height === 0.75) {
+      box.width = Math.max(0.1, (box.physicalWidthMm || 200) / 1000);
+      box.height = Math.max(0.1, (box.physicalDepthMm || 100) / 1000);
+    }
     if (box.kind === 'button')
       for (const button of box.components) {
         button.buttonColour ??= 'Amber';
@@ -564,8 +571,8 @@ export function makeBox(name = 'Controller box') {
     templateRef: null,
     components: [],
     interfacePorts: [],
-    width: 4,
-    height: 2.5,
+    width: 0.4,
+    height: 0.25,
     physicalWidthMm: 400,
     physicalDepthMm: 250
   };
@@ -623,8 +630,8 @@ export function makeButtonBox(name = 'Button box', count = 1) {
   const box = makeBox(name);
   box.kind = 'button';
   box.description = 'Custom button box';
-  box.width = 1.5;
-  box.height = 0.75;
+  box.width = 0.2;
+  box.height = 0.1;
   box.physicalWidthMm = 200;
   box.physicalDepthMm = 100;
   return resizeButtonBox(box, count);
