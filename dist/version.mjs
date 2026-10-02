@@ -1,6 +1,13 @@
 // Every change: bump APP_VERSION, add a CHANGELOG entry at the top (date DD/MM/YYYY), and review HOW_TO_USE, ARCHITECTURE_NOTES / the info.mjs diagram and SHORTCUTS.
-export const APP_VERSION = '0.36.0';
+export const APP_VERSION = '0.37.0';
 export const CHANGELOG = [
+  {
+    version: '0.37.0',
+    date: '02/10/2026',
+    items: [
+      'Controller-box schematic zoom now scales component illustrations while keeping the canvas visible, with auto-layout canvas sizing handled separately. (suggested in #22)'
+    ]
+  },
   {
     version: '0.36.0',
     date: '02/10/2026',

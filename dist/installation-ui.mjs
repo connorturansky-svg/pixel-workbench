@@ -15,7 +15,7 @@ import {
   componentSearch,
   componentSizeGuides,
   deleteRoute
-} from './installation-model.mjs?v=0.36.0';
+} from './installation-model.mjs?v=0.37.0';
 
 let api,
   boxId = '',
@@ -26,6 +26,8 @@ let api,
   bomScope = '',
   boxMode = 'schematic',
   schematicZoom = 1,
+  schematicCanvasWidth = 1,
+  schematicCanvasHeight = 450,
   showTickets = false,
   boxDetailsOpen = false;
 const E = s =>
@@ -255,7 +257,7 @@ export function boxesView(p, lib) {
                 .filter(x => x.type !== 'size')
                 .map(x => `<p class="layout-warning">⚠ ${E(x.text)}</p>`)
                 .join('')}`
-            : `<div class="box-canvas-toolbar"><div>${B('−', 'box-zoom:out', 'btn box-zoom-button')}${B('100%', 'box-zoom:home', 'btn box-zoom-readout')}${B('+', 'box-zoom:in', 'btn box-zoom-button')}</div>${B('Auto layout', 'auto-layout')}</div><div class="box-stage-scroll" tabindex="0" aria-label="Scrollable box schematic"><div class="box-stage" id="box-stage" style="width:${schematicZoom * 100}%;min-height:${450 * schematicZoom}px"><svg id="box-wires" aria-hidden="true"></svg>${box.components.map(c => schematicPart(c, linkedPorts)).join('')}${interfacePorts(box)}</div></div><div class="interface-editor"><div><strong>Box edge ports</strong>${B('+ Add edge port', 'add-interface-port', 'text-btn')}</div><p>Wire a component connector to an edge port. Only ports marked Room visible appear on the box in Room layout.</p>${
+            : `<div class="box-canvas-toolbar"><div>${B('−', 'box-zoom:out', 'btn box-zoom-button')}${B(`${Math.round(schematicZoom * 100)}%`, 'box-zoom:home', 'btn box-zoom-readout')}${B('+', 'box-zoom:in', 'btn box-zoom-button')}</div>${B('Auto layout', 'auto-layout')}</div><div class="box-stage-scroll" tabindex="0" aria-label="Scrollable box schematic"><div class="box-stage" id="box-stage" style="width:${Math.max(1, schematicCanvasWidth * schematicZoom) * 100}%;min-height:${Math.max(450, schematicCanvasHeight * schematicZoom)}px;--schematic-zoom:${schematicZoom}"><svg id="box-wires" aria-hidden="true"></svg>${box.components.map(c => schematicPart(c, linkedPorts)).join('')}${interfacePorts(box)}</div></div><div class="interface-editor"><div><strong>Box edge ports</strong>${B('+ Add edge port', 'add-interface-port', 'text-btn')}</div><p>Wire a component connector to an edge port. Only ports marked Room visible appear on the box in Room layout.</p>${
                 Array.isArray(box.interfacePorts)
                   ? box.interfacePorts
                       .map(
@@ -372,6 +374,8 @@ export function openBox(id) {
   partId = '';
   boxDetailsOpen = false;
   schematicZoom = 1;
+  schematicCanvasWidth = 1;
+  schematicCanvasHeight = 450;
 }
 function setSchematicZoom(next, clientX, clientY) {
   const scroll = document.querySelector('.box-stage-scroll'),
@@ -383,8 +387,9 @@ function setSchematicZoom(next, clientX, clientY) {
     y = clientY == null ? scroll.clientHeight / 2 : clientY - rect.top,
     ratio = next / schematicZoom;
   schematicZoom = next;
-  stage.style.width = schematicZoom * 100 + '%';
-  stage.style.minHeight = 450 * schematicZoom + 'px';
+  stage.style.width = Math.max(1, schematicCanvasWidth * schematicZoom) * 100 + '%';
+  stage.style.minHeight = Math.max(450, schematicCanvasHeight * schematicZoom) + 'px';
+  stage.style.setProperty('--schematic-zoom', schematicZoom);
   scroll.scrollLeft = (scroll.scrollLeft + x) * ratio - x;
   scroll.scrollTop = (scroll.scrollTop + y) * ratio - y;
   const readout = document.querySelector('.box-zoom-readout');
@@ -445,10 +450,9 @@ function autoLayout(box, project) {
     maxRows = Math.max(1, ...groups.map(group => group.length)),
     scroll = document.querySelector('.box-stage-scroll'),
     baseWidth = scroll?.clientWidth || 800;
-  schematicZoom = Math.min(
-    3,
-    Math.max(1, (groups.length * 280 + 48) / baseWidth, (maxRows * 210 + 48) / 450)
-  );
+  schematicZoom = 1;
+  schematicCanvasWidth = Math.max(1, (groups.length * 280 + 48) / baseWidth);
+  schematicCanvasHeight = Math.max(450, maxRows * 210 + 48);
   api.render();
   requestAnimationFrame(() => {
     const stage = document.querySelector('#box-stage');
@@ -464,8 +468,10 @@ function autoLayout(box, project) {
             (group.length - 1) * 32
         )
       );
-    if (tallest + 48 > stage.clientHeight)
-      setSchematicZoom(Math.min(3, schematicZoom * ((tallest + 48) / stage.clientHeight)));
+    if (tallest + 48 > schematicCanvasHeight) {
+      schematicCanvasHeight = tallest + 48;
+      stage.style.minHeight = schematicCanvasHeight + 'px';
+    }
     requestAnimationFrame(() => {
       const width = stage.clientWidth,
         height = stage.clientHeight,
@@ -476,7 +482,7 @@ function autoLayout(box, project) {
             total = heights.reduce((sum, value) => sum + value, 0) + Math.max(0, group.length - 1) * 32;
           let y = Math.max(margin, (height - total) / 2);
           group.forEach((c, row) => {
-            const partWidth = elements.get(c.id)?.offsetWidth || 230,
+            const partWidth = elements.get(c.id)?.getBoundingClientRect().width || 230,
               x =
                 groups.length === 1
                   ? (width - partWidth) / 2
@@ -1131,8 +1137,9 @@ export function installInstallation(a) {
       return;
     }
     const rect = drag.stage.getBoundingClientRect(),
-      maxX = 100 - (drag.part.offsetWidth / rect.width) * 100,
-      maxY = 100 - (drag.part.offsetHeight / rect.height) * 100,
+      partRect = drag.part.getBoundingClientRect(),
+      maxX = 100 - (partRect.width / rect.width) * 100,
+      maxY = 100 - (partRect.height / rect.height) * 100,
       x = Math.min(maxX, Math.max(0, ((e.clientX - rect.left) / rect.width) * 100)),
       y = Math.min(maxY, Math.max(0, ((e.clientY - rect.top) / rect.height) * 100));
     drag.part.style.left = x.toFixed(1) + '%';

@@ -195,16 +195,16 @@
   color: var(--ink);
   font-size: 9px;
   cursor: crosshair;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) scale(var(--schematic-zoom, 1));
 }
 .interface-port.left {
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) scale(var(--schematic-zoom, 1));
 }
 .interface-port.right {
-  transform: translate(50%, -50%);
+  transform: translate(50%, -50%) scale(var(--schematic-zoom, 1));
 }
 .interface-port.bottom {
-  transform: translate(-50%, 50%);
+  transform: translate(-50%, 50%) scale(var(--schematic-zoom, 1));
 }
 .interface-port.linked {
   background: var(--mint);
@@ -219,6 +219,8 @@
   border-radius: 7px;
   box-shadow: 0 4px 12px #12382425;
   user-select: none;
+  transform: scale(var(--schematic-zoom, 1));
+  transform-origin: top left;
 }
 .box-part.selected {
   box-shadow:
