@@ -1,6 +1,7 @@
 // Every change: bump APP_VERSION, add a CHANGELOG entry at the top (date DD/MM/YYYY), and review HOW_TO_USE, ARCHITECTURE_NOTES / the info.mjs diagram and SHORTCUTS.
-export const APP_VERSION='0.12.0';
+export const APP_VERSION='0.13.0';
 export const CHANGELOG=[
+ {version:'0.13.0',date:'02/10/2026',items:['The navigation now wraps on narrow screens and compacts on short screens, so every page remains available without scrolling the navigation. The redundant device-local project label has also been removed. (suggested in #4)']},
  {version:'0.12.0',date:'02/10/2026',items:['The build stages in Requests and build status are now tabs. Select All, Queued, Building, Tested or Shipped to see the requests at that stage, with a count on each.','A Needs attention tab appears when a build failed or the builder asked a question.','The builder now marks a request Tested once it passes every check, while it is being published.']},
  {version:'0.11.0',date:'02/10/2026',items:['The sidebar is shorter and easier to scan now that project actions appear only in the top bar and the promotional tagline has been removed. (suggested in #3)']},
  {version:'0.10.0',date:'02/10/2026',items:['Suggest a feature now submits from inside the app. Select Submit and the request is filed in the background, with your screenshots attached. GitHub no longer opens in a new tab.','Connect GitHub once with a token that is kept only in this browser, so requests are filed under your own account. Disconnect at any time.']},
