@@ -21,7 +21,7 @@ import {
   componentSizeGuides,
   deleteRoute,
   portTypeColour
-} from './installation-model.mjs?v=0.59.0';
+} from './installation-model.mjs?v=0.60.0';
 
 const SCHEMATIC_MIN_WIDTH = 1400,
   SCHEMATIC_MIN_HEIGHT = 700;

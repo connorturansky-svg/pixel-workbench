@@ -115,6 +115,8 @@
 .room-inspector {
   position: sticky;
   top: 15px;
+  max-height: calc(100vh - 30px);
+  overflow-y: auto;
   border-top: 4px solid #d4a65b;
   background: #fffbf4;
 }
@@ -127,6 +129,32 @@
 }
 .room-inspector .inspector-body > label {
   margin-top: 15px;
+}
+.room-inspector-section {
+  border-top: 1px solid var(--line);
+}
+.room-inspector-section:first-child {
+  border-top: 0;
+}
+.room-inspector-section summary {
+  padding: 13px 18px;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.room-inspector-section summary:hover,
+.room-inspector-section summary:focus-visible {
+  background: #f6eddc;
+}
+.room-inspector-section summary:focus-visible {
+  outline: 2px solid #287159;
+  outline-offset: -2px;
+}
+.room-inspector-section-body {
+  padding: 4px 18px 18px;
 }
 .room-type {
   font-size: 11px;
@@ -344,6 +372,7 @@
   }
   .room-inspector {
     position: static;
+    max-height: 720px;
   }
   .room-inspector .inspector-body {
     display: block;

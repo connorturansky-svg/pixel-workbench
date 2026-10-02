@@ -5,7 +5,7 @@ import {
   makeProp,
   PALETTE,
   clampPosition
-} from './layout-model.mjs?v=0.59.0';
+} from './layout-model.mjs?v=0.60.0';
 import {
   ensureInstallation,
   BUTTON_COLOURS,
@@ -13,14 +13,14 @@ import {
   perimeterAnchor,
   deleteRoute,
   portTypeColour
-} from './installation-model.mjs?v=0.59.0';
+} from './installation-model.mjs?v=0.60.0';
 import {
   routeLayer,
   routeControls,
   routeInspector,
   installRoutes,
   refreshRoutes
-} from './installation-room.mjs?v=0.59.0';
+} from './installation-room.mjs?v=0.60.0';
 let api,
   chosen = '',
   propId = 'prop-smiley',
@@ -178,7 +178,7 @@ export function roomView(p) {
     v = p.scene.placements[chosen];
   return `<div class="room-toolbar"><div><strong>Room layout</strong><span>Bird’s-eye · drag objects to position · drag empty space to pan</span></div><div>${b('+ Pixels / flood', 'add-pixels', 'btn')}${b('+ Field device', 'field-library', 'btn')}${b(showGrid ? 'Grid on' : 'Grid off', 'grid', 'btn ' + (showGrid ? 'pressed' : ''))}</div></div>${routeControls(p)}<div class="room-workspace"><div class="room-panel panel"><div class="room-dimensions"><span>${p.scene.width} m × ${p.scene.depth} m</span><span>${p.scene.snap ? 'Snap ' + p.scene.snap + ' m' : 'Free positioning'}</span></div><div class="room-stage"><div class="room-scroll"><svg id="room-canvas" viewBox="0 0 ${p.scene.width * 100} ${p.scene.depth * 100}" style="width:${zoom * 100}%;min-width:${zoom * 100}%" role="img" aria-label="Bird’s-eye room layout. Drag objects to position, drag empty space to pan, or use the mouse wheel to zoom."><defs><pattern id="room-grid" width="100" height="100" patternUnits="userSpaceOnUse"><path d="M100 0H0V100" fill="none" stroke="#dce5e4" stroke-width="1"/></pattern></defs><rect width="100%" height="100%" fill="#f9fbfa"/>${showGrid ? '<rect width="100%" height="100%" fill="url(#room-grid)"/>' : ''}<rect x="3" y="3" width="${p.scene.width * 100 - 6}" height="${p.scene.depth * 100 - 6}" fill="none" stroke="#9cafad" stroke-width="6"/><g id="room-routes">${routeLayer(p)}</g><path id="room-wire-preview" aria-hidden="true"/>${es.map(en => node(p, en)).join('')}</svg></div><div class="room-camera" role="group" aria-label="Room view controls"><button type="button" data-room="zoom-out" aria-label="Zoom out" title="Zoom out">−</button><span data-room-zoom aria-live="polite">${Math.round(zoom * 100)}%</span><button type="button" data-room="zoom-in" aria-label="Zoom in" title="Zoom in">+</button><button type="button" data-room="home" aria-label="Reset zoom and recenter room" title="Reset zoom and recenter">⌂</button></div></div><div class="room-key"><span><i></i> Data <i class="room-power-key"></i> Power <i class="room-inject-key"></i> Injection</span><span>Mouse wheel zooms · drag empty space to pan</span></div></div><aside class="panel room-inspector"><div class="inspector-title"><h3>Layout inspector</h3><span class="pill">2D</span></div><div class="inspector-body">${
     e
-      ? `<span class="room-type">${e.type === 'segment' ? 'PIXEL GROUP' : e.type.toUpperCase()}</span><h3>${E(e.name)}</h3>${pick(
+      ? `<details class="room-inspector-section"><summary>Selected object</summary><div class="room-inspector-section-body"><span class="room-type">${e.type === 'segment' ? 'PIXEL GROUP' : e.type.toUpperCase()}</span><h3>${E(e.name)}</h3>${pick(
           'Selected object',
           chosen,
           'selection',
@@ -197,9 +197,9 @@ export function roomView(p) {
                 'item.color',
                 'color'
               )
-        }${e.type === 'field' ? '' : `<div class="colour-swatches">${PALETTE.map(c => `<button data-room="colour:${c}" style="background:${c}" aria-label="Use colour ${c}"></button>`).join('')}</div>`}${e.type === 'box' ? b('Edit box internals', 'open-box:' + e.id) : ''}${e.type === 'field' ? b('Remove field device', 'delete-field:' + e.id, 'text-btn danger') : ''}${e.type === 'segment' ? `${b('Edit wiring for this group', 'wire:' + e.chain.id)}<p class="micro">${e.o.count} ${E(e.o.kind)} pixels${e.o.propId ? ' · ' + E(p.props.find(pr => pr.id === e.o.propId)?.name) : ''}. Size and colour are layout labels, not output brightness or LED colours.</p>` : '<p class="micro">Box dimensions are a layout reference. Edit electrical ratings in Hardware & power.</p>'}`
+        }${e.type === 'field' ? '' : `<div class="colour-swatches">${PALETTE.map(c => `<button data-room="colour:${c}" style="background:${c}" aria-label="Use colour ${c}"></button>`).join('')}</div>`}${e.type === 'box' ? b('Edit box internals', 'open-box:' + e.id) : ''}${e.type === 'field' ? b('Remove field device', 'delete-field:' + e.id, 'text-btn danger') : ''}${e.type === 'segment' ? `${b('Edit wiring for this group', 'wire:' + e.chain.id)}<p class="micro">${e.o.count} ${E(e.o.kind)} pixels${e.o.propId ? ' · ' + E(p.props.find(pr => pr.id === e.o.propId)?.name) : ''}. Size and colour are layout labels, not output brightness or LED colours.</p>` : '<p class="micro">Box dimensions are a layout reference. Edit electrical ratings in Hardware & power.</p>'}</div></details>`
       : ''
-  }${routeInspector(p, api.getLibrary())}<div class="section-label">ROOM SETTINGS</div><div class="two">${field('Width (m)', p.scene.width, 'scene.width', 'number', 2, 100)}${field('Depth (m)', p.scene.depth, 'scene.depth', 'number', 2, 100)}</div>${pick(
+  }${routeInspector(p, api.getLibrary())}<details class="room-inspector-section"><summary>Room settings</summary><div class="room-inspector-section-body"><div class="two">${field('Width (m)', p.scene.width, 'scene.width', 'number', 2, 100)}${field('Depth (m)', p.scene.depth, 'scene.depth', 'number', 2, 100)}</div>${pick(
     'Snap to grid',
     p.scene.snap,
     'scene.snap',
@@ -211,7 +211,7 @@ export function roomView(p) {
       [0.5, '50 cm'],
       [1, '1 m']
     ]
-  )}<p class="micro">Drag any box or pixel group. Arrow keys move a selected object; Shift moves 1 m. Dimensions and positions are saved with your project.</p></div></aside></div>`;
+  )}<p class="micro">Drag any box or pixel group. Arrow keys move a selected object; Shift moves 1 m. Dimensions and positions are saved with your project.</p></div></details></div></aside></div>`;
 }
 const componentShortName = name =>
   name
