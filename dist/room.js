@@ -5,7 +5,7 @@ import {
   makeProp,
   PALETTE,
   clampPosition
-} from './layout-model.mjs?v=0.58.0';
+} from './layout-model.mjs?v=0.59.0';
 import {
   ensureInstallation,
   BUTTON_COLOURS,
@@ -13,14 +13,14 @@ import {
   perimeterAnchor,
   deleteRoute,
   portTypeColour
-} from './installation-model.mjs?v=0.58.0';
+} from './installation-model.mjs?v=0.59.0';
 import {
   routeLayer,
   routeControls,
   routeInspector,
   installRoutes,
   refreshRoutes
-} from './installation-room.mjs?v=0.58.0';
+} from './installation-room.mjs?v=0.59.0';
 let api,
   chosen = '',
   propId = 'prop-smiley',
@@ -242,6 +242,13 @@ function boxVisual(box, w, h) {
         c = part.snapshot.color || '#4b8a76',
         limit = Math.max(4, Math.floor(cellW / 5)),
         shortName = componentShortName(part.snapshot.name);
+      if (box.kind === 'button') {
+        const labelHeight = labels ? 11 : 0,
+          scale = Math.max(0.18, Math.min((cellW - 8) / 62, (cellH - labelHeight - 4) / 62)),
+          cx = x + cellW / 2,
+          cy = y + (cellH - labelHeight) / 2;
+        return `<g><g transform="translate(${cx} ${cy}) scale(${scale}) translate(-50 -51)"><rect x="22" y="38" width="56" height="42" rx="8" fill="#505c58" stroke="#243a34" stroke-width="4"/><ellipse cx="50" cy="40" rx="23" ry="18" fill="${E(c)}" stroke="#f5f7f4" stroke-width="5"/><ellipse cx="50" cy="36" rx="13" ry="8" fill="#ffffff55"/></g>${labels ? `<text x="${cx}" y="${y + cellH - 3}" text-anchor="middle" font-size="8" fill="white" paint-order="stroke" stroke="#153d36" stroke-width="1">${E((part.subname || shortName).slice(0, limit * 2))}</text>` : ''}<title>${E(part.snapshot.name)}${part.subname ? ` (${E(part.subname)})` : ''} · ${E(part.buttonColour || 'Custom')} face · ${E(part.snapshot.ports.length)} ports</title></g>`;
+      }
       return `<g><rect x="${x + 1}" y="${y + 1}" width="${cellW - 2}" height="${cellH - 2}" fill="${E(c)}" fill-opacity=".9" stroke="white" stroke-width="1"/>${labels ? `<text x="${x + 4}" y="${y + Math.min(14, cellH / 2)}" font-size="9" fill="white" paint-order="stroke" stroke="#153d36" stroke-width="1">${E(shortName.slice(0, limit))}</text>${cellH >= 30 ? `<text x="${x + cellW / 2}" y="${y + Math.min(cellH - 5, 32)}" text-anchor="middle" font-size="14" fill="white">${E(part.snapshot.icon)}</text>` : ''}${part.subname && cellH >= 46 ? `<text x="${x + 4}" y="${y + Math.min(cellH - 5, 47)}" font-size="8" fill="white" paint-order="stroke" stroke="#153d36" stroke-width="1">(${E(part.subname.slice(0, limit))})</text>` : ''}` : ''}<title>${E(part.snapshot.name)}${part.subname ? ` (${E(part.subname)})` : ''} · ${E(part.snapshot.ports.length)} ports</title></g>`;
     })
     .join(

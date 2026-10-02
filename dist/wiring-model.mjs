@@ -1,4 +1,4 @@
-import { BOARDS } from './model.mjs?v=0.58.0';
+import { BOARDS } from './model.mjs?v=0.59.0';
 
 export function ensureWiring(p) {
   const used = new Map();
