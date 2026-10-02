@@ -5,20 +5,20 @@ import {
   makeProp,
   PALETTE,
   clampPosition
-} from './layout-model.mjs?v=0.45.0';
+} from './layout-model.mjs?v=0.46.0';
 import {
   ensureInstallation,
   exposedPorts,
   perimeterAnchor,
   deleteRoute
-} from './installation-model.mjs?v=0.45.0';
+} from './installation-model.mjs?v=0.46.0';
 import {
   routeLayer,
   routeControls,
   routeInspector,
   installRoutes,
   refreshRoutes
-} from './installation-room.mjs?v=0.45.0';
+} from './installation-room.mjs?v=0.46.0';
 let api,
   chosen = '',
   propId = 'prop-smiley',
@@ -93,7 +93,7 @@ function fieldVisual(device, w, h) {
       `<svg x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" aria-hidden="true">${body}</svg>`;
   if (name.includes('button'))
     return frame(
-      `<rect x="22" y="38" width="56" height="42" rx="8" fill="#505c58" stroke="#243a34" stroke-width="4"/><ellipse cx="50" cy="40" rx="23" ry="18" fill="${E(device.snapshot.name.includes('Illuminated') ? '#f1c75b' : '#dc654f')}" stroke="#f5f7f4" stroke-width="5"/><ellipse cx="50" cy="36" rx="13" ry="8" fill="#ffffff55"/>`
+      `<rect x="22" y="38" width="56" height="42" rx="8" fill="#505c58" stroke="#243a34" stroke-width="4"/><ellipse cx="50" cy="40" rx="23" ry="18" fill="${E(device.buttonColor)}" stroke="#f5f7f4" stroke-width="5"/><ellipse cx="50" cy="36" rx="13" ry="8" fill="#ffffff55"/>`
     );
   if (name.includes('switch'))
     return frame(
@@ -155,6 +155,25 @@ function fieldVisual(device, w, h) {
     `<rect x="18" y="20" width="64" height="64" rx="10" fill="${E(device.snapshot.color || '#4b8a76')}" stroke="#244d43" stroke-width="4"/><circle cx="50" cy="52" r="17" fill="#e8f1ec" stroke="#34594d" stroke-width="4"/><path d="M50 35v34M33 52h34" stroke="#6a8f82" stroke-width="3"/>`
   );
 }
+const BUTTON_COLOURS = [
+  ['Red', '#dc654f'],
+  ['Amber', '#f1c75b'],
+  ['Green', '#55a66f'],
+  ['Blue', '#4d8fd1'],
+  ['White', '#e8eeeb'],
+  ['Black', '#29322f']
+];
+function fieldConnectionLabel(p, device) {
+  const key = 'field:' + device.id,
+    link = p.installation.connections.find(x => x.fromKey === key || x.toKey === key);
+  if (!link) return '';
+  const box = p.installation.boxes.find(x => x.id === link.boxId),
+    componentId = link.fromKey === key ? link.toComponent : link.fromComponent,
+    portId = link.fromKey === key ? link.toPort : link.fromPort,
+    part = box?.components.find(x => x.id === componentId),
+    port = part?.snapshot.ports.find(x => x.id === portId);
+  return [box?.name, port?.label].filter(Boolean).join(' ');
+}
 export function roomView(p) {
   ensureInstallation(p);
   ensureScene(p);
@@ -170,7 +189,21 @@ export function roomView(p) {
           chosen,
           'selection',
           es.map(x => [x.key, x.name + ' · ' + x.type])
-        )}<div class="two">${field('X position (m)', v.x, 'item.x', 'number', 0, p.scene.width)}${field('Y position (m)', v.y, 'item.y', 'number', 0, p.scene.depth)}</div><div class="two">${field('Width (m)', v.width, 'item.width', 'number', 0.1, 50)}${field('Depth (m)', v.height, 'item.height', 'number', 0.1, 50)}</div>${field('Rotation (degrees)', v.rotation, 'item.rotation', 'number', -360, 360)}${field(e.type === 'segment' ? 'String / prop colour' : 'Box colour', v.color, 'item.color', 'color')}<div class="colour-swatches">${PALETTE.map(c => `<button data-room="colour:${c}" style="background:${c}" aria-label="Use colour ${c}"></button>`).join('')}</div>${e.type === 'box' ? b('Edit box internals', 'open-box:' + e.id) : ''}${e.type === 'field' ? b('Remove field device', 'delete-field:' + e.id, 'text-btn danger') : ''}${e.type === 'segment' ? `${b('Edit wiring for this group', 'wire:' + e.chain.id)}<p class="micro">${e.o.count} ${E(e.o.kind)} pixels${e.o.propId ? ' · ' + E(p.props.find(pr => pr.id === e.o.propId)?.name) : ''}. Size and colour are layout labels, not output brightness or LED colours.</p>` : '<p class="micro">Box dimensions are a layout reference. Edit electrical ratings in Hardware & power.</p>'}`
+        )}<div class="two">${field('X position (m)', v.x, 'item.x', 'number', 0, p.scene.width)}${field('Y position (m)', v.y, 'item.y', 'number', 0, p.scene.depth)}</div><div class="two">${field('Width (m)', v.width, 'item.width', 'number', 0.1, 50)}${field('Depth (m)', v.height, 'item.height', 'number', 0.1, 50)}</div>${field('Rotation (degrees)', v.rotation, 'item.rotation', 'number', -360, 360)}${
+          e.type === 'field' && e.o.snapshot.name.toLowerCase().includes('button')
+            ? pick(
+                'Button colour',
+                e.o.buttonColour,
+                'device.buttonColour',
+                BUTTON_COLOURS.map(([name]) => [name, name])
+              )
+            : field(
+                e.type === 'segment' ? 'String / prop colour' : 'Box colour',
+                v.color,
+                'item.color',
+                'color'
+              )
+        }${e.type === 'field' ? '' : `<div class="colour-swatches">${PALETTE.map(c => `<button data-room="colour:${c}" style="background:${c}" aria-label="Use colour ${c}"></button>`).join('')}</div>`}${e.type === 'box' ? b('Edit box internals', 'open-box:' + e.id) : ''}${e.type === 'field' ? b('Remove field device', 'delete-field:' + e.id, 'text-btn danger') : ''}${e.type === 'segment' ? `${b('Edit wiring for this group', 'wire:' + e.chain.id)}<p class="micro">${e.o.count} ${E(e.o.kind)} pixels${e.o.propId ? ' · ' + E(p.props.find(pr => pr.id === e.o.propId)?.name) : ''}. Size and colour are layout labels, not output brightness or LED colours.</p>` : '<p class="micro">Box dimensions are a layout reference. Edit electrical ratings in Hardware & power.</p>'}`
       : ''
   }${routeInspector(p, api.getLibrary())}<div class="section-label">ROOM SETTINGS</div><div class="two">${field('Width (m)', p.scene.width, 'scene.width', 'number', 2, 100)}${field('Depth (m)', p.scene.depth, 'scene.depth', 'number', 2, 100)}</div>${pick(
     'Snap to grid',
@@ -251,7 +284,12 @@ function node(p, e) {
     w = v.width * 100,
     h = v.height * 100,
     labels = p.installation.showLabels;
-  return `<g data-room-node="${E(e.key)}" tabindex="0" role="button" aria-label="Move ${E(e.name)}" transform="translate(${v.x * 100} ${v.y * 100})" class="room-object ${chosen === e.key ? 'chosen' : ''}"><g transform="rotate(${v.rotation})"><rect x="${-w / 2 - 6}" y="${-h / 2 - 6}" width="${w + 12}" height="${h + 12}" rx="7" fill="transparent" class="selection-ring" stroke="${chosen === e.key ? '#153f3d' : 'transparent'}" stroke-width="2"/>${is ? `<svg x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" viewBox="0 0 100 100" preserveAspectRatio="none">${e.o.kind === 'flood' && !pr ? floodSvg(e.o.count, v.color) : propSvg(pr ? { ...pr, color: v.color } : { shape: 'line', count: e.o.count, columns: Math.min(e.o.count, 8), color: v.color }, e.o.count)}</svg><rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" fill="transparent"/>` : `${e.type === 'box' ? boxVisual(e.o, w, h) : e.type === 'field' ? fieldVisual(e.o, w, h) : e.type === 'psu' ? `<rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="3" fill="#e7f0e8" stroke="${v.color}" stroke-width="4"/><path d="M${w / 2 - 10} ${-h / 2}v${h}" stroke="${v.color}" stroke-width="5"/>` : e.type === 'distro' ? `<path d="M${-w / 2} ${-h / 2}h${w - 8}l8 8v${h - 8}h${-w}z" fill="#e9f1f4" stroke="${v.color}" stroke-width="4"/>` : e.type === 'controller' ? `<rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="10" fill="#173f34" stroke="${v.color}" stroke-width="4"/>` : `<rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="6" fill="${v.color}"/>`}${labels ? `<text text-anchor="middle" y="4" fill="${e.type === 'psu' || e.type === 'distro' ? '#28483d' : 'white'}" font-size="${Math.min(14, w / 5)}" font-weight="700">${e.type === 'box' || e.type === 'field' ? '' : { controller: 'CTRL', psu: 'PSU', distro: 'DIST', aux: 'I/O' }[e.type]}</text>` : ''}`}</g>${labels ? `<text class="room-object-label" x="0" y="${h / 2 + 16}" text-anchor="middle">${E(e.name.length > 30 ? e.name.slice(0, 28) + '…' : e.name)}</text>${is ? `<text class="room-object-detail" x="0" y="${h / 2 + 30}" text-anchor="middle">P${e.chain.port} · ${e.o.count} pixels</text>` : ''}` : ''}</g>`;
+  const detail = is
+    ? `P${e.chain.port} · ${e.o.count} pixels`
+    : e.type === 'field'
+      ? fieldConnectionLabel(p, e.o)
+      : '';
+  return `<g data-room-node="${E(e.key)}" tabindex="0" role="button" aria-label="Move ${E(e.name)}" transform="translate(${v.x * 100} ${v.y * 100})" class="room-object ${chosen === e.key ? 'chosen' : ''}"><g transform="rotate(${v.rotation})"><rect x="${-w / 2 - 6}" y="${-h / 2 - 6}" width="${w + 12}" height="${h + 12}" rx="7" fill="transparent" class="selection-ring" stroke="${chosen === e.key ? '#153f3d' : 'transparent'}" stroke-width="2"/>${is ? `<svg x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" viewBox="0 0 100 100" preserveAspectRatio="none">${e.o.kind === 'flood' && !pr ? floodSvg(e.o.count, v.color) : propSvg(pr ? { ...pr, color: v.color } : { shape: 'line', count: e.o.count, columns: Math.min(e.o.count, 8), color: v.color }, e.o.count)}</svg><rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" fill="transparent"/>` : `${e.type === 'box' ? boxVisual(e.o, w, h) : e.type === 'field' ? fieldVisual(e.o, w, h) : e.type === 'psu' ? `<rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="3" fill="#e7f0e8" stroke="${v.color}" stroke-width="4"/><path d="M${w / 2 - 10} ${-h / 2}v${h}" stroke="${v.color}" stroke-width="5"/>` : e.type === 'distro' ? `<path d="M${-w / 2} ${-h / 2}h${w - 8}l8 8v${h - 8}h${-w}z" fill="#e9f1f4" stroke="${v.color}" stroke-width="4"/>` : e.type === 'controller' ? `<rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="10" fill="#173f34" stroke="${v.color}" stroke-width="4"/>` : `<rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="6" fill="${v.color}"/>`}${labels ? `<text text-anchor="middle" y="4" fill="${e.type === 'psu' || e.type === 'distro' ? '#28483d' : 'white'}" font-size="${Math.min(14, w / 5)}" font-weight="700">${e.type === 'box' || e.type === 'field' ? '' : { controller: 'CTRL', psu: 'PSU', distro: 'DIST', aux: 'I/O' }[e.type]}</text>` : ''}`}</g>${labels ? `<text class="room-object-label" x="0" y="${h / 2 + 16}" text-anchor="middle">${E(e.name.length > 30 ? e.name.slice(0, 28) + '…' : e.name)}</text>${detail ? `<text class="room-object-detail" x="0" y="${h / 2 + 30}" text-anchor="middle">(${E(detail)})</text>` : ''}` : ''}</g>`;
 }
 export function propsView(p) {
   ensureScene(p);
@@ -486,6 +524,11 @@ function onChange(ev) {
     } else if (k.startsWith('item.')) {
       const key = k.slice(5);
       p.scene.placements[chosen][key] = key === 'color' ? t.value : +t.value;
+    } else if (k === 'device.buttonColour') {
+      const device = p.installation.fieldDevices.find(x => 'field:' + x.id === chosen),
+        colour = BUTTON_COLOURS.find(([name]) => name === t.value);
+      if (!device || !colour) throw Error('Choose a valid button colour.');
+      [device.buttonColour, device.buttonColor] = colour;
     } else if (k.startsWith('prop.')) {
       const pr = p.props.find(x => x.id === propId),
         key = k.slice(5);

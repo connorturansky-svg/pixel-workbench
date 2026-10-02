@@ -506,17 +506,26 @@ export function ensureInstallation(p) {
   a.autoRoute ??= true;
   a.showLabels ??= true;
   a.filters ??= { data: true, power: true, inject: true, other: true };
+  for (const device of a.fieldDevices) {
+    if (device.snapshot.name.toLowerCase().includes('button')) {
+      device.buttonColour ??= device.snapshot.name.includes('Illuminated') ? 'Amber' : 'Red';
+      device.buttonColor ??= device.buttonColour === 'Amber' ? '#f1c75b' : '#dc654f';
+    }
+  }
   for (const box of a.boxes) syncInterfacePorts(box);
   return p;
 }
 export function addFieldDevice(p, def, name = def.name) {
   ensureInstallation(p);
+  const isButton = def.name.toLowerCase().includes('button'),
+    buttonColour = def.name.includes('Illuminated') ? 'Amber' : 'Red';
   const device = {
     id: 'field-' + id(),
     name,
     definitionId: def.id,
     definitionVersion: def.version,
-    snapshot: copy(def)
+    snapshot: copy(def),
+    ...(isButton ? { buttonColour, buttonColor: buttonColour === 'Amber' ? '#f1c75b' : '#dc654f' } : {})
   };
   p.installation.fieldDevices.push(device);
   return device;
@@ -1386,7 +1395,13 @@ export function billOfMaterials(p, boxId = null) {
     }
   }
   if (!boxId) {
-    for (const field of p.installation.fieldDevices || []) add('Field devices', field.snapshot.name);
+    for (const field of p.installation.fieldDevices || [])
+      add(
+        'Field devices',
+        field.snapshot.name.toLowerCase().includes('button')
+          ? `${field.buttonColour} ${field.snapshot.name.toLowerCase()}`
+          : field.snapshot.name
+      );
     for (const c of p.controllers)
       if (!linked.has('controller:' + c.id)) add('Hardware', c.model === 'b17' ? 'Baldrick17' : 'Baldrick8');
     for (const ps of p.psus) if (!linked.has('psu:' + ps.id)) add('Power', ps.name);
@@ -1492,4 +1507,14 @@ export function validateInstallation(p) {
       )
         fail();
   }
+  for (const field of x.fieldDevices || [])
+    if (
+      !key(field.id) ||
+      !txt(field.name) ||
+      !field.snapshot ||
+      !txt(field.snapshot.name) ||
+      (field.buttonColour != null && !txt(field.buttonColour)) ||
+      (field.buttonColor != null && !/^#[0-9a-f]{6}$/i.test(field.buttonColor))
+    )
+      fail();
 }
