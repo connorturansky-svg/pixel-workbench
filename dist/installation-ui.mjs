@@ -17,7 +17,7 @@ import {
   componentSearch,
   componentSizeGuides,
   deleteRoute
-} from './installation-model.mjs?v=0.47.0';
+} from './installation-model.mjs?v=0.49.0';
 
 let api,
   boxId = '',
@@ -170,9 +170,10 @@ const schematicPart = (c, linkedPorts) => {
 };
 const interfacePorts = box => {
   if (!Array.isArray(box.interfacePorts)) return '';
-  const groups = { top: [], right: [], bottom: [], left: [] };
-  for (const port of box.interfacePorts) groups[port.edge].push(port);
-  return box.interfacePorts
+  const ports = box.interfacePorts.filter(port => port.visible),
+    groups = { top: [], right: [], bottom: [], left: [] };
+  for (const port of ports) groups[port.edge].push(port);
+  return ports
     .map(port => {
       const list = groups[port.edge],
         component = box.components.find(item => item.id === port.componentId),
@@ -207,7 +208,7 @@ const interfaceEditor = box => {
       })
       .join(''),
     unassigned = box.interfacePorts.filter(port => !box.components.some(c => c.id === port.componentId));
-  return `<div class="interface-editor"><div><strong>Box edge ports</strong></div><p>Every component connector has a matching edge port. Expand a component, adjust its label or edge, then activate only the ports needed in Room layout.</p>${componentGroups || '<p class="micro">Add a component to create its edge ports.</p>'}${
+  return `<div class="interface-editor"><div><strong>Box edge ports</strong></div><p>Every component connector has a matching edge port. Expand a component, adjust its label or edge, then activate only the ports that should appear in the Schematic and Room layout.</p>${componentGroups || '<p class="micro">Add a component to create its edge ports.</p>'}${
     unassigned.length
       ? `<details class="interface-group" data-interface-group="@unassigned" ${openInterfaceGroups.has('@unassigned') ? 'open' : ''}><summary><span><strong>Unassigned ports</strong></span><small>${unassigned.length}</small></summary>${unassigned
           .map(
