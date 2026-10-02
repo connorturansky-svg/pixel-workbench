@@ -49,7 +49,7 @@ NET = re.compile(r"\bfetch\s*\(|XMLHttpRequest|WebSocket|sendBeacon|EventSource|
 BUILD_TIMEOUT = 60 * 60
 FIX_ROUNDS = 2
 MAX_ATTEMPTS = 3            # automatic retries per issue (each requester reply retries a failed build)
-PER_AUTHOR_DAY = 4          # builds per requester per 24 hours
+PER_AUTHOR_DAY = 100         # builds per requester per 24 hours
 # Only these GitHub accounts can have requests built; everyone else is declined and closed.
 ALLOWED_AUTHORS = {"j-turansky", "connorturansky-svg"}
 MAX_IMAGES, MAX_IMAGE_BYTES = 6, 10 * 1024 * 1024

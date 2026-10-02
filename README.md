@@ -59,7 +59,7 @@ Other outcomes:
 - If the agent needs detail, it labels the issue `needs-info` and asks a question.
 - Out-of-scope or unsafe requests are labelled `declined` and closed.
 - Failures are rolled back and labelled `build-failed` with the reason.
-- When the requester replies, a `needs-info` or `build-failed` request is retried (up to 3 attempts). Each requester is limited to 4 builds a day.
+- When the requester replies, a `needs-info` or `build-failed` request is retried (up to 3 attempts). Each requester is limited to 100 builds a day.
 
 Set up the builder once on the build PC:
 
