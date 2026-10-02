@@ -11,6 +11,7 @@
   {"issue":7,"version":"0.20.0","title":"On the controller box building page, i think it would be useful, to…","outcome":"shipped","at":"2026-10-02T13:12:42Z","runs":1,"model":"gpt-5.6-sol","credits":78.07,"tokensIn":333900,"tokensCached":271200,"tokensOut":17900,"seconds":188},
   {"issue":9,"version":"0.21.0","title":"For hardware library, i need a step down transformer added","outcome":"shipped","at":"2026-10-02T13:19:44Z","runs":1,"model":"gpt-5.6-sol","credits":40.42,"tokensIn":310000,"tokensCached":265700,"tokensOut":3800,"seconds":85},
   {"issue":10,"version":"0.22.0","title":"Baldrick has the input board, and the input 8, please ensure both are…","outcome":"shipped","at":"2026-10-02T13:25:23Z","runs":1,"model":"gpt-5.6-sol","credits":62.42,"tokensIn":422000,"tokensCached":362800,"tokensOut":9100,"seconds":124},
-  {"issue":11,"version":"0.23.0","title":"Components in the controller box, should have a renamable subname, so…","outcome":"shipped","at":"2026-10-02T13:30:39Z","runs":1,"model":"gpt-5.6-sol","credits":63.87,"tokensIn":236600,"tokensCached":175600,"tokensOut":13200,"seconds":138}
+  {"issue":11,"version":"0.23.0","title":"Components in the controller box, should have a renamable subname, so…","outcome":"shipped","at":"2026-10-02T13:30:39Z","runs":1,"model":"gpt-5.6-sol","credits":63.87,"tokensIn":236600,"tokensCached":175600,"tokensOut":13200,"seconds":138},
+  {"issue":12,"version":"0.24.0","title":"On the box builder page, its using size measurements in m","outcome":"shipped","at":"2026-10-02T13:37:01Z","runs":1,"model":"gpt-5.6-sol","credits":97.0,"tokensIn":550300,"tokensCached":476300,"tokensOut":20500,"seconds":222}
  ]
 }
