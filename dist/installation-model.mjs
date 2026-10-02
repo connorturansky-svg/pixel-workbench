@@ -836,6 +836,9 @@ export function exposedPorts(box) {
     list.map((entry, i) => ({ ...entry, edge, t: (i + 1) / (list.length + 1) }))
   );
 }
+export function boxVisualScale(width, height) {
+  return Math.max(0.01, Math.min(1, width / 1, height / 0.7));
+}
 export function perimeterAnchor(p, boxId, componentId, portId) {
   const box = p.installation?.boxes.find(b => b.id === boxId),
     v = p.scene?.placements?.['box:' + boxId],
@@ -862,11 +865,12 @@ export function perimeterAnchor(p, boxId, componentId, portId) {
   const { edge, t } = node,
     labelled = p.installation?.showLabels !== false,
     label = node.port?.label || source?.label || '',
+    scale = boxVisualScale(v.width, v.height),
     gap = labelled
       ? edge === 'left' || edge === 'right'
-        ? Math.max(0.18, label.length * 0.045 + 0.14)
-        : 0.2
-      : 0.06;
+        ? Math.max(0.18, label.length * 0.045 + 0.14) * scale
+        : 0.2 * scale
+      : 0.06 * scale;
   return {
     x:
       v.x +

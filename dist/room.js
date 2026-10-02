@@ -5,22 +5,23 @@ import {
   makeProp,
   PALETTE,
   clampPosition
-} from './layout-model.mjs?v=0.64.0';
+} from './layout-model.mjs?v=0.65.0';
 import {
   ensureInstallation,
   BUTTON_COLOURS,
   exposedPorts,
+  boxVisualScale,
   perimeterAnchor,
   deleteRoute,
   portTypeColour
-} from './installation-model.mjs?v=0.64.0';
+} from './installation-model.mjs?v=0.65.0';
 import {
   routeLayer,
   routeControls,
   routeInspector,
   installRoutes,
   refreshRoutes
-} from './installation-room.mjs?v=0.64.0';
+} from './installation-room.mjs?v=0.65.0';
 let api,
   chosen = '',
   propId = 'prop-smiley',
@@ -227,6 +228,9 @@ const componentShortName = name =>
     .replace(/\bAmplifier\b/gi, 'AMP')
     .replace(/\bTransformer\b/gi, 'XFMR');
 function boxVisual(box, w, h) {
+  const scale = boxVisualScale(w / 100, h / 100);
+  w /= scale;
+  h /= scale;
   const items = box.components,
     n = items.length,
     cols = Math.max(1, Math.ceil(Math.sqrt((n * w) / Math.max(h, 1)))),
@@ -235,7 +239,7 @@ function boxVisual(box, w, h) {
     cellW = w / cols,
     cellH = (h - header) / rows,
     labels = api.getProject().installation.showLabels;
-  return `<g><rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="4" fill="#193f39" stroke="#4f806a" stroke-width="3"/>${labels ? `<text x="${-w / 2 + 8}" y="${-h / 2 + 13}" fill="white" font-size="12" font-weight="700">${E(box.name.slice(0, 30))}</text>` : ''}${items
+  return `<g transform="scale(${scale})"><rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="4" fill="#193f39" stroke="#4f806a" stroke-width="3"/>${labels ? `<text x="${-w / 2 + 8}" y="${-h / 2 + 13}" fill="white" font-size="12" font-weight="700">${E(box.name.slice(0, 30))}</text>` : ''}${items
     .map((part, i) => {
       const x = -w / 2 + (i % cols) * cellW,
         y = -h / 2 + header + Math.floor(i / cols) * cellH,
@@ -260,8 +264,8 @@ function boxVisual(box, w, h) {
       const point = perimeterAnchor(api.getProject(), box.id, component.id, port.id);
       if (!point) return '';
       const placement = api.getProject().scene.placements['box:' + box.id],
-        x = (point.x - placement.x) * 100,
-        y = (point.y - placement.y) * 100,
+        x = ((point.x - placement.x) * 100) / scale,
+        y = ((point.y - placement.y) * 100) / scale,
         label = port.label.slice(0, 24),
         innerX = edge === 'left' ? -w / 2 : edge === 'right' ? w / 2 : x,
         innerY = edge === 'top' ? -h / 2 : edge === 'bottom' ? h / 2 : y,
