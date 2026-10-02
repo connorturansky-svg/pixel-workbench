@@ -225,10 +225,18 @@
     stroke-width 180ms;
 }
 .box-wire.preview {
-  stroke: #d9982d;
   stroke-width: 2;
   stroke-dasharray: 7 5;
   pointer-events: none;
+}
+.box-wire.warning {
+  stroke-width: 4;
+  stroke-dasharray: 9 4;
+  filter: drop-shadow(0 0 2px #c04c35);
+}
+.box-wire-node {
+  stroke: #254c3c;
+  stroke-width: 1.5;
 }
 .box-wire.connection-highlight {
   stroke-width: 5;

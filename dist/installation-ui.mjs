@@ -18,8 +18,9 @@ import {
   componentPlacement,
   componentSearch,
   componentSizeGuides,
-  deleteRoute
-} from './installation-model.mjs?v=0.56.0';
+  deleteRoute,
+  portTypeColour
+} from './installation-model.mjs?v=0.57.0';
 
 const SCHEMATIC_MIN_WIDTH = 1400,
   SCHEMATIC_MIN_HEIGHT = 700;
@@ -32,6 +33,7 @@ let api,
   bomScope = '',
   boxMode = 'schematic',
   openInterfaceGroups = new Set(),
+  normalizedSchematicBoxes = new Set(),
   schematicZoom = 1,
   schematicCanvasWidth = 1,
   schematicCanvasHeight = SCHEMATIC_MIN_HEIGHT,
@@ -571,30 +573,124 @@ const segmentHits = (a, b, r) =>
   a.x === b.x
     ? a.x >= r.left && a.x <= r.right && Math.max(a.y, b.y) >= r.top && Math.min(a.y, b.y) <= r.bottom
     : a.y >= r.top && a.y <= r.bottom && Math.max(a.x, b.x) >= r.left && Math.min(a.x, b.x) <= r.right;
-const routePath = (a, b, obstacles) => {
+const routePath = (a, b, obstacles, bounds) => {
   const direction = b.x >= a.x ? 1 : -1,
-    start = { x: a.x + 14 * direction, y: a.y },
-    finish = { x: b.x - 14 * direction, y: b.y },
-    middle = (start.x + finish.x) / 2,
-    direct = [a, start, { x: middle, y: start.y }, { x: middle, y: finish.y }, finish, b],
-    clear = points =>
-      points.slice(1).every((point, i) => !obstacles.some(rect => segmentHits(points[i], point, rect)));
-  let points = direct;
-  if (!clear(points) && obstacles.length) {
-    const top = Math.max(8, Math.min(...obstacles.map(r => r.top)) - 14),
-      bottom = Math.min(
-        document.querySelector('#box-stage')?.clientHeight - 8 || 442,
-        Math.max(...obstacles.map(r => r.bottom)) + 14
+    start = { x: a.x + 14 * (a.direction || direction), y: a.y },
+    finish = { x: b.x + 14 * (b.direction || -direction), y: b.y },
+    blocked = point =>
+      obstacles.some(
+        rect => point.x > rect.left && point.x < rect.right && point.y > rect.top && point.y < rect.bottom
       ),
-      candidates = [
-        [a, start, { x: start.x, y: top }, { x: finish.x, y: top }, finish, b],
-        [a, start, { x: start.x, y: bottom }, { x: finish.x, y: bottom }, finish, b]
-      ];
-    points =
-      candidates.find(clear) || candidates.sort((x, y) => Math.abs(x[2].y - a.y) - Math.abs(y[2].y - a.y))[0];
+    clear = (u, v) => !obstacles.some(rect => segmentHits(u, v, rect)),
+    xs = [
+      8,
+      bounds.width - 8,
+      start.x,
+      finish.x,
+      ...obstacles.flatMap(rect => [rect.left - 10, rect.right + 10])
+    ]
+      .filter(x => x >= 8 && x <= bounds.width - 8)
+      .sort((x, y) => x - y)
+      .filter((x, i, values) => !i || Math.abs(x - values[i - 1]) > 1),
+    ys = [
+      8,
+      bounds.height - 8,
+      start.y,
+      finish.y,
+      ...obstacles.flatMap(rect => [rect.top - 10, rect.bottom + 10])
+    ]
+      .filter(y => y >= 8 && y <= bounds.height - 8)
+      .sort((x, y) => x - y)
+      .filter((y, i, values) => !i || Math.abs(y - values[i - 1]) > 1),
+    nodes = xs.flatMap(x => ys.map(y => ({ x, y }))).filter(point => !blocked(point)),
+    nodeKey = point => `${point.x},${point.y}`,
+    startNode = nodes.find(point => point.x === start.x && point.y === start.y),
+    finishNode = nodes.find(point => point.x === finish.x && point.y === finish.y),
+    open = startNode ? [startNode] : [],
+    distance = new Map(startNode ? [[nodeKey(startNode), 0]] : []),
+    previous = new Map();
+  while (open.length) {
+    open.sort((u, v) => distance.get(nodeKey(v)) - distance.get(nodeKey(u)));
+    const current = open.pop();
+    if (current === finishNode) break;
+    const neighbours = nodes.filter(
+      point => (point.x === current.x || point.y === current.y) && point !== current && clear(current, point)
+    );
+    for (const next of neighbours) {
+      const key = nodeKey(next),
+        score = distance.get(nodeKey(current)) + Math.abs(next.x - current.x) + Math.abs(next.y - current.y);
+      if (score >= (distance.get(key) ?? Infinity)) continue;
+      distance.set(key, score);
+      previous.set(key, current);
+      if (!open.includes(next)) open.push(next);
+    }
   }
+  const middle = [];
+  if (finishNode && distance.has(nodeKey(finishNode)))
+    for (let point = finishNode; point !== startNode; point = previous.get(nodeKey(point)))
+      middle.unshift(point);
+  const raw = [a, start, ...middle.slice(0, -1), finish, b],
+    points = raw.filter(
+      (point, i, values) =>
+        !i ||
+        i === values.length - 1 ||
+        (values[i - 1].x !== values[i + 1].x && values[i - 1].y !== values[i + 1].y)
+    );
   return points.map((point, i) => `${i ? 'L' : 'M'}${point.x} ${point.y}`).join(' ');
 };
+function separateSchematicParts(stage, parts, box) {
+  if (boxMode !== 'schematic' || parts.length < 2 || !box || normalizedSchematicBoxes.has(box.id))
+    return false;
+  normalizedSchematicBoxes.add(box.id);
+  const stageRect = stage.getBoundingClientRect(),
+    placed = [],
+    moved = [];
+  for (const part of parts) {
+    let rect = part.getBoundingClientRect();
+    const original = { left: part.style.left, top: part.style.top };
+    const overlaps = () =>
+      placed.some(
+        other =>
+          rect.left < other.right + 12 &&
+          rect.right + 12 > other.left &&
+          rect.top < other.bottom + 12 &&
+          rect.bottom + 12 > other.top
+      );
+    if (overlaps()) {
+      const maxX = Math.max(0, 100 - (rect.width / stageRect.width) * 100),
+        maxY = Math.max(0, 100 - (rect.height / stageRect.height) * 100);
+      let found = false;
+      for (let y = 2; y <= maxY && !found; y += 3)
+        for (let x = 2; x <= maxX; x += 2) {
+          part.style.left = x.toFixed(1) + '%';
+          part.style.top = y.toFixed(1) + '%';
+          rect = part.getBoundingClientRect();
+          if (!overlaps()) {
+            moved.push([part.dataset.boxPart, x, y]);
+            found = true;
+            break;
+          }
+        }
+      if (!found) {
+        part.style.left = original.left;
+        part.style.top = original.top;
+        rect = part.getBoundingClientRect();
+      }
+    }
+    placed.push(rect);
+  }
+  if (!moved.length) return false;
+  api.transact(() =>
+    moved.forEach(([id, x, y]) => {
+      const component = box.components.find(item => item.id === id);
+      if (component) {
+        component.x = +x.toFixed(1);
+        component.y = +y.toFixed(1);
+      }
+    })
+  );
+  return true;
+}
 export function drawBoxConnections() {
   const stage = document.querySelector('#box-stage'),
     svg = document.querySelector('#box-wires');
@@ -617,6 +713,21 @@ export function drawBoxConnections() {
       return { x: r.left + r.width / 2 - rs.left, y: r.top + r.height / 2 - rs.top };
     },
     parts = [...stage.querySelectorAll('.box-part')];
+  if (separateSchematicParts(stage, parts, box)) return;
+  const anchor = (port, other) => {
+      const part = port.closest('.box-part');
+      if (!part) return center(port);
+      const portRect = port.getBoundingClientRect(),
+        partRect = part.getBoundingClientRect(),
+        output = port.classList.contains('out'),
+        x = (output ? partRect.right : partRect.left) - rs.left,
+        y = portRect.top + portRect.height / 2 - rs.top;
+      return { x, y, direction: output ? 1 : -1, other };
+    },
+    portType = (componentId, portId) =>
+      box?.components
+        .find(component => component.id === componentId)
+        ?.snapshot.ports.find(port => port.id === portId)?.type || '';
   const records = [
     ...(p.installation.connections || []).filter(x => x.boxId === box?.id),
     ...(box?.interfacePorts || [])
@@ -634,9 +745,21 @@ export function drawBoxConnections() {
         b = stage.querySelector(`[data-box-port="${CSS.escape(x.toComponent + ':' + x.toPort)}"]`);
       if (!a || !b) return '';
       const endpoints = [a.closest('.box-part'), b.closest('.box-part')],
-        obstacles = parts.filter(part => !endpoints.includes(part)).map(rectFor);
-      const warning = x.boxId && connectionWarnings(p, x).length;
-      return `<path class="box-wire" data-wire-from="${E(x.fromComponent + ':' + x.fromPort)}" data-wire-to="${E(x.toComponent + ':' + x.toPort)}" d="${routePath(center(a), center(b), obstacles)}" stroke="${warning ? '#d17944' : '#4b8a76'}"/>`;
+        obstacles = [
+          ...parts.filter(part => !endpoints.includes(part)).map(rectFor),
+          ...[...stage.querySelectorAll('.interface-port')]
+            .filter(port => port !== a && port !== b)
+            .map(rectFor)
+        ],
+        aCenter = center(a),
+        bCenter = center(b),
+        from = anchor(a, bCenter),
+        to = anchor(b, aCenter),
+        warning = x.boxId && connectionWarnings(p, x).length,
+        colour = portTypeColour(
+          portType(x.fromComponent, x.fromPort) || portType(x.toComponent, x.toPort) || 'generic'
+        );
+      return `<path class="box-wire ${warning ? 'warning' : ''}" data-wire-from="${E(x.fromComponent + ':' + x.fromPort)}" data-wire-to="${E(x.toComponent + ':' + x.toPort)}" d="${routePath(from, to, obstacles, { width: stage.clientWidth, height: stage.clientHeight })}" stroke="${colour}"/><circle class="box-wire-node" cx="${from.x}" cy="${from.y}" r="5" fill="${colour}"/><circle class="box-wire-node" cx="${to.x}" cy="${to.y}" r="5" fill="${colour}"/>`;
     })
     .join('');
   let preview = '';
@@ -644,8 +767,10 @@ export function drawBoxConnections() {
     const a = stage.querySelector(`[data-box-port="${CSS.escape(wireFrom.component + ':' + wireFrom.id)}"]`);
     if (a) {
       const sourcePart = a.closest('.box-part'),
-        obstacles = parts.filter(part => part !== sourcePart).map(rectFor);
-      preview = `<path class="box-wire preview" d="${routePath(center(a), wirePoint, obstacles)}"/>`;
+        obstacles = parts.filter(part => part !== sourcePart).map(rectFor),
+        from = anchor(a, wirePoint),
+        colour = portTypeColour(portType(wireFrom.component, wireFrom.id) || 'generic');
+      preview = `<path class="box-wire preview" d="${routePath(from, wirePoint, obstacles, { width: stage.clientWidth, height: stage.clientHeight })}" stroke="${colour}"/>`;
     }
   }
   svg.innerHTML = paths + preview;
@@ -832,6 +957,7 @@ export function installInstallation(a) {
       const def = lib.components.find(d => d.id === id);
       if (def)
         api.transact(() => {
+          normalizedSchematicBoxes.delete(box.id);
           const c = makeInstance(def);
           c.x = 10 + (box.components.length % 4) * 20;
           c.y = 10 + Math.floor(box.components.length / 4) * 25;
@@ -842,6 +968,7 @@ export function installInstallation(a) {
         });
     } else if (action === 'duplicate-part' && box) {
       api.transact(() => {
+        normalizedSchematicBoxes.delete(box.id);
         const original = box.components.find(x => x.id === partId);
         if (!original) return;
         const copy = structuredClone(original);
@@ -1118,6 +1245,7 @@ export function installInstallation(a) {
       });
     else if (key.startsWith('part.'))
       api.transact(() => {
+        normalizedSchematicBoxes.delete(box.id);
         const c = box.components.find(x => x.id === partId);
         c[key.slice(5)] = t.type === 'number' ? +t.value : t.value;
       });
@@ -1286,8 +1414,26 @@ export function installInstallation(a) {
       maxY = 100 - (partRect.height / rect.height) * 100,
       x = Math.min(maxX, Math.max(0, ((e.clientX - rect.left) / rect.width) * 100)),
       y = Math.min(maxY, Math.max(0, ((e.clientY - rect.top) / rect.height) * 100));
+    const previous = { left: drag.part.style.left, top: drag.part.style.top };
     drag.part.style.left = x.toFixed(1) + '%';
     drag.part.style.top = y.toFixed(1) + '%';
+    const nextRect = drag.part.getBoundingClientRect(),
+      overlaps =
+        boxMode === 'schematic' &&
+        [...drag.stage.querySelectorAll('.box-part')].some(other => {
+          if (other === drag.part) return false;
+          const otherRect = other.getBoundingClientRect();
+          return (
+            nextRect.left < otherRect.right + 12 &&
+            nextRect.right + 12 > otherRect.left &&
+            nextRect.top < otherRect.bottom + 12 &&
+            nextRect.bottom + 12 > otherRect.top
+          );
+        });
+    if (overlaps) {
+      drag.part.style.left = previous.left;
+      drag.part.style.top = previous.top;
+    }
     drawBoxConnections();
   });
   document.addEventListener('pointerup', e => {
