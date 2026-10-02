@@ -1,6 +1,6 @@
-import { ensureScene } from './layout-model.mjs?v=0.30.0';
-import { roomView, propsView, installRoom } from './room.js?v=0.30.0';
-import { wiringGraph, installGraph, drawGraph } from './wiring-graph.mjs?v=0.30.0';
+import { ensureScene } from './layout-model.mjs?v=0.31.0';
+import { roomView, propsView, installRoom } from './room.js?v=0.31.0';
+import { wiringGraph, installGraph, drawGraph } from './wiring-graph.mjs?v=0.31.0';
 import {
   defaultLibrary,
   ensureLibrary,
@@ -11,20 +11,22 @@ import {
   addFieldDevice,
   componentPlacement,
   routeSpecs,
-  routeGeometry
-} from './installation-model.mjs?v=0.30.0';
+  routeGeometry,
+  routeIssues
+} from './installation-model.mjs?v=0.31.0';
 import {
   boxesView,
   standardsView,
   bomView,
   installInstallation,
   drawBoxConnections,
-  openBox
-} from './installation-ui.mjs?v=0.30.0';
-import { APP_VERSION } from './version.mjs?v=0.30.0';
-import { installInfo } from './info.mjs?v=0.30.0';
-import { suggestView, installSuggest, afterSuggestRender, bellHtml } from './suggest.mjs?v=0.30.0';
-import { createDemoProject } from './demo-project.mjs?v=0.30.0';
+  openBox,
+  physicalIssues
+} from './installation-ui.mjs?v=0.31.0';
+import { APP_VERSION } from './version.mjs?v=0.31.0';
+import { installInfo } from './info.mjs?v=0.31.0';
+import { suggestView, installSuggest, afterSuggestRender, bellHtml } from './suggest.mjs?v=0.31.0';
+import { createDemoProject } from './demo-project.mjs?v=0.31.0';
 import {
   tailoredInitial,
   calculate,
@@ -35,7 +37,7 @@ import {
   PSU_MODELS,
   newSegment,
   uid
-} from './model.mjs?v=0.30.0';
+} from './model.mjs?v=0.31.0';
 const testing = new URLSearchParams(location.search).has('test');
 let project = tailoredInitial(),
   view = 'room',
@@ -47,7 +49,8 @@ let library,
   demo = false,
   previousProject = null,
   previousLibrary = null,
-  targetBoxId = '';
+  targetBoxId = '',
+  notificationsOpen = false;
 try {
   library = ensureLibrary(JSON.parse(localStorage.getItem('pixel-workbench-library-v1')) || defaultLibrary());
 } catch {
@@ -101,6 +104,64 @@ function toast(m) {
   clearTimeout(window.tt);
   window.tt = setTimeout(() => $('#toast').classList.remove('toast-show'), 5000);
 }
+function notifications(r) {
+  const groups = [
+    {
+      id: 'plan',
+      label: 'Electrical plan',
+      target: 'Wiring workspace',
+      items: r.warnings.map(w => ({
+        level: w.level === 'info' ? 'info' : w.level === 'error' ? 'critical' : 'warning',
+        title: w.title,
+        detail: w.detail
+      }))
+    },
+    {
+      id: 'room',
+      label: 'Room layout',
+      target: 'Room layout',
+      items: routeSpecs(project).flatMap(spec =>
+        routeIssues(project, spec).issues.map(detail => ({
+          level: 'critical',
+          title: spec.name,
+          detail
+        }))
+      )
+    },
+    {
+      id: 'boxes',
+      label: 'Components',
+      target: 'Controller boxes',
+      items: project.installation.boxes.flatMap(box =>
+        physicalIssues(box).map(issue => ({
+          level: issue.type === 'size' ? 'info' : 'critical',
+          title: box.name,
+          detail: issue.text
+        }))
+      )
+    }
+  ].filter(group => group.items.length);
+  const total = groups.reduce((n, group) => n + group.items.length, 0),
+    critical = groups.reduce(
+      (n, group) => n + group.items.filter(item => item.level === 'critical').length,
+      0
+    );
+  return `<section class="notification-center ${critical ? 'has-critical' : ''}" aria-label="Project notifications"><button type="button" class="notification-summary" data-action="notifications" aria-expanded="${notificationsOpen}"><span class="notification-symbol">${critical ? '!' : total ? 'i' : '✓'}</span><span><strong>${critical ? `${critical} critical notification${critical === 1 ? '' : 's'}` : total ? `${total} project notification${total === 1 ? '' : 's'}` : 'All project checks clear'}</strong><small>${total ? `${groups.length} categor${groups.length === 1 ? 'y' : 'ies'} · Select to review` : 'No calculated limits or layout faults found'}</small></span><span class="notification-toggle">${notificationsOpen ? 'Hide' : 'Review'}</span></button>${
+    notificationsOpen && total
+      ? `<div class="notification-groups">${groups
+          .map(
+            group =>
+              `<section><div class="notification-heading"><h2>${esc(group.label)} <span>${group.items.length}</span></h2>${btn('View ' + group.target, 'notice:' + group.id, 'text-btn')}</div>${group.items
+                .map(
+                  item =>
+                    `<div class="notification-item ${item.level}"><span>${item.level === 'critical' ? '!' : item.level === 'warning' ? '!' : 'i'}</span><div><strong>${esc(item.title)}</strong><p>${esc(item.detail)}</p></div></div>`
+                )
+                .join('')}</section>`
+          )
+          .join('')}</div>`
+      : ''
+  }</section>`;
+}
 function render() {
   const migrated = migrateInfrastructure(project, library);
   ensureScene(project);
@@ -120,7 +181,7 @@ function render() {
   ];
   if (!pages.some(x => x[0] === page)) page = 'workspace';
   $('#app').innerHTML =
-    `<aside class="sidebar"><a class="brand" href="#" data-action="page:workspace"><span class="brandmark">▦</span><span>pixel<span class="light">workbench</span></span></a><button type="button" class="brand-version" data-info="new" title="What's new in v${APP_VERSION}">v${APP_VERSION}</button><div class="workspace-label">YOUR WORKSPACE</div><div class="project-card"><span class="project-icon">P</span><div><strong>${esc(project.name)}</strong><small>${demo ? 'DEMO MODE' : '12 V pixel system'}</small></div></div><nav aria-label="Main navigation">${pages.map(([id, ic, label]) => btn(`<span class="nav-icon">${ic}</span>${label}`, 'page:' + id, 'nav ' + (id === page ? 'active' : ''), id === page ? 'aria-current="page"' : '')).join('')}</nav></aside><main><header class="topbar"><div class="crumb">Projects <span>/</span> ${esc(project.name)}</div><div class="top-actions"><span class="local-label">${storageOK ? 'Saved on this device' : 'Save a JSON backup'}</span>${btn('↓ Save project', 'export', 'btn')}${btn('↑ Open', 'import', 'btn')}${btn('↗ Wiring guide', 'page:guide', 'btn')}${demo ? btn('Exit demo', 'exit-demo', 'btn') : btn('Open demo', 'open-demo', 'btn')}${btn('Blank project', 'blank-project', 'btn danger')}${bellHtml()}<button type="button" class="info-btn" data-info="how" title="Info: how to use, what's new, architecture, shortcuts" aria-label="Info">i</button></div></header><section class="page-head"><div><div class="eyebrow">PLAN • WIRE • DEPLOY</div><h1>${pages.find(x => x[0] === page)[2]}</h1><p>${{ workspace: 'Every connection, with the power to back it up.', hardware: 'Give every circuit a source.', presets: 'Your repeatable building blocks.', props: 'Pixel shapes, built for your space.', guide: 'A build sheet for the workbench and the field.', boxes: 'Arrange and connect the parts inside each installation box.', standards: 'Reusable cables and hardware for every project.', bom: 'A practical packing and ordering list.', suggest: 'Describe an idea. Every request is built, tested and published automatically.' }[page]}</p></div>${page === 'hardware' ? btn('+ Add controller', 'add-controller', 'btn primary') : page === 'suggest' ? '' : btn('+ Controller box', 'new-box-main', 'btn primary')}</section>${page === 'suggest' ? '' : `<div class="summary"><div><span>ADDRESSABLE DEVICES</span><strong>${r.pixels.toLocaleString()} <small>across ${project.chains.length} ports</small></strong></div><div><span>ESTIMATED LOAD</span><strong>${fmt(r.watts)} <small>W at ${project.brightness}%</small></strong></div><div><span>PSU DESIGN BUDGET</span><strong>${fmt((project.psus.reduce((n, p) => n + p.watts, 0) * project.headroom) / 100, 0)} <small>W total</small></strong></div><div><span>PLAN CHECKS</span><strong class="amber">${r.warnings.filter(w => w.level !== 'info').length} <small>+ ${r.warnings.filter(w => w.level === 'info').length} assumptions</small></strong></div></div>`}<section id="content">${{ workspace: () => workspace(r), hardware: () => hardware(r), presets: () => presets(), props: () => propsView(project), guide: () => guide(r), boxes: () => boxesView(project, library), standards: () => standardsView(library), bom: () => bomView(project), suggest: () => suggestView() }[page]()}</section><footer><span><i class="status-dot"></i> Changes sync across views</span><span>DC planning estimates • Verify against your actual hardware</span></footer></main><dialog id="modal"></dialog>`;
+    `<aside class="sidebar"><a class="brand" href="#" data-action="page:workspace"><span class="brandmark">▦</span><span>pixel<span class="light">workbench</span></span></a><button type="button" class="brand-version" data-info="new" title="What's new in v${APP_VERSION}">v${APP_VERSION}</button><div class="workspace-label">YOUR WORKSPACE</div><div class="project-card"><span class="project-icon">P</span><div><strong>${esc(project.name)}</strong><small>${demo ? 'DEMO MODE' : '12 V pixel system'}</small></div></div><nav aria-label="Main navigation">${pages.map(([id, ic, label]) => btn(`<span class="nav-icon">${ic}</span>${label}`, 'page:' + id, 'nav ' + (id === page ? 'active' : ''), id === page ? 'aria-current="page"' : '')).join('')}</nav></aside><main><header class="topbar"><div class="crumb">Projects <span>/</span> ${esc(project.name)}</div><div class="top-actions"><span class="local-label">${storageOK ? 'Saved on this device' : 'Save a JSON backup'}</span>${btn('↓ Save project', 'export', 'btn')}${btn('↑ Open', 'import', 'btn')}${btn('↗ Wiring guide', 'page:guide', 'btn')}${demo ? btn('Exit demo', 'exit-demo', 'btn') : btn('Open demo', 'open-demo', 'btn')}${btn('Blank project', 'blank-project', 'btn danger')}${bellHtml()}<button type="button" class="info-btn" data-info="how" title="Info: how to use, what's new, architecture, shortcuts" aria-label="Info">i</button></div></header>${notifications(r)}<section class="page-head"><div><div class="eyebrow">PLAN • WIRE • DEPLOY</div><h1>${pages.find(x => x[0] === page)[2]}</h1><p>${{ workspace: 'Every connection, with the power to back it up.', hardware: 'Give every circuit a source.', presets: 'Your repeatable building blocks.', props: 'Pixel shapes, built for your space.', guide: 'A build sheet for the workbench and the field.', boxes: 'Arrange and connect the parts inside each installation box.', standards: 'Reusable cables and hardware for every project.', bom: 'A practical packing and ordering list.', suggest: 'Describe an idea. Every request is built, tested and published automatically.' }[page]}</p></div>${page === 'hardware' ? btn('+ Add controller', 'add-controller', 'btn primary') : page === 'suggest' ? '' : btn('+ Controller box', 'new-box-main', 'btn primary')}</section>${page === 'suggest' ? '' : `<div class="summary"><div><span>ADDRESSABLE DEVICES</span><strong>${r.pixels.toLocaleString()} <small>across ${project.chains.length} ports</small></strong></div><div><span>ESTIMATED LOAD</span><strong>${fmt(r.watts)} <small>W at ${project.brightness}%</small></strong></div><div><span>PSU DESIGN BUDGET</span><strong>${fmt((project.psus.reduce((n, p) => n + p.watts, 0) * project.headroom) / 100, 0)} <small>W total</small></strong></div><div><span>PLAN CHECKS</span><strong class="amber">${r.warnings.filter(w => w.level !== 'info').length} <small>+ ${r.warnings.filter(w => w.level === 'info').length} assumptions</small></strong></div></div>`}<section id="content">${{ workspace: () => workspace(r), hardware: () => hardware(r), presets: () => presets(), props: () => propsView(project), guide: () => guide(r), boxes: () => boxesView(project, library), standards: () => standardsView(library), bom: () => bomView(project), suggest: () => suggestView() }[page]()}</section><footer><span><i class="status-dot"></i> Changes sync across views</span><span>DC planning estimates • Verify against your actual hardware</span></footer></main><dialog id="modal"></dialog>`;
   if (view === 'visual' && page === 'workspace') requestAnimationFrame(drawGraph);
   if (page === 'boxes') requestAnimationFrame(drawBoxConnections);
   if (page === 'suggest') afterSuggestRender();
@@ -496,6 +557,20 @@ document.addEventListener('click', e => {
   const [a, id, extra] = b.dataset.action.split(':');
   if (a === 'close-modal') {
     $('#modal').close();
+    return;
+  }
+  if (a === 'notifications') {
+    notificationsOpen = !notificationsOpen;
+    render();
+    return;
+  }
+  if (a === 'notice') {
+    page = id === 'boxes' ? 'boxes' : 'workspace';
+    if (id === 'room') view = 'room';
+    if (id === 'plan') view = 'form';
+    notificationsOpen = false;
+    render();
+    window.scrollTo({ top: 0 });
     return;
   }
   if (a === 'page') {

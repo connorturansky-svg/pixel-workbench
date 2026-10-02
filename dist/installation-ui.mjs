@@ -14,7 +14,7 @@ import {
   componentPlacement,
   componentSearch,
   deleteRoute
-} from './installation-model.mjs?v=0.30.0';
+} from './installation-model.mjs?v=0.31.0';
 
 let api,
   boxId = '',
@@ -75,7 +75,7 @@ const physicalSize = c => {
     h = +(rot ? q.widthMm : q.depthMm);
   return { w, h, known: w > 0 && h > 0 };
 };
-const physicalIssues = box => {
+export const physicalIssues = box => {
   if (!box) return [];
   const bw = box.physicalWidthMm || 400,
     bh = box.physicalDepthMm || 250,

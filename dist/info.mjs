@@ -6,7 +6,7 @@ import {
   SHORTCUTS,
   ARCHITECTURE_NOTES,
   SUGGEST_GUIDE
-} from './version.mjs?v=0.30.0';
+} from './version.mjs?v=0.31.0';
 
 const E = s =>
   String(s ?? '').replace(
@@ -36,7 +36,7 @@ ${box(150, 24, 240, 40, 'GitHub repo · dist/', 'static files, no build step', '
 ${line(390, 44, 448, 44)}
 <rect class="arch-zone" x="10" y="86" width="800" height="300" rx="10"/><text class="z" x="24" y="106">BROWSER (device-local)</text>
 ${box(300, 100, 220, 44, 'index.html', 'loads CSS + app.js module', '')}
-${box(300, 170, 220, 48, 'app.js', 'state, render loop, sidebar & pages', 'core')}
+${box(300, 170, 220, 48, 'app.js', 'state, notifications & pages', 'core')}
 ${line(410, 144, 410, 168)}
 ${box(30, 250, 170, 48, 'model.mjs', 'pixels, power, wire drop', 'calc')}
 ${box(215, 250, 190, 48, 'wiring-graph.mjs', 'visual terminal wiring', 'ui')}

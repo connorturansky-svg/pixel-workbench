@@ -213,6 +213,105 @@ main {
   align-items: center;
   gap: 22px;
 }
+.notification-center {
+  margin-top: 18px;
+  border: 1px solid #b9d8ca;
+  border-radius: 9px;
+  background: #f4faf7;
+  overflow: hidden;
+}
+.notification-center.has-critical {
+  border-color: #dfb5ae;
+  background: #fff8f6;
+}
+.notification-summary {
+  width: 100%;
+  padding: 13px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+}
+.notification-symbol {
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--green);
+  border-radius: 50%;
+  color: var(--green);
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+}
+.has-critical .notification-symbol {
+  color: #a83f32;
+  border-color: #b95c50;
+}
+.notification-summary strong,
+.notification-summary small {
+  display: block;
+}
+.notification-summary strong {
+  font-size: 13px;
+}
+.notification-summary small {
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: 2px;
+}
+.notification-toggle {
+  margin-left: auto;
+  color: var(--green);
+  font-size: 12px;
+  font-weight: 700;
+}
+.notification-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  border-top: 1px solid var(--line);
+  background: #fff;
+}
+.notification-groups > section {
+  padding: 15px;
+  border-right: 1px solid var(--line);
+}
+.notification-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.notification-heading h2 {
+  font-size: 13px;
+}
+.notification-heading h2 span {
+  margin-left: 4px;
+  color: var(--muted);
+}
+.notification-item {
+  display: flex;
+  gap: 9px;
+  padding: 9px 0;
+  border-top: 1px solid #edf0eb;
+}
+.notification-item > span {
+  color: var(--orange);
+  font-weight: 700;
+}
+.notification-item.critical > span {
+  color: #a83f32;
+}
+.notification-item.info > span {
+  color: var(--green);
+}
+.notification-item strong {
+  font-size: 12px;
+}
+.notification-item p {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+  margin-top: 2px;
+}
 .local-label {
   font-size: 12px;
   color: #7b8e84;
@@ -796,6 +895,12 @@ footer {
   }
   .topbar {
     height: 58px;
+  }
+  .notification-center {
+    margin-top: 12px;
+  }
+  .notification-groups {
+    grid-template-columns: 1fr;
   }
   .crumb {
     font-size: 12px;

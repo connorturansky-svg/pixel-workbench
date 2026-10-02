@@ -1,6 +1,13 @@
 // Every change: bump APP_VERSION, add a CHANGELOG entry at the top (date DD/MM/YYYY), and review HOW_TO_USE, ARCHITECTURE_NOTES / the info.mjs diagram and SHORTCUTS.
-export const APP_VERSION = '0.30.0';
+export const APP_VERSION = '0.31.0';
 export const CHANGELOG = [
+  {
+    version: '0.31.0',
+    date: '02/10/2026',
+    items: [
+      'A global notification strip now groups electrical checks, room-route faults and controller-box component issues at the top of every page, with links to the relevant workspace. (suggested in #18)'
+    ]
+  },
   {
     version: '0.30.0',
     date: '02/10/2026',
@@ -296,7 +303,7 @@ export const HOW_TO_USE = [
   ],
   [
     'Review and pack',
-    'Check per-box and project capacity, then open the Bill of materials. Export project JSON for backup and use the Wiring guide and planning CSV in the field.'
+    'Review the notification strip at the top of any page for grouped electrical, Room layout and component issues; use each category link to open the relevant workspace. Check per-box and project capacity, then open the Bill of materials. Export project JSON for backup and use the Wiring guide and planning CSV in the field.'
   ],
   [
     'Get help',
@@ -370,7 +377,7 @@ export const SHORTCUTS = [
 ];
 export const ARCHITECTURE_NOTES = [
   'A static, no-build web app: plain ES modules, HTML and CSS served from dist/. Pushing to main publishes dist/ to GitHub Pages through the Actions workflow.',
-  'app.js holds the project state and re-renders the whole interface from it. Every view (wiring, room, boxes, standards, BOM, guide) reads the same project, so changes appear in every view. room.js keeps the room camera zoom and pan while the layout is open. installation-ui.mjs derives top-down component illustrations, connector states, explicit room-visible enclosure ports and obstacle-aware schematic wire paths from each component snapshot; controller-box instances retain their optional subnames, exact ports, schematic positions, rotation and stacking layers. Enclosure sizes and physical component dimensions are reusable device-library standards.',
+  'app.js holds the project state, re-renders the whole interface and derives the global categorized notification strip from shared calculation and layout checks. Every view (wiring, room, boxes, standards, BOM, guide) reads the same project, so changes appear in every view. room.js keeps the room camera zoom and pan while the layout is open. installation-ui.mjs derives top-down component illustrations, connector states, explicit room-visible enclosure ports and obstacle-aware schematic wire paths from each component snapshot; controller-box instances retain their optional subnames, exact ports, schematic positions, rotation and stacking layers. Enclosure sizes and physical component dimensions are reusable device-library standards.',
   'Calculation and data modules (model, layout-model, installation-model) are UI-free. installation-model also finds live octilinear cable paths around room objects while routes have no manual pivots. verify.mjs and verify-installation.mjs exercise them under Node.',
   'Data never leaves the browser. The project and standards library are stored in localStorage. JSON export/import is the backup path, and ?test=1 runs an isolated session that does not save.',
   'Suggest a feature (suggest.mjs) files a [Feature] GitHub issue, titled with its number and the requester’s title, in the background under the requester’s own account, using a token they connect once (stored in this browser, sent only to api.github.com). Screenshots are uploaded to the repo’s feature-assets branch, which is never deployed. It reads request status from the public GitHub issues API and maps shipped requests to versions from builder commit titles (vX.Y.Z: … (#n)); It also reads build-costs.json from the site itself for the AI cost figures, and usage.json from the feature-assets branch for the daily allowance meter. It reads the builder’s latest issue comment and posts the requester’s replies and follow-ups as issue comments; a top-bar bell counts the requester’s requests that need a reply. Together these are the only network calls the app makes. Only allowlisted authors (ALLOWED_AUTHORS) are listed.',

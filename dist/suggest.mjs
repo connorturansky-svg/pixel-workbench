@@ -1,4 +1,4 @@
-import { APP_VERSION } from './version.mjs?v=0.30.0';
+import { APP_VERSION } from './version.mjs?v=0.31.0';
 
 // Suggest a feature: submits a `[Feature]` GitHub issue in the background under the requester's own GitHub account
 // (a token they connect once, kept only in this browser and sent only to api.github.com). Screenshots are uploaded
