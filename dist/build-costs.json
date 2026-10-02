@@ -22,6 +22,7 @@
   {"issue":17,"version":"0.30.0","title":"Linking box builder and room layout","outcome":"shipped","at":"2026-10-02T14:36:54Z","runs":1,"model":"gpt-5.6-sol","credits":85.22,"tokensIn":952600,"tokensCached":896100,"tokensOut":10600,"seconds":187},
   {"issue":16,"version":"0.31.0","title":"Box builder real world port representation","outcome":"needs-info","at":"2026-10-02T14:43:31Z","runs":1,"model":"gpt-5.6-sol","credits":4.75,"tokensIn":11400,"tokensCached":2800,"tokensOut":171,"seconds":11},
   {"issue":18,"version":"0.31.0","title":"Notification system","outcome":"shipped","at":"2026-10-02T14:50:42Z","runs":1,"model":"gpt-5.6-sol","credits":50.12,"tokensIn":365600,"tokensCached":320000,"tokensOut":7300,"seconds":112},
-  {"issue":16,"version":"0.32.0","title":"Box builder real world port representation","outcome":"shipped","at":"2026-10-02T14:55:34Z","runs":1,"model":"gpt-5.6-sol","credits":63.43,"tokensIn":604300,"tokensCached":558700,"tokensOut":9100,"seconds":154}
+  {"issue":16,"version":"0.32.0","title":"Box builder real world port representation","outcome":"shipped","at":"2026-10-02T14:55:34Z","runs":1,"model":"gpt-5.6-sol","credits":63.43,"tokensIn":604300,"tokensCached":558700,"tokensOut":9100,"seconds":154},
+  {"issue":19,"version":"0.33.0","title":"Box builder component size guide","outcome":"shipped","at":"2026-10-02T15:00:00Z","runs":1,"model":"gpt-5.6-sol","credits":34.48,"tokensIn":181700,"tokensCached":145400,"tokensOut":5300,"seconds":82}
  ]
 }

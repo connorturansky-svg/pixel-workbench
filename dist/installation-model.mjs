@@ -30,6 +30,81 @@ export const RESOURCE_LABELS = {
   psuWatts: 'PSU watts',
   psuAmps: 'PSU amps'
 };
+const COMPONENT_SIZE_GUIDES = [
+  {
+    id: 'mean-well-lrs-100',
+    kind: 'psu',
+    manufacturer: 'Mean Well',
+    model: 'LRS-100',
+    physical: { widthMm: 129, depthMm: 97, heightMm: 30 }
+  },
+  {
+    id: 'mean-well-lrs-150',
+    kind: 'psu',
+    manufacturer: 'Mean Well',
+    model: 'LRS-150',
+    physical: { widthMm: 159, depthMm: 97, heightMm: 30 }
+  },
+  {
+    id: 'mean-well-lrs-200',
+    kind: 'psu',
+    manufacturer: 'Mean Well',
+    model: 'LRS-200',
+    physical: { widthMm: 215, depthMm: 115, heightMm: 30 }
+  },
+  {
+    id: 'mean-well-lrs-350',
+    kind: 'psu',
+    manufacturer: 'Mean Well',
+    model: 'LRS-350',
+    physical: { widthMm: 215, depthMm: 115, heightMm: 30 }
+  },
+  {
+    id: 'mean-well-lrs-600',
+    kind: 'psu',
+    manufacturer: 'Mean Well',
+    model: 'LRS-600',
+    physical: { widthMm: 225, depthMm: 124, heightMm: 41 }
+  },
+  {
+    id: 'raspberry-pi-zero-2-w',
+    kind: 'raspberry-pi',
+    manufacturer: 'Raspberry Pi',
+    model: 'Zero 2 W',
+    physical: { widthMm: 65, depthMm: 30, heightMm: null }
+  },
+  {
+    id: 'raspberry-pi-3-b-plus',
+    kind: 'raspberry-pi',
+    manufacturer: 'Raspberry Pi',
+    model: '3 Model B+',
+    physical: { widthMm: 85, depthMm: 56, heightMm: null }
+  },
+  {
+    id: 'raspberry-pi-4-b',
+    kind: 'raspberry-pi',
+    manufacturer: 'Raspberry Pi',
+    model: '4 Model B',
+    physical: { widthMm: 85, depthMm: 56, heightMm: null }
+  },
+  {
+    id: 'raspberry-pi-5',
+    kind: 'raspberry-pi',
+    manufacturer: 'Raspberry Pi',
+    model: '5',
+    physical: { widthMm: 85, depthMm: 56, heightMm: null }
+  }
+];
+export function componentSizeGuides(def) {
+  const text = componentSearch(def),
+    kind =
+      def.category === 'Power' && /\bpsu\b|power supply/.test(text)
+        ? 'psu'
+        : def.category === 'Computer' && /raspberry|\bpi\b/.test(text)
+          ? 'raspberry-pi'
+          : '';
+  return COMPONENT_SIZE_GUIDES.filter(guide => guide.kind === kind);
+}
 export function componentPlacement(def) {
   if (['internal', 'field', 'both'].includes(def.placement)) return def.placement;
   return [

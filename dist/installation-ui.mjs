@@ -13,8 +13,9 @@ import {
   billOfMaterials,
   componentPlacement,
   componentSearch,
+  componentSizeGuides,
   deleteRoute
-} from './installation-model.mjs?v=0.32.0';
+} from './installation-model.mjs?v=0.33.0';
 
 let api,
   boxId = '',
@@ -211,6 +212,7 @@ export function boxesView(p, lib) {
     cap = projectCapacity(p),
     template = lib.boxTemplates.find(t => t.id === box?.templateRef?.id),
     part = box?.components.find(c => c.id === partId),
+    sizeGuides = part ? componentSizeGuides(part.snapshot) : [],
     issues = physicalIssues(box),
     tickets = issues.filter(x => x.type === 'size'),
     linkedPorts = new Set(
@@ -283,7 +285,7 @@ export function boxesView(p, lib) {
             .join('') || '<p class="micro">No internal connections yet.</p>'
         }<h3>Box capacity</h3>${resources(boxCapacity(p, box))}</section><aside class="panel part-inspector"><details class="box-details" ${boxDetailsOpen || !part ? 'open' : ''}><summary>Box details</summary><div class="box-details-body">${F('Box label', box.name, 'box.name')}${F('Description', box.description, 'box.description')}${S('Enclosure size', lib.boxSizes.find(s => s.widthCm * 10 === (box.physicalWidthMm || 400) && s.depthCm * 10 === (box.physicalDepthMm || 250))?.id || '', 'box-size-select', [['', 'Custom size'], ...lib.boxSizes.map(s => [s.id, `${s.name} · ${s.widthCm} × ${s.depthCm} cm`])])}${F('Enclosure width (cm)', (box.physicalWidthMm || 400) / 10, 'box.physicalWidthCm', 'number', 'min="2" max="1000" step="0.1"')}${F('Enclosure depth (cm)', (box.physicalDepthMm || 250) / 10, 'box.physicalDepthCm', 'number', 'min="2" max="1000" step="0.1"')}<p class="micro">Reusable sizes are managed in Standards.</p>${F('Room footprint width (m)', box.width, 'box.width', 'number', 'min="0.1" max="50" step="any"')}${F('Room footprint depth (m)', box.height, 'box.height', 'number', 'min="0.1" max="50" step="any"')}</div></details>${
           part
-            ? `<div class="component-details"><h3>${E(part.snapshot.name)}</h3>${F('Component subname', part.subname || '', 'part.subname', 'text', 'maxlength="200" placeholder="For example, 12 V feed"')}${S('Linked project hardware', part.sourceKey, 'part.sourceKey', sources(p))}${F('Position X (%)', part.x, 'part.x', 'number', 'min="0" max="100" step="any"')}${F('Position Y (%)', part.y, 'part.y', 'number', 'min="0" max="100" step="any"')}${F('Width (mm)', part.snapshot.physical?.widthMm ?? '', 'physical.widthMm', 'number', 'min="1" max="5000" step="1"')}${F('Depth (mm)', part.snapshot.physical?.depthMm ?? '', 'physical.depthMm', 'number', 'min="1" max="5000" step="1"')}${F('Height (mm)', part.snapshot.physical?.heightMm ?? '', 'physical.heightMm', 'number', 'min="1" max="5000" step="1"')}${B('Save measurements globally', 'save-size', 'text-btn')}${B(`Rotate 90° (${part.rotation || 0}°)`, 'rotate-part', 'text-btn')}${F('Stacking layer', part.stackLevel || 0, 'part.stackLevel', 'number', 'min="0" max="20" step="1"')}<h4>Operating limits</h4><p class="micro">Set below the reference rating when you want headroom.</p>${Object.entries(
+            ? `<div class="component-details"><h3>${E(part.snapshot.name)}</h3>${F('Component subname', part.subname || '', 'part.subname', 'text', 'maxlength="200" placeholder="For example, 12 V feed"')}${S('Linked project hardware', part.sourceKey, 'part.sourceKey', sources(p))}${sizeGuides.length ? S('Common size guide', sizeGuides.find(guide => guide.manufacturer === part.snapshot.manufacturer && guide.model === part.snapshot.model)?.id || '', 'size-guide', [['', 'Choose a model'], ...sizeGuides.map(guide => [guide.id, `${guide.manufacturer} ${guide.model} · ${guide.physical.widthMm} × ${guide.physical.depthMm}${guide.physical.heightMm ? ` × ${guide.physical.heightMm}` : ''} mm`])]) + '<p class="micro">Applies reference dimensions to this part. Confirm the exact variant and allow for cases, connectors and airflow.</p>' : ''}${F('Position X (%)', part.x, 'part.x', 'number', 'min="0" max="100" step="any"')}${F('Position Y (%)', part.y, 'part.y', 'number', 'min="0" max="100" step="any"')}${F('Width (mm)', part.snapshot.physical?.widthMm ?? '', 'physical.widthMm', 'number', 'min="1" max="5000" step="1"')}${F('Depth (mm)', part.snapshot.physical?.depthMm ?? '', 'physical.depthMm', 'number', 'min="1" max="5000" step="1"')}${F('Height (mm)', part.snapshot.physical?.heightMm ?? '', 'physical.heightMm', 'number', 'min="1" max="5000" step="1"')}${B('Save measurements globally', 'save-size', 'text-btn')}${B(`Rotate 90° (${part.rotation || 0}°)`, 'rotate-part', 'text-btn')}${F('Stacking layer', part.stackLevel || 0, 'part.stackLevel', 'number', 'min="0" max="20" step="1"')}<h4>Operating limits</h4><p class="micro">Set below the reference rating when you want headroom.</p>${Object.entries(
                 part.snapshot.resources || {}
               )
                 .map(([k, n]) =>
@@ -799,6 +801,18 @@ export function installInstallation(a) {
         api.transact(() => {
           box.physicalWidthMm = size.widthCm * 10;
           box.physicalDepthMm = size.depthCm * 10;
+        });
+      return;
+    }
+    if (key === 'size-guide') {
+      const box = current(api.getProject()),
+        part = box?.components.find(c => c.id === partId),
+        guide = componentSizeGuides(part?.snapshot || {}).find(guide => guide.id === t.value);
+      if (part && guide)
+        api.transact(() => {
+          part.snapshot.manufacturer = guide.manufacturer;
+          part.snapshot.model = guide.model;
+          part.snapshot.physical = structuredClone(guide.physical);
         });
       return;
     }
