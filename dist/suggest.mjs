@@ -1,7 +1,8 @@
-import {APP_VERSION} from './version.mjs?v=0.9.0';
+import {APP_VERSION} from './version.mjs?v=0.10.0';
 
-// Suggest a feature: drafts a `[Feature]` GitHub issue that the requester submits under their own GitHub account,
-// and lists every request with its build status (read from the public GitHub API; nothing is sent anywhere else).
+// Suggest a feature: submits a `[Feature]` GitHub issue in the background under the requester's own GitHub account
+// (a token they connect once, kept only in this browser and sent only to api.github.com). Screenshots are uploaded
+// to the repo's `feature-assets` branch, which is never deployed. The page also lists each request's build status.
 // The builder on the owner's PC (automation/builder.py) picks each issue up, builds it, tests it and publishes it.
 export const REPO='connorturansky-svg/pixel-workbench';
 // Only these GitHub accounts' requests are built (automation/builder.py ALLOWED_AUTHORS must match).
@@ -12,7 +13,11 @@ export function versionsFrom(commits){const m={};for(const c of commits||[]){con
 const MAX_IMAGES=6,MAX_BYTES=10*1024*1024,CACHE_MS=60000,KEY='pw-suggest-status-2';
 const E=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const testing=new URLSearchParams(location.search).has('test');
-const draft={desc:'',images:[],opened:false};
+const draft={desc:'',images:[]},AUTH_KEY='pw-gh-auth',ASSETS='feature-assets',API=`https://api.github.com/repos/${REPO}`;
+let auth=(()=>{try{const a=JSON.parse(localStorage.getItem(AUTH_KEY)||'null');return a?.token&&a?.login?a:null;}catch{return null;}})();
+let sub={state:'idle',msg:'',number:0,url:''},connect={open:false,busy:false,error:''};
+const TOKEN_URL='https://github.com/settings/tokens/new?scopes=public_repo&description=Pixel%20Workbench%20feature%20requests';
+const gh=(url,opts={})=>fetch(url.startsWith('http')?url:API+url,{...opts,headers:{Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28',...(auth?{Authorization:`Bearer ${auth.token}`}:{}),...(opts.body?{'Content-Type':'application/json'}:{}),...opts.headers}});
 const ready=()=>draft.desc.trim().length>=15;
 // Issue title: the description's first sentence or line, cut at a word boundary.
 export function titleFrom(desc){const t=String(desc).replace(/\s+/g,' ').trim(),first=(t.match(/^.+?[.!?](?=\s|$)/)?.[0]||t).replace(/[.!?]+$/,'');const cap=x=>x.charAt(0).toUpperCase()+x.slice(1);if(first.length<=70)return cap(first)||'Feature request';const cut=first.slice(0,70),i=cut.lastIndexOf(' ');return cap((i>30?cut.slice(0,i):cut).replace(/[,;:\-–—]+$/,''))+'…';}
@@ -32,15 +37,68 @@ function statusOf(i){const l=new Set((i.labels||[]).map(x=>x.name));
  if(l.has('shipped'))return 'shipped';if(l.has('declined'))return 'declined';if(l.has('build-failed'))return 'failed';
  if(l.has('needs-info'))return 'info';if(l.has('in-progress'))return 'building';return i.state==='closed'?'closed':'queued';}
 
-function issueUrl(){
- const body=`<!-- pixel-workbench-feature -->\n### What should it do?\n${draft.desc.trim().slice(0,5000)}\n\n### Screenshots\n${draft.images.length?'<!-- Click here and press Ctrl+V to paste each screenshot copied from Pixel Workbench, or drag the image files in. -->\n\n':'_None_\n'}\n---\n_Suggested from Pixel Workbench v${APP_VERSION}_`;
- const q=new URLSearchParams({title:'[Feature] '+titleFrom(draft.desc),body,labels:'feature-request'});
- return `https://github.com/${REPO}/issues/new?${q}`;
+function issueBody(shots){
+ return `<!-- pixel-workbench-feature -->\n### What should it do?\n${draft.desc.trim().slice(0,5000)}\n\n### Screenshots\n${shots.length?shots.map((u,i)=>`![Screenshot ${i+1}](${u})`).join('\n\n'):'_None_'}\n\n---\n_Suggested from Pixel Workbench v${APP_VERSION}_`;
+}
+const toBase64=blob=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(',')[1]);r.onerror=()=>rej(new Error('read'));r.readAsDataURL(blob);});
+const EXT={'image/png':'png','image/jpeg':'jpg','image/gif':'gif','image/webp':'webp'};
+async function fail(r,what){if(r.status===401){auth=null;try{localStorage.removeItem(AUTH_KEY);}catch{}throw new Error('Your GitHub connection has expired. Connect GitHub again, then select Submit.');}
+ let m='';try{m=(await r.json()).message||'';}catch{}throw new Error(`GitHub couldn't ${what} (${r.status}${m?': '+m:''}).`);}
+
+async function submit(){
+ if(!ready()||sub.state==='sending')return;
+ if(!auth){connect.open=true;paint();return;}
+ const title=titleFrom(draft.desc),folder=`requests/${new Date().toISOString().replace(/\D/g,'').slice(0,14)}-${auth.login}`;
+ sub={state:'sending',msg:'Submitting…',number:0,url:''};paint();
+ try{
+  const shots=[];
+  for(const [i,im] of draft.images.entries()){
+   sub.msg=`Uploading screenshot ${i+1} of ${draft.images.length}…`;paint();
+   const r=await gh(`/contents/${folder}/${i+1}.${EXT[im.blob.type]||'png'}`,{method:'PUT',body:JSON.stringify({message:`Screenshot for feature request: ${title}`,content:await toBase64(im.blob),branch:ASSETS})});
+   if(!r.ok)await fail(r,'upload a screenshot');
+   shots.push((await r.json()).content.download_url);
+  }
+  sub.msg='Creating the request…';paint();
+  const r=await gh('/issues',{method:'POST',body:JSON.stringify({title:'[Feature] '+title,body:issueBody(shots),labels:['feature-request']})});
+  if(!r.ok)await fail(r,'create the request');
+  const issue=await r.json();
+  draft.images.forEach(im=>URL.revokeObjectURL(im.url));Object.assign(draft,{desc:'',images:[]});
+  sub={state:'done',msg:'',number:issue.number,url:issue.html_url};
+  list={...list,items:[issue,...list.items.filter(x=>x.number!==issue.number)]};try{sessionStorage.removeItem(KEY);}catch{}
+ }catch(e){sub={state:'error',msg:e.message||'Network error. Try again.',number:0,url:''};}
+ paint();
+}
+
+async function doConnect(){
+ const input=document.querySelector('[data-sg-token]'),token=(input?.value||'').trim();
+ if(!token){connect.error='Paste your token first.';paint();return;}
+ connect={...connect,busy:true,error:''};paint();
+ try{const r=await fetch('https://api.github.com/user',{headers:{Accept:'application/vnd.github+json',Authorization:`Bearer ${token}`}});
+  if(r.status===401)throw new Error('GitHub didn\'t accept that token. Check you copied all of it.');
+  if(!r.ok)throw new Error(`GitHub returned ${r.status}. Try again.`);
+  const login=(await r.json()).login;
+  if(!allowed(login))throw new Error(`@${login} isn't an approved account. Requests are limited to ${ALLOWED_AUTHORS.join(' and ')}.`);
+  auth={token,login};try{localStorage.setItem(AUTH_KEY,JSON.stringify(auth));}catch{}
+  const go=connect.open&&ready()&&sub.state!=='done';connect={open:false,busy:false,error:''};
+  toast(`Connected as @${login}.`);paint();if(go)submit();
+ }catch(e){connect={...connect,busy:false,error:e.message};paint();const el=document.querySelector('[data-sg-token]');if(el){el.value=token;el.focus();}}
+}
+
+function connectHtml(){
+ if(auth)return `<p class="sg-who">Submitting as <b>@${E(auth.login)}</b> · <button type="button" class="text-btn" data-sg="disconnect">Disconnect</button></p>`;
+ if(!connect.open)return `<p class="sg-who">One-time setup: <button type="button" class="text-btn" data-sg="connect">Connect GitHub</button> so requests can be submitted from here.</p>`;
+ return `<div class="sg-connect"><strong>Connect GitHub (one time)</strong><ol><li><a href="${TOKEN_URL}" target="_blank" rel="noopener">Create a token on GitHub</a>. Only <i>public_repo</i> is selected; choose an expiry, then select <b>Generate token</b> and copy it.</li><li>Paste it here. It's kept only in this browser and only sent to GitHub.</li></ol><div class="sg-connect-row"><input type="password" autocomplete="off" spellcheck="false" placeholder="ghp_…" data-sg-token aria-label="GitHub token"><button type="button" class="btn" data-sg="save-token" ${connect.busy?'disabled':''}>${connect.busy?'Checking…':'Connect'}</button></div>${connect.error?`<p class="sg-error">${E(connect.error)}</p>`:''}</div>`;
+}
+
+function resultHtml(){
+ if(sub.state==='done')return `<div class="sg-done" role="status"><strong>Submitted as #${sub.number}.</strong> It's queued, and the builder picks it up within 5 minutes. Follow its status on the right.</div>`;
+ if(sub.state==='error')return `<p class="sg-error" role="alert">${E(sub.msg)}</p>`;
+ return '';
 }
 
 function imagesHtml(){
  if(!draft.images.length)return '';
- return `<div class="sg-thumbs">${draft.images.map((im,i)=>`<figure class="sg-thumb"><img src="${im.url}" alt="${E(im.name)}"><figcaption><span title="${E(im.name)}">${E(im.name)}</span><span class="sg-thumb-actions">${draft.opened?`<button type="button" class="text-btn" data-sg="copy:${i}">Copy</button>`:''}<button type="button" class="text-btn" data-sg="remove:${i}" aria-label="Remove ${E(im.name)}">Remove</button></span></figcaption></figure>`).join('')}</div>`;
+ return `<div class="sg-thumbs">${draft.images.map((im,i)=>`<figure class="sg-thumb"><img src="${im.url}" alt="${E(im.name)}"><figcaption><span title="${E(im.name)}">${E(im.name)}</span><span class="sg-thumb-actions"><button type="button" class="text-btn" data-sg="remove:${i}" aria-label="Remove ${E(im.name)}">Remove</button></span></figcaption></figure>`).join('')}</div>`;
 }
 
 function listHtml(){
@@ -53,12 +111,13 @@ function listHtml(){
 export function suggestView(){
  return `<div class="sg-grid">
 <section class="panel sg-form"><h3>Describe your idea</h3>
-<p class="sg-lead">Tell us what you'd like Pixel Workbench to do. Your request becomes a GitHub issue under your own GitHub account. Requests from approved accounts (${ALLOWED_AUTHORS.map(E).join(' and ')}) are built, tested and published automatically, usually within 30 minutes. Requests from other accounts are closed without a build.</p>
+<p class="sg-lead">Tell us what you'd like Pixel Workbench to do. Your request is filed as a GitHub issue under your own GitHub account. Requests from approved accounts (${ALLOWED_AUTHORS.map(E).join(' and ')}) are built, tested and published automatically, usually within 30 minutes. Requests from other accounts are closed without a build.</p>
 <label>What should it do?<textarea rows="7" maxlength="5000" data-sg-field="desc" placeholder="e.g. Show the voltage drop on each room cable route. Highlight routes over 5% so I know where to inject power.">${E(draft.desc)}</textarea></label>
 <div class="sg-drop" data-sg-drop tabindex="0" role="button" aria-label="Add screenshots: paste, drop or choose files"><strong>Add screenshots</strong><span>Paste (Ctrl+V), drop images here, or <u>choose files</u>. Up to ${MAX_IMAGES}.</span><input type="file" accept="image/*" multiple hidden data-sg-file></div>
 ${imagesHtml()}
-<div class="sg-actions"><button type="button" class="btn primary" data-sg="open" ${ready()?'':'disabled'}>Create the GitHub issue</button><small>${ready()?'Opens GitHub in a new tab with your request filled in.':'Describe your idea in a sentence or more. The issue title is taken from your first sentence.'}</small></div>
-${draft.opened?`<div class="sg-next"><strong>Finish on GitHub</strong><ol><li>Check the issue that opened in the new tab.</li>${draft.images.length?`<li>Add your screenshots: select <b>Copy</b> on an image above, then click under <i>Screenshots</i> on GitHub and press Ctrl+V. Repeat for each image.</li>`:''}<li>Select <b>Create</b> on GitHub. Your request appears below within a minute.</li></ol><button type="button" class="text-btn" data-sg="reset">Start a new request</button></div>`:''}
+${connectHtml()}
+<div class="sg-actions"><button type="button" class="btn primary" data-sg="submit" ${ready()&&sub.state!=='sending'?'':'disabled'}>${sub.state==='sending'?'Submitting…':'Submit'}</button><small>${sub.state==='sending'?E(sub.msg):ready()?(auth?'Your request is built, tested and published automatically.':'You\'ll be asked to connect GitHub once.'):'Describe your idea in a sentence or more. The title is taken from your first sentence.'}</small></div>
+${resultHtml()}
 </section>
 <section class="panel sg-status"><div class="sg-status-head"><h3>Requests and build status <span data-sg-count>(${list.items.length})</span></h3><button type="button" class="text-btn" data-sg="refresh">Refresh</button></div>
 <ol class="sg-pipeline" aria-label="How a request is built"><li>Queued</li><li>Building</li><li>Tested</li><li>Shipped</li></ol>
@@ -89,31 +148,25 @@ function addFiles(files){
  paint();
 }
 
-async function copyImage(i){
- const im=draft.images[i];if(!im)return;
- try{const png=im.blob.type==='image/png'?im.blob:await new Promise(async(res,rej)=>{const bmp=await createImageBitmap(im.blob),c=document.createElement('canvas');c.width=bmp.width;c.height=bmp.height;c.getContext('2d').drawImage(bmp,0,0);c.toBlob(b=>b?res(b):rej(new Error('convert')),'image/png');});
-  await navigator.clipboard.write([new ClipboardItem({'image/png':png})]);toast(`Copied ${im.name}. Paste it into the GitHub issue with Ctrl+V.`);}
- catch{toast('Your browser blocked copying the image. Drag the image file into the GitHub issue instead.');}
-}
-
 export function afterSuggestRender(){loadRequests();}
 
 export function installSuggest(opts={}){
  toast=opts.toast||toast;
- document.addEventListener('input',e=>{const f=e.target.dataset?.sgField;if(!f)return;const was=ready();draft[f]=e.target.value;const now=ready();if(was!==now)paint();});
+ document.addEventListener('input',e=>{const f=e.target.dataset?.sgField;if(!f)return;const was=ready();draft[f]=e.target.value;const now=ready();if(sub.state==='done'||sub.state==='error'){sub={state:'idle',msg:'',number:0,url:''};paint();}else if(was!==now)paint();});
  document.addEventListener('change',e=>{if(e.target.matches('[data-sg-file]')){addFiles([...e.target.files]);e.target.value='';}});
  document.addEventListener('paste',e=>{if(!document.querySelector('.sg-grid'))return;const files=[...(e.clipboardData?.files||[])].filter(f=>/^image\//.test(f.type));if(!files.length)return;e.preventDefault();addFiles(files);});
  document.addEventListener('dragover',e=>{const d=e.target.closest?.('[data-sg-drop]');if(!d)return;e.preventDefault();d.classList.add('over');});
  document.addEventListener('dragleave',e=>{e.target.closest?.('[data-sg-drop]')?.classList.remove('over');});
  document.addEventListener('drop',e=>{const d=e.target.closest?.('[data-sg-drop]');if(!d)return;e.preventDefault();d.classList.remove('over');addFiles([...(e.dataTransfer?.files||[])]);});
- document.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.matches?.('[data-sg-drop]')){e.preventDefault();e.target.querySelector('[data-sg-file]').click();}});
+ document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.matches?.('[data-sg-token]')){e.preventDefault();doConnect();return;}if((e.key==='Enter'||e.key===' ')&&e.target.matches?.('[data-sg-drop]')){e.preventDefault();e.target.querySelector('[data-sg-file]').click();}});
  document.addEventListener('click',e=>{
   const drop=e.target.closest('[data-sg-drop]');if(drop&&!e.target.matches('[data-sg-file]')){drop.querySelector('[data-sg-file]').click();return;}
   const b=e.target.closest('[data-sg]');if(!b)return;e.preventDefault();const [a,n]=b.dataset.sg.split(':');
-  if(a==='open'){window.open(issueUrl(),'_blank','noopener');draft.opened=true;paint();}
-  else if(a==='copy')copyImage(+n);
+  if(a==='submit')submit();
+  else if(a==='connect'){connect.open=true;paint();document.querySelector('[data-sg-token]')?.focus();}
+  else if(a==='save-token')doConnect();
+  else if(a==='disconnect'){auth=null;try{localStorage.removeItem(AUTH_KEY);}catch{}paint();toast('Disconnected. The token is removed from this browser; you can also delete it on GitHub.');}
   else if(a==='remove'){const [im]=draft.images.splice(+n,1);if(im)URL.revokeObjectURL(im.url);paint();}
-  else if(a==='reset'){draft.images.forEach(im=>URL.revokeObjectURL(im.url));Object.assign(draft,{desc:'',images:[],opened:false});paint();loadRequests(true);}
   else if(a==='refresh')loadRequests(true);
  });
 }

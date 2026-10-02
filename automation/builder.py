@@ -239,7 +239,8 @@ def next_version():
 # ---------------------------------------------------------------- screenshots
 
 IMG_URL = re.compile(r"https://(?:github\.com/user-attachments/assets/[\w-]+|github\.com/[\w.-]+/[\w.-]+/assets/\d+/[\w-]+"
-                     r"|(?:private-)?user-images\.githubusercontent\.com/[^\s)\"'<>]+)")
+                     r"|(?:private-)?user-images\.githubusercontent\.com/[^\s)\"'<>]+"
+                     r"|raw\.githubusercontent\.com/connorturansky-svg/pixel-workbench/feature-assets/requests/[\w./-]+)")
 MAGIC = {b"\x89PNG": ".png", b"\xff\xd8\xff": ".jpg", b"GIF8": ".gif", b"RIFF": ".webp"}
 
 
