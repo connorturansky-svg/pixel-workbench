@@ -1,6 +1,7 @@
 // Every change: bump APP_VERSION, add a CHANGELOG entry at the top (date DD/MM/YYYY), and review HOW_TO_USE, ARCHITECTURE_NOTES / the info.mjs diagram and SHORTCUTS.
-export const APP_VERSION='0.13.0';
+export const APP_VERSION='0.14.0';
 export const CHANGELOG=[
+ {version:'0.14.0',date:'02/10/2026',items:['Room layout now supports pointer-centred mouse-wheel zoom, click-and-drag panning on empty space, and corner controls for zooming or returning home. (suggested in #5)']},
  {version:'0.13.0',date:'02/10/2026',items:['The navigation now wraps on narrow screens and compacts on short screens, so every page remains available without scrolling the navigation. The redundant device-local project label has also been removed. (suggested in #4)']},
  {version:'0.12.0',date:'02/10/2026',items:['The build stages in Requests and build status are now tabs. Select All, Queued, Building, Tested or Shipped to see the requests at that stage, with a count on each.','A Needs attention tab appears when a build failed or the builder asked a question.','The builder now marks a request Tested once it passes every check, while it is being published.']},
  {version:'0.11.0',date:'02/10/2026',items:['The sidebar is shorter and easier to scan now that project actions appear only in the top bar and the promotional tagline has been removed. (suggested in #3)']},
@@ -25,7 +26,7 @@ export const HOW_TO_USE=[
  ['Inspect cable warnings','Select a route for cable length, slack, pivots and the full issue list. A highlighted line and ! indicate short or incompatible wiring; an unassigned physical length is neutral. Delete a custom cable or injection from the route inspector.'],
  ['Start a plan','Use Hardware & power to add supplies, distros and Baldrick boards. Add outputs in the Wiring workspace. Data entry and Visual stay in sync.'],
  ['Wire the system','Drag between terminals in Visual. Use Split / inject here for a separately fed section. Review capacity and voltage warnings before building.'],
- ['Lay out the room','Switch to Room layout. Set room dimensions in metres, drag objects, then select a cable route. Double-click the route or use Add pivot; drag pivots and endpoints to follow the real path.'],
+ ['Lay out the room','Switch to Room layout. Set room dimensions in metres, drag objects, use the mouse wheel to zoom and drag empty space to pan. The corner controls zoom or return the view home. Select a cable route, then double-click it or use Add pivot; drag pivots and endpoints to follow the real path.'],
  ['Choose physical cables','In Standards, edit your cable colours, connectors and actual lengths. Assign a standard to a room route. Route length, optional slack and spare/shortfall are shown separately.'],
  ['Build controller boxes','Create a box, drag components from the library into it, position or duplicate them, then click or drag between their typed ports. Choose a port and a room target for an external cable route. Link real project hardware to count its use, and save reusable templates.'],
  ['Review and pack','Check per-box and project capacity, then open the Bill of materials. Export project JSON for backup and use the Wiring guide and planning CSV in the field.'],
@@ -41,11 +42,13 @@ export const SHORTCUTS=[
  ['Space','Select the focused room object'],
  ['← ↑ → ↓','Move the focused room object by the snap grid'],
  ['Shift + ← ↑ → ↓','Move the focused room object by 1 m'],
+ ['Mouse wheel','Zoom the room layout around the pointer'],
+ ['Drag empty room','Pan around the room layout'],
  ['Delete','Remove the focused cable-route pivot']
 ];
 export const ARCHITECTURE_NOTES=[
  'A static, no-build web app: plain ES modules, HTML and CSS served from dist/. Pushing to main publishes dist/ to GitHub Pages through the Actions workflow.',
- 'app.js holds the project state and re-renders the whole interface from it. Every view (wiring, room, boxes, standards, BOM, guide) reads the same project, so changes appear in every view.',
+ 'app.js holds the project state and re-renders the whole interface from it. Every view (wiring, room, boxes, standards, BOM, guide) reads the same project, so changes appear in every view. room.js keeps the room camera zoom and pan while the layout is open.',
  'Calculation and data modules (model, layout-model, installation-model) are UI-free. verify.mjs and verify-installation.mjs exercise them under Node.',
  'Data never leaves the browser. The project and standards library are stored in localStorage. JSON export/import is the backup path, and ?test=1 runs an isolated session that does not save.',
  'Suggest a feature (suggest.mjs) files a [Feature] GitHub issue in the background under the requester’s own account, using a token they connect once (stored in this browser, sent only to api.github.com). Screenshots are uploaded to the repo’s feature-assets branch, which is never deployed. It reads request status from the public GitHub issues API and maps shipped requests to versions from builder commit titles (vX.Y.Z: … (#n)); together these are the only network calls the app makes. Only allowlisted authors (ALLOWED_AUTHORS) are listed.',

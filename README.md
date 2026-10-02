@@ -13,7 +13,7 @@ Project state is saved in this browser's local storage. Export/import JSON for b
 - A terminal-aligned wiring canvas with separate PSU, distro, Baldrick and pixel/flood nodes. PSU enclosures show three planned DC terminals, distros show their configured fused outputs, and data/power/injection routes have distinct colours and line styles.
 - Drag or click terminals to reassign PSU bank feeds, PSU-to-distro feeds, controller data ports and distro injection outputs. Wiring changes update the form, calculations and guide.
 - A Blank project action clears the current plan after confirmation; prop drawing can reset to one point and show or hide lines between pixels.
-- A third, 2D room-layout view with draggable controllers, PSUs, distros and pixel groups; room dimensions, snap grid, zoom, rotation and editable size/colour labels.
+- A third, 2D room-layout view with draggable controllers, PSUs, distros and pixel groups; pointer-centred mouse-wheel zoom, drag-to-pan and corner camera controls; room dimensions, snap grid, rotation and editable size/colour labels.
 - A Props tab with smiley, circle, star, line and grid templates; custom points in wiring order; image/SVG references; placement on free ports or existing chains.
 - SVG references are sanitised and rasterised. All reference images are embedded in project JSON; no image is uploaded to a third-party image service. Imports are references, not automatic pixel tracing.
 - Colours carry between the room and wiring views. Room cable routes are measured in metres, with draggable pivots and endpoints, optional slack, assigned physical cable standards, and shortfall/spare readouts. Physical routes do not automatically change the electrical wire-drop inputs.
