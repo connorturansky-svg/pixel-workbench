@@ -28,6 +28,7 @@
   {"issue":21,"version":"0.35.0","title":"Wiring workspace room layout view changes","outcome":"shipped","at":"2026-10-02T15:15:02Z","runs":1,"model":"gpt-5.6-sol","credits":32.23,"tokensIn":194800,"tokensCached":163700,"tokensOut":5100,"seconds":82},
   {"issue":21,"version":"0.36.0","title":"Wiring workspace room layout view changes","outcome":"shipped","at":"2026-10-02T15:35:27Z","runs":1,"model":"gpt-5.6-sol","credits":59.21,"tokensIn":385500,"tokensCached":335700,"tokensOut":10400,"seconds":138},
   {"issue":22,"version":"0.37.0","title":"box builder schematic view not looking correct","outcome":"shipped","at":"2026-10-02T15:41:08Z","runs":1,"model":"gpt-5.6-sol","credits":38.17,"tokensIn":195100,"tokensCached":162300,"tokensOut":7600,"seconds":158},
-  {"issue":23,"version":"0.38.0","title":"edge ports autofill","outcome":"shipped","at":"2026-10-02T15:52:21Z","runs":1,"model":"gpt-5.6-sol","credits":90.41,"tokensIn":1000000,"tokensCached":993300,"tokensOut":11700,"seconds":210}
+  {"issue":23,"version":"0.38.0","title":"edge ports autofill","outcome":"shipped","at":"2026-10-02T15:52:21Z","runs":1,"model":"gpt-5.6-sol","credits":90.41,"tokensIn":1000000,"tokensCached":993300,"tokensOut":11700,"seconds":210},
+  {"issue":24,"version":"0.39.0","title":"edge port wire","outcome":"shipped","at":"2026-10-02T15:59:30Z","runs":1,"model":"gpt-5.6-sol","credits":18.13,"tokensIn":109200,"tokensCached":89600,"tokensOut":2400,"seconds":57}
  ]
 }

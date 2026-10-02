@@ -16,7 +16,7 @@ import {
   componentSearch,
   componentSizeGuides,
   deleteRoute
-} from './installation-model.mjs?v=0.38.0';
+} from './installation-model.mjs?v=0.39.0';
 
 let api,
   boxId = '',
@@ -569,7 +569,7 @@ export function drawBoxConnections() {
   const records = [
     ...(p.installation.connections || []).filter(x => x.boxId === box?.id),
     ...(box?.interfacePorts || [])
-      .filter(x => x.componentId && x.portId)
+      .filter(x => x.visible && x.componentId && x.portId)
       .map(x => ({
         fromComponent: x.componentId,
         fromPort: x.portId,
