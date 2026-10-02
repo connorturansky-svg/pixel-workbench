@@ -1,4 +1,4 @@
-import {APP_VERSION,CHANGELOG,HOW_TO_USE,ABOUT,SHORTCUTS,ARCHITECTURE_NOTES} from './version.mjs?v=0.6.1';
+import {APP_VERSION,CHANGELOG,HOW_TO_USE,ABOUT,SHORTCUTS,ARCHITECTURE_NOTES} from './version.mjs?v=0.6.2';
 
 const E=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const TABS=[['how','How to use'],['new',"What's new"],['arch','Architecture'],['keys','Shortcuts']];

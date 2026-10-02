@@ -1,6 +1,6 @@
-import {tailoredInitial,validateProject} from './model.mjs?v=0.6.1';
-import {ensureScene} from './layout-model.mjs?v=0.6.1';
-import {addFieldDevice,addInfrastructure,assignCable,ensureInstallation,makeBox,makeInstance,routeRecord,saveBoxTemplate} from './installation-model.mjs?v=0.6.1';
+import {tailoredInitial,validateProject} from './model.mjs?v=0.6.2';
+import {ensureScene} from './layout-model.mjs?v=0.6.2';
+import {addFieldDevice,addInfrastructure,assignCable,ensureInstallation,makeBox,makeInstance,routeRecord,saveBoxTemplate} from './installation-model.mjs?v=0.6.2';
 
 export function createDemoProject(library){
  const p=tailoredInitial();

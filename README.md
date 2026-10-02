@@ -19,7 +19,7 @@ Project state is saved in this browser's local storage. Export/import JSON for b
 - Colours carry between the room and wiring views. Room cable routes are measured in metres, with draggable pivots and endpoints, optional slack, assigned physical cable standards, and shortfall/spare readouts. Physical routes do not automatically change the electrical wire-drop inputs.
 - Controller boxes contain draggable hardware, typed ports, internal and external planning connections, capacity readouts, and reusable templates. Hardware can be duplicated; custom resources and operating limits can be defined in Standards. The device-local standards library holds cable and hardware definitions. Project instances retain versioned snapshots until explicitly updated.
 - Bill of materials, a physical cable schedule in the wiring guide, project and per-box resource summaries, route filters and optional flow animation.
-- A single **i** button (top bar) opens the info dialog with How to use (About summary first), What's new, Architecture (diagram and technical notes) and Shortcuts tabs. Press `?` to open Shortcuts. The sidebar version label opens What's new.
+- A single **i** button (top bar) opens the info dialog with How to use (About summary first), What's new, Architecture (diagram and technical notes) and Shortcuts tabs. Press `?` to open Shortcuts. The version badge under the logo opens What's new.
 
 - Baldrick8 and Baldrick17 port/bank mapping; editable inputs and Switchy/Input1 connection labels.
 - Independent data chains and isolated power sections, multiple PSUs and configurable fused distros.

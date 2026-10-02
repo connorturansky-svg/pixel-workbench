@@ -1,6 +1,7 @@
 // Every change: bump APP_VERSION, add a CHANGELOG entry at the top (date DD/MM/YYYY), and review HOW_TO_USE, ARCHITECTURE_NOTES / the info.mjs diagram and SHORTCUTS.
-export const APP_VERSION='0.6.1';
+export const APP_VERSION='0.6.2';
 export const CHANGELOG=[
+ {version:'0.6.2',date:'02/10/2026',items:['Added a small version badge under the Pixel Workbench logo. Select it to open What’s new. It replaces the version label at the bottom of the sidebar.','Releases now fail to stamp if the newest changelog entry does not match the app version or is missing its date.']},
  {version:'0.6.1',date:'02/10/2026',items:['Fixed the page failing to load after an update when the browser still held cached copies of older files. Every script and stylesheet is now versioned, so each release loads as one consistent set.']},
  {version:'0.6.0',date:'02/10/2026',items:['Info / Help moves from the sidebar into a single i button (top bar) that opens a fixed-size dialog with How to use, What’s new, Architecture and Shortcuts tabs.','Added an About summary, an architecture diagram with technical notes, and a keyboard shortcut reference. Press ? anywhere outside a text field to open it.','The sidebar version label now opens What’s new. Changelog entries now show their release date.']},
  {version:'0.5.0',items:['Controller boxes now anchor the room layout, with coloured rectangular component sections and exposed component-port nodes. Existing loose infrastructure moves into an Unassigned infrastructure box.','Added field devices, port-to-device wiring, combined route warnings on the map, connection deletion and catalog search/category filters.','Added a disposable demo project with real boxes, cables, capacity, warnings and Save demo as project.']},
@@ -21,7 +22,7 @@ export const HOW_TO_USE=[
  ['Choose physical cables','In Standards, edit your cable colours, connectors and actual lengths. Assign a standard to a room route. Route length, optional slack and spare/shortfall are shown separately.'],
  ['Build controller boxes','Create a box, drag components from the library into it, position or duplicate them, then click or drag between their typed ports. Choose a port and a room target for an external cable route. Link real project hardware to count its use, and save reusable templates.'],
  ['Review and pack','Check per-box and project capacity, then open the Bill of materials. Export project JSON for backup and use the Wiring guide and planning CSV in the field.'],
- ['Get help','Use the i button in the top bar for this guide, the change log, the architecture and keyboard shortcuts. The version label in the sidebar opens What’s new.']
+ ['Get help','Use the i button in the top bar for this guide, the change log, the architecture and keyboard shortcuts. The version badge under the logo opens What’s new.']
 ];
 export const ABOUT='Pixel Workbench is a device-local planner for 12 V pixel systems built on Baldrick controllers and FPP. Use it to lay out a room, size power and injection, design controller boxes and produce a wiring guide, bill of materials and channel CSV. Calculations are planning estimates. Confirm ratings and wiring against the actual equipment.';
 export const SHORTCUTS=[

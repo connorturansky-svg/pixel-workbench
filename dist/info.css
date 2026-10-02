@@ -1,7 +1,8 @@
 .info-btn{width:30px;height:30px;border-radius:50%;border:1px solid #c9dad2;background:#fff;color:var(--green);font:700 15px/1 Georgia,serif;font-style:italic;display:inline-grid;place-items:center;flex:none}
 .info-btn:hover{background:var(--mint)}
-button.version{cursor:pointer;padding:0;text-align:left}
-button.version:hover{color:#bfe9d3;text-decoration:underline}
+.brand-version{align-self:flex-start;margin-top:8px;padding:1px 8px;border:1px solid #2f5b50;border-radius:999px;background:#163a37;color:#8ce3b0;font:600 10px/1.6 ui-monospace,Consolas,monospace;letter-spacing:.5px}
+.brand-version:hover{background:#1e4b46;color:#bfe9d3}
+@media print{.brand-version{display:none}}
 #info-dialog{width:min(920px,94vw);height:min(760px,88vh);max-width:none;max-height:none;padding:0;border:1px solid var(--line);border-radius:12px;box-shadow:0 24px 70px #0a1f1f55;color:#243c3c;overflow:hidden}
 #info-dialog[open]{display:flex;flex-direction:column}
 #info-dialog::backdrop{background:#0a1f1f88}
