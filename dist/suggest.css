@@ -44,3 +44,8 @@
 .sg-spend span{display:block;font-size:11px;color:#6b7e7a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sg-cost{align-self:flex-start;display:inline-block;margin-top:3px;padding:1px 7px;border-radius:999px;background:#f1f5f3;font-size:11px;color:#46605a;font-variant-numeric:tabular-nums;cursor:help}
 @media (max-width:480px){.sg-spend{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.sg-limit{margin:0 0 12px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff}
+.sg-limit-row{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:#46605a}.sg-limit-row b{color:var(--ink)}.sg-limit-row>span:last-child{font-weight:700;font-variant-numeric:tabular-nums}
+.sg-limit-bar{height:8px;margin-top:6px;border-radius:999px;background:#e8eeeb;overflow:hidden}.sg-limit-bar i{display:block;height:100%;border-radius:inherit;background:var(--green);transition:width .3s}
+.sg-limit.near .sg-limit-bar i{background:#d99a1e}.sg-limit.full{border-color:#f0c7bd;background:#fdf6f4}.sg-limit.full .sg-limit-bar i{background:#c4553d}
+.sg-limit p{margin:6px 0 0;font-size:12px;color:#9a3a27}

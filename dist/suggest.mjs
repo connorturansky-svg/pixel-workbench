@@ -1,4 +1,4 @@
-import {APP_VERSION} from './version.mjs?v=0.16.0';
+import {APP_VERSION} from './version.mjs?v=0.17.0';
 
 // Suggest a feature: submits a `[Feature]` GitHub issue in the background under the requester's own GitHub account
 // (a token they connect once, kept only in this browser and sent only to api.github.com). Screenshots are uploaded
@@ -125,11 +125,25 @@ function costHtml(n){
  const help=`Model: ${x.model||'unknown'}\nTokens: ${fmtTok(x.tokensIn)} in (${fmtTok(x.tokensCached)} cached) + ${fmtTok(x.tokensOut)} out\nAgent time: ${fmtTime(x.seconds)}${x.attempts>1?`\nIncludes ${x.attempts} build attempts`:''}\n1 AI credit = $${s.rate} (GitHub’s rate)`;
  return `<span class="sg-cost" title="${E(help)}">Est. ${fmtTok(x.tokensIn+x.tokensOut)} tokens · ${fmtCredits(x.credits)} credits · ${usd(x.credits,s.rate)}</span>`;
 }
+export const DAILY_CREDIT_LIMIT=5000;
+export function usageNow(u,now=Date.now()){
+ if(!u)return null;const lim=Number(u.limit)||DAILY_CREDIT_LIMIT,cut=now-864e5;
+ const b=(Array.isArray(u.builds)?u.builds:[]).filter(x=>Date.parse(x.at)>cut).sort((a,c)=>Date.parse(a.at)-Date.parse(c.at));
+ const used=b.reduce((s,x)=>s+(Number(x.credits)||0),0);let resume=null;
+ if(used>=lim){let r=used;for(const x of b){r-=Number(x.credits)||0;if(r<lim){resume=Date.parse(x.at)+864e5;break;}}}
+ return {lim,used,resume};
+}
+function whenText(ms){const d=new Date(ms),t=d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});return d.toDateString()===new Date().toDateString()?t:`${t} tomorrow`;}
+function limitHtml(){
+ const u=usageNow(list.usage);if(!u)return '';
+ const pct=Math.min(100,u.used/u.lim*100),full=u.used>=u.lim,cls=full?' full':pct>=80?' near':'';
+ return `<div class="sg-limit${cls}" role="group" aria-label="Daily build allowance"><div class="sg-limit-row"><span><b>Daily build allowance</b> · <span title="AI credits used by all builds in the last 24 hours">${fmtCredits(u.used)} of ${fmtCredits(u.lim)} credits, last 24h</span></span><span>${Math.round(pct)}%</span></div><div class="sg-limit-bar" role="progressbar" aria-valuemin="0" aria-valuemax="${u.lim}" aria-valuenow="${Math.round(u.used)}"><i style="width:${pct.toFixed(1)}%"></i></div>${full?`<p>Limit reached. Requests stay queued and building restarts${u.resume?` at about ${whenText(u.resume)}`:' when older builds drop out of the 24-hour window'}.</p>`:''}</div>`;
+}
 function spendHtml(){
- const s=list.cost;if(!s?.tot?.builds)return '';
+ const s=list.cost;if(!s?.tot?.builds)return limitHtml();
  const t=s.tot,other=t.builds-t.shipped;
  return `<div class="sg-spend" title="AI usage of every automatic build, read from build-costs.json. 1 AI credit = $${s.rate} (GitHub’s rate).">
-<div><b>${fmtCredits(t.credits)}</b><span>AI credits</span></div><div><b>${usd(t.credits,s.rate)}</b><span>est. cost</span></div><div><b>${fmtTok(t.tokens)}</b><span>tokens</span></div><div><b>${t.builds}</b><span>build${t.builds===1?'':'s'}${other?` (${other} not shipped)`:''}</span></div></div>`;
+<div><b>${fmtCredits(t.credits)}</b><span>AI credits</span></div><div><b>${usd(t.credits,s.rate)}</b><span>est. cost</span></div><div><b>${fmtTok(t.tokens)}</b><span>tokens</span></div><div><b>${t.builds}</b><span>build${t.builds===1?'':'s'}${other?` (${other} not shipped)`:''}</span></div></div>${limitHtml()}`;
 }
 function listHtml(){
  if(list.state==='loading'&&!list.items.length)return '<p class="empty">Loading requests…</p>';
@@ -162,14 +176,16 @@ function paintList(){const el=document.querySelector('[data-sg-list]'),count=doc
 
 export async function loadRequests(force=false){
  if(testing)return;
- try{const c=JSON.parse(sessionStorage.getItem(KEY)||'null');if(!force&&c&&Date.now()-c.at<CACHE_MS){list={state:'ok',items:c.items,versions:c.versions||{},cost:costSummary(c.costs),error:'',at:c.at};paintList();return;}}catch{}
+ try{const c=JSON.parse(sessionStorage.getItem(KEY)||'null');if(!force&&c&&Date.now()-c.at<CACHE_MS){list={state:'ok',items:c.items,versions:c.versions||{},cost:costSummary(c.costs),usage:c.usage||null,error:'',at:c.at};paintList();return;}}catch{}
  list.state='loading';paintList();
  try{const r=await fetch(`https://api.github.com/repos/${REPO}/issues?state=all&per_page=50&sort=created&direction=desc`,{headers:{Accept:'application/vnd.github+json'}});
   if(!r.ok)throw new Error(r.status===403?'GitHub rate limit, try again later':'GitHub returned '+r.status);
   const items=(await r.json()).filter(i=>!i.pull_request&&/^\[Feature\]/i.test(i.title)&&allowed(i.user?.login));
   let versions={};try{const cr=await fetch(`https://api.github.com/repos/${REPO}/commits?sha=main&per_page=100`,{headers:{Accept:'application/vnd.github+json'}});if(cr.ok)versions=versionsFrom(await cr.json());}catch{}
   let costs=null;try{const k=await fetch(`./build-costs.json?t=${Date.now()}`,{cache:'no-store'});if(k.ok)costs=await k.json();}catch{}
-  list={state:'ok',items,versions,cost:costSummary(costs),error:'',at:Date.now()};try{sessionStorage.setItem(KEY,JSON.stringify({at:list.at,items,versions,costs}));}catch{}
+  let usage=null;try{const u=await fetch(`https://api.github.com/repos/${REPO}/contents/usage.json?ref=feature-assets`,{headers:{Accept:'application/vnd.github.raw+json'}});if(u.ok)usage=await u.json();}catch{}
+  if(!usage&&costs)usage={limit:DAILY_CREDIT_LIMIT,builds:costs.builds||[]};
+  list={state:'ok',items,versions,cost:costSummary(costs),usage,error:'',at:Date.now()};try{sessionStorage.setItem(KEY,JSON.stringify({at:list.at,items,versions,costs,usage}));}catch{}
  }catch(e){list={...list,state:'error',error:e.message||'network error'};}
  paintList();
 }

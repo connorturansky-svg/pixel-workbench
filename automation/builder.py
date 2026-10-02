@@ -16,6 +16,7 @@ minutes (Windows Task Scheduler, see Install-Builder.ps1) this script:
 
 Usage: python automation/builder.py [--once] [--dry-run]   (default: --once)
 """
+import base64
 import json
 import os
 import re
@@ -58,6 +59,8 @@ DRY = "--dry-run" in sys.argv
 COSTS = "dist/build-costs.json"   # per-build AI usage, published with each release for the Suggest a feature page
 CREDIT_USD = 0.01                 # GitHub bills 1 AI credit as $0.01
 USAGE = []                        # Copilot CLI runs in the current build
+DAILY_CREDIT_LIMIT = 5000         # AI credits across all requests and users in any rolling 24 hours
+USAGE_FILE = "usage.json"         # rolling 24-hour spend, published on the feature-assets branch for the app
 
 
 def log(text):
@@ -372,14 +375,61 @@ def usage(out):
     return u
 
 
-def spend(n, version, title, outcome):
-    """One build's AI usage, summed over the main Copilot run and any fix rounds."""
+def spend(state, n, version, title, outcome):
+    """One build's AI usage, summed over the main Copilot run and any fix rounds. Also charged to the daily limit."""
     rec = {"issue": n, "version": version, "title": title, "outcome": outcome,
            "at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "runs": len(USAGE),
            "model": next((u["model"] for u in reversed(USAGE) if u["model"]), "")}
     for k in ("credits", "tokensIn", "tokensCached", "tokensOut", "seconds"):
         rec[k] = round(sum(u[k] for u in USAGE), 2) if k == "credits" else sum(u[k] for u in USAGE)
+    ledger(state).append({"at": rec["at"], "issue": n, "credits": rec["credits"], "outcome": outcome})
     return rec
+
+
+def ledger(state):
+    """Every build's credits from the last 48 hours (seeded from build-costs.json the first time)."""
+    if "spend" not in state:
+        try:
+            with open(os.path.join(OWNER_DIR, *COSTS.split("/")), encoding="utf-8") as f:
+                builds = json.load(f).get("builds") or []
+        except (OSError, ValueError):
+            builds = []
+        state["spend"] = [{"at": b["at"], "issue": b["issue"], "credits": b["credits"], "outcome": b["outcome"]}
+                          for b in builds + state.get("costs_pending", [])]
+    cutoff = datetime.now(timezone.utc).timestamp() - 48 * 3600
+    state["spend"] = [s for s in state["spend"] if when(s["at"]).timestamp() > cutoff]
+    return state["spend"]
+
+
+def window(state):
+    cutoff = datetime.now(timezone.utc).timestamp() - 24 * 3600
+    return sorted((s for s in ledger(state) if when(s["at"]).timestamp() > cutoff), key=lambda s: s["at"])
+
+
+def credits_used(state):
+    return sum(s["credits"] for s in window(state))
+
+
+def publish_usage(state):
+    """Put the rolling 24-hour spend on the feature-assets branch (never deployed) for the app's limit meter."""
+    builds = window(state)
+    body = {"limit": DAILY_CREDIT_LIMIT, "windowHours": 24, "builds": builds}
+    text = json.dumps(body, separators=(",", ":"))
+    if DRY or state.get("usage_published") == text:
+        return
+    sha = gh("api", f"repos/{REPO}/contents/{USAGE_FILE}?ref=feature-assets", "--jq", ".sha", check=False)
+    args = ["api", "-X", "PUT", f"repos/{REPO}/contents/{USAGE_FILE}",
+            "-f", f"message=Builder usage: {credits_used(state):.0f} of {DAILY_CREDIT_LIMIT} credits in 24 hours",
+            "-f", "branch=feature-assets", "-f", "content=" + base64.b64encode(
+                json.dumps(dict(body, updated=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")),
+                           indent=1).encode()).decode()]
+    if re.fullmatch(r"[0-9a-f]{40}", sha or ""):
+        args += ["-f", f"sha={sha}"]
+    try:
+        gh(*args)
+        state["usage_published"] = text
+    except Exception as e:  # noqa: BLE001
+        log(f"usage.json not published: {scrub(str(e))[:200]}")
 
 
 def write_costs(records):
@@ -559,7 +609,7 @@ def build(issue, state):
                 if not DRY:
                     gh("issue", "close", str(n), "-R", REPO, "--reason", "not planned", check=False)
             log(f"#{n} {kind.lower()}: {text[:200]}")
-            pending.append(spend(n, version, title, kind.lower()))
+            pending.append(spend(state, n, version, title, kind.lower()))
             return dict(result, ok=None, outcome=kind.lower())
         summary = text
         for attempt in range(FIX_ROUNDS + 1):
@@ -576,7 +626,7 @@ def build(issue, state):
             rollback()
             return dict(result, ok=None, outcome="dry-run")
         label(n, add=["tested"], remove=["in-progress"])
-        rec = spend(n, version, title, "shipped")
+        rec = spend(state, n, version, title, "shipped")
         write_costs(pending + [rec])
         sha = push(version, title, n)
         pending.clear()
@@ -598,7 +648,7 @@ def build(issue, state):
         label(n, remove=["in-progress", "tested"])
         state["attempts"][str(n)] -= 1
         if USAGE:
-            pending.append(spend(n, version, title, "retry"))
+            pending.append(spend(state, n, version, title, "retry"))
         log(f"#{n} will retry: {e}")
         return dict(result, ok=None, outcome="retry")
     except Exception as e:  # noqa: BLE001
@@ -608,7 +658,7 @@ def build(issue, state):
                    "Reply on this issue (for example with more detail) to try again.")
         label(n, add=["build-failed"], remove=["in-progress", "tested"])
         if USAGE:
-            pending.append(spend(n, version, title, "failed"))
+            pending.append(spend(state, n, version, title, "failed"))
         log(f"#{n} FAILED: {reason[:300]}")
         return dict(result, ok=False, outcome="failed", reason=reason[:300])
 
@@ -637,14 +687,27 @@ def main():
             raise RuntimeError(f"not signed in to gh as {PUSH_USER}")
         state = load_state()
         ensure_labels(state)
+        used = credits_used(state)
+        if used >= DAILY_CREDIT_LIMIT:
+            if not state.get("limit_hit"):
+                log(f"daily limit reached: {used:.0f} of {DAILY_CREDIT_LIMIT} AI credits in 24 hours; builds wait")
+            state["limit_hit"] = True
+            publish_usage(state)
+            save_state(state)
+            return 0
+        if state.pop("limit_hit", None):
+            log(f"under the daily limit again ({used:.0f} of {DAILY_CREDIT_LIMIT} credits); builds resume")
         issue = next_request(state)
         if not issue:
             state.pop("current", None)
+            publish_usage(state)
             save_state(state)
             return 0
         result = build(issue, state)
         state.pop("current", None)
         state["history"].append(result)
+        save_state(state)
+        publish_usage(state)
         save_state(state)
     except Exception as e:  # noqa: BLE001
         log(f"run failed: {scrub(str(e))[:400]}")

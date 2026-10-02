@@ -1,6 +1,6 @@
-import {validateScene} from './layout-model.mjs?v=0.16.0';
-import {validateInstallation,routeSpecs,routeGeometry,projectCapacity,RESOURCE_LABELS} from './installation-model.mjs?v=0.16.0';
-import {ensureWiring,validateWiring} from './wiring-model.mjs?v=0.16.0';
+import {validateScene} from './layout-model.mjs?v=0.17.0';
+import {validateInstallation,routeSpecs,routeGeometry,projectCapacity,RESOURCE_LABELS} from './installation-model.mjs?v=0.17.0';
+import {ensureWiring,validateWiring} from './wiring-model.mjs?v=0.17.0';
 export const AWG={10:0.003277,12:0.005211,14:0.008286,16:0.01317,18:0.02095,20:0.03331,22:0.05296,24:0.08422};
 export const BOARDS={b8:{name:'Baldrick8',ports:8,banks:2,fuse:7.5,maxPixels:750,maxChannels:2250,inputs:3,relays:0,url:'https://www.baldrickboard.com/en/boards/baldrick8/manual'},b17:{name:'Baldrick17',ports:17,banks:5,fuse:7.5,maxPixels:750,maxChannels:2250,inputs:3,relays:0,url:'https://www.baldrickboard.com/en/boards/baldrick17/manual'}};
 export const PSU_MODELS={unconfirmed:{name:'Mean Well 320 W · confirm model',voltage:12,watts:320},rsp320:{name:'Mean Well RSP-320-12',voltage:12,watts:320.4},lrs350:{name:'Mean Well LRS-350-12',voltage:12,watts:348},custom:{name:'Custom PSU',voltage:12,watts:320}};
