@@ -552,6 +552,64 @@ export function makeBox(name = 'Controller box') {
     physicalDepthMm: 250
   };
 }
+const BUTTON_SIZES = {
+  small: { label: 'Small', mm: 30 },
+  medium: { label: 'Medium', mm: 45 },
+  large: { label: 'Large', mm: 60 }
+};
+const makeButtonInstance = number => {
+  const size = BUTTON_SIZES.medium;
+  return {
+    id: 'part-' + id(),
+    definitionId: 'button-box-button',
+    definitionVersion: 1,
+    snapshot: {
+      id: 'button-box-button',
+      version: 1,
+      name: 'Push button',
+      category: 'Sensor',
+      icon: '○',
+      color: '#4b8a76',
+      manufacturer: '',
+      model: '',
+      notes: 'Custom button-box control.',
+      ports: [port('signal', 'Button ' + number, 'digital_input', 'out')],
+      resources: {},
+      operatingLimits: {},
+      physical: { widthMm: size.mm, depthMm: size.mm, heightMm: null }
+    },
+    sourceKey: '',
+    subname: 'Button ' + number,
+    buttonSize: 'medium',
+    x: 10 + ((number - 1) % 3) * 30,
+    y: 15 + Math.floor((number - 1) / 3) * 45,
+    rotation: 0,
+    stackLevel: 0,
+    operatingLimits: {}
+  };
+};
+export function resizeButtonBox(box, count) {
+  count = Math.max(1, Math.min(5, Math.round(count)));
+  while (box.components.length < count) box.components.push(makeButtonInstance(box.components.length + 1));
+  if (box.components.length > count) box.components.splice(count);
+  syncInterfacePorts(box);
+  for (const interfacePort of box.interfacePorts) {
+    interfacePort.visible = true;
+    const component = box.components.find(item => item.id === interfacePort.componentId);
+    if (component) interfacePort.label = component.snapshot.ports[0].label;
+  }
+  return box;
+}
+export function makeButtonBox(name = 'Button box', count = 1) {
+  const box = makeBox(name);
+  box.kind = 'button';
+  box.description = 'Custom button box';
+  box.width = 1.5;
+  box.height = 0.75;
+  box.physicalWidthMm = 200;
+  box.physicalDepthMm = 100;
+  return resizeButtonBox(box, count);
+}
 export function makeInstance(def, sourceKey = '') {
   return {
     id: 'part-' + id(),
@@ -1412,9 +1470,14 @@ export function billOfMaterials(p, boxId = null) {
   const boxes = boxId ? p.installation.boxes.filter(b => b.id === boxId) : p.installation.boxes,
     linked = new Set();
   for (const b of boxes) {
-    add('Controller boxes', b.name);
+    add(b.kind === 'button' ? 'Button boxes' : 'Controller boxes', b.name);
     for (const c of b.components) {
-      add('Hardware', c.snapshot.name);
+      add(
+        'Hardware',
+        b.kind === 'button'
+          ? `${BUTTON_SIZES[c.buttonSize]?.label || 'Medium'} ${c.snapshot.name.toLowerCase()}`
+          : c.snapshot.name
+      );
       if (c.sourceKey) linked.add(c.sourceKey);
     }
   }

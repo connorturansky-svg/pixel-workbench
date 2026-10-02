@@ -3,6 +3,8 @@ import {
   RESOURCE_LABELS,
   ensureInstallation,
   makeBox,
+  makeButtonBox,
+  resizeButtonBox,
   makeInstance,
   syncInterfacePorts,
   syncBoxStandards,
@@ -17,7 +19,7 @@ import {
   componentSearch,
   componentSizeGuides,
   deleteRoute
-} from './installation-model.mjs?v=0.52.0';
+} from './installation-model.mjs?v=0.53.0';
 
 const SCHEMATIC_MIN_WIDTH = 1400,
   SCHEMATIC_MIN_HEIGHT = 700;
@@ -34,7 +36,8 @@ let api,
   schematicCanvasWidth = 1,
   schematicCanvasHeight = SCHEMATIC_MIN_HEIGHT,
   showTickets = false,
-  boxDetailsOpen = false;
+  boxDetailsOpen = false,
+  builderMode = 'controller';
 const E = s =>
   String(s ?? '').replace(
     /[&<>"']/g,
@@ -72,7 +75,10 @@ const sources = p => [
 ];
 function current(p) {
   ensureInstallation(p);
-  if (!p.installation.boxes.some(x => x.id === boxId)) boxId = p.installation.boxes[0]?.id || '';
+  const boxes = p.installation.boxes.filter(box =>
+    builderMode === 'button' ? box.kind === 'button' : box.kind !== 'button'
+  );
+  if (!boxes.some(x => x.id === boxId)) boxId = boxes[0]?.id || '';
   const box = p.installation.boxes.find(x => x.id === boxId);
   if (!box?.components.some(x => x.id === partId)) partId = box?.components[0]?.id || '';
   return box;
@@ -255,8 +261,46 @@ function connectEndpoints(box, from, to) {
     })
   );
 }
-export function boxesView(p, lib) {
+export function boxBuilderView(p, lib) {
+  return `<div class="box-builder-tabs box-view-tabs" role="group" aria-label="Box builder type">${B('Controller boxes', 'builder-mode:controller', builderMode === 'controller' ? 'active' : '')}${B('Button boxes', 'builder-mode:button', builderMode === 'button' ? 'active' : '')}</div>${
+    builderMode === 'button' ? buttonBoxesView(p) : boxesView(p, lib)
+  }`;
+}
+function buttonBoxesView(p) {
+  ensureInstallation(p);
+  const boxes = p.installation.boxes.filter(box => box.kind === 'button');
+  return `<div class="install-intro">Build a custom enclosure with 1–5 buttons. Each button has its own exposed digital-input port for room routing and can be Small, Medium or Large.</div><div class="section-heading"><h2>Button boxes <span>${boxes.length}</span></h2>${B('+ New button box', 'new-button-box', 'btn primary')}</div><div class="standards-grid button-box-grid">${
+    boxes
+      .map(
+        box =>
+          `<section class="panel standard-card button-box-card"><div class="card-heading"><h3>${E(box.name)}</h3>${B('Delete', 'delete-button-box:' + box.id, 'text-btn danger')}</div>${F('Box name', box.name, 'buttonbox:' + box.id + ':name')}${S(
+            'Number of buttons',
+            box.components.length,
+            'buttoncount:' + box.id,
+            [1, 2, 3, 4, 5].map(number => [number, String(number)])
+          )}<div class="button-box-controls">${box.components
+            .map(
+              (button, index) =>
+                `<div class="button-box-control"><span class="button-size-preview ${E(button.buttonSize || 'medium')}" aria-hidden="true"></span><div>${F('Button label', button.subname || `Button ${index + 1}`, 'button:' + box.id + ':' + button.id + ':label')}${S(
+                  'Button size',
+                  button.buttonSize || 'medium',
+                  'button:' + box.id + ':' + button.id + ':size',
+                  [
+                    ['small', 'Small'],
+                    ['medium', 'Medium'],
+                    ['large', 'Large']
+                  ]
+                )}<small>Port: ${E(button.snapshot.ports[0].label)}</small></div></div>`
+            )
+            .join('')}</div></section>`
+      )
+      .join('') ||
+    '<div class="panel install-empty">Create a button box, then choose its button count and sizes.</div>'
+  }</div>`;
+}
+function boxesView(p, lib) {
   const box = current(p),
+    controllerBoxes = p.installation.boxes.filter(item => item.kind !== 'button'),
     cap = projectCapacity(p),
     template = lib.boxTemplates.find(t => t.id === box?.templateRef?.id),
     part = box?.components.find(c => c.id === partId),
@@ -280,7 +324,7 @@ export function boxesView(p, lib) {
     'Open box',
     boxId,
     'box-select',
-    p.installation.boxes.map(b => [b.id, b.name])
+    controllerBoxes.map(b => [b.id, b.name])
   )}${lib.boxTemplates.length ? '<label>Find template<input type="search" data-template-search placeholder="Search box templates"></label>' : ''}${lib.boxTemplates.length ? S('Reusable template', '', 'template-select', [['', 'Choose template'], ...lib.boxTemplates.map(t => [t.id, t.name + ' · v' + t.version])]) : ''}${B('Add template box', 'add-template')}${B('Save as template', 'save-template')}${template && template.version > box.templateRef.version ? B(`Update to template v${template.version}`, 'update-template') : ''}${B(`🔔 ${tickets.length}`, 'tickets', 'notification-btn ' + (tickets.length ? 'has-tickets' : ''))}</div>${showTickets ? `<section class="panel measurement-tickets"><h3>Measurement tickets</h3><div class="install-scroll-list">${tickets.map(x => `<button type="button" data-install="select-part:${E(x.part.id)}">${E(x.text)}</button>`).join('') || '<p class="micro">Every placed component has a confirmed footprint.</p>'}</div></section>` : ''}<details class="install-global panel install-disclosure" open><summary>Project resource capacity</summary><div class="install-disclosure-body">${resources(cap)}</div></details>${
     !box
       ? '<div class="panel install-empty">Create a box to place controllers, power supplies, buttons, relays and other parts.</div>'
@@ -395,6 +439,7 @@ export function bomView(p) {
   return `<div class="install-toolbar">${S('Scope', bomScope, 'bom-filter', [['', 'Whole project'], ...boxes.map(b => [b.id, b.name])])}${B('↓ Export BOM CSV', 'bom-csv')}${B('Print', 'bom-print')}</div><section class="panel"><h2>Bill of materials</h2><p class="micro">Quantities reflect planned components, pixel groups and assigned physical cables. Check mounting, fuses, connectors and spare stock before ordering.</p><div class="table-panel"><table><thead><tr><th>Category</th><th>Item</th><th>Quantity</th><th>Unit</th></tr></thead><tbody>${rows.map(r => `<tr><td>${E(r.category)}</td><td>${E(r.name)}</td><td>${r.quantity}</td><td>${E(r.unit)}</td></tr>`).join('')}</tbody></table></div></section>`;
 }
 export function openBox(id) {
+  builderMode = 'controller';
   boxId = id;
   partId = '';
   boxDetailsOpen = false;
@@ -700,7 +745,12 @@ export function installInstallation(a) {
       p = api.getProject(),
       lib = api.getLibrary(),
       box = current(p);
-    if (action === 'box-mode') {
+    if (action === 'builder-mode') {
+      builderMode = id;
+      boxId = '';
+      partId = '';
+      api.render();
+    } else if (action === 'box-mode') {
       boxMode = id;
       api.render();
     } else if (action === 'box-zoom') {
@@ -746,12 +796,30 @@ export function installInstallation(a) {
       );
     } else if (action === 'new-box')
       api.transact(() => {
-        const b = makeBox('Controller box ' + (p.installation.boxes.length + 1));
+        const count = p.installation.boxes.filter(box => box.kind !== 'button').length;
+        const b = makeBox('Controller box ' + (count + 1));
         p.installation.boxes.push(b);
         boxId = b.id;
         boxDetailsOpen = true;
       });
-    else if (action === 'delete-box' && box)
+    else if (action === 'new-button-box')
+      api.transact(() => {
+        const count = p.installation.boxes.filter(box => box.kind === 'button').length;
+        const buttonBox = makeButtonBox('Button box ' + (count + 1));
+        p.installation.boxes.push(buttonBox);
+        boxId = buttonBox.id;
+      });
+    else if (action === 'delete-button-box') {
+      const buttonBox = p.installation.boxes.find(box => box.id === id && box.kind === 'button');
+      if (buttonBox)
+        api.confirmAction('Delete button box?', `Remove ${buttonBox.name} and its buttons?`, () => {
+          p.installation.boxes = p.installation.boxes.filter(box => box.id !== id);
+          for (const link of p.installation.connections.filter(link => link.boxId === id))
+            deleteRoute(p, 'custom:' + link.id);
+          delete p.scene?.placements?.['box:' + id];
+          boxId = '';
+        });
+    } else if (action === 'delete-box' && box)
       api.confirmAction('Delete box?', `Remove ${box.name} and its internal components?`, () => {
         p.installation.boxes = p.installation.boxes.filter(b => b.id !== box.id);
         for (const link of p.installation.connections.filter(x => x.boxId === box.id))
@@ -1008,7 +1076,40 @@ export function installInstallation(a) {
       p = api.getProject(),
       lib = api.getLibrary(),
       box = current(p);
-    if (key.startsWith('box.'))
+    if (kind === 'buttonbox')
+      api.transact(() => {
+        const buttonBox = p.installation.boxes.find(box => box.id === id && box.kind === 'button');
+        if (buttonBox) buttonBox[field] = t.value;
+      });
+    else if (kind === 'buttoncount')
+      api.transact(() => {
+        const buttonBox = p.installation.boxes.find(box => box.id === id && box.kind === 'button');
+        if (!buttonBox) return;
+        const removed = new Set(buttonBox.components.slice(+t.value).map(button => button.id));
+        for (const link of p.installation.connections.filter(
+          link => link.boxId === id && (removed.has(link.fromComponent) || removed.has(link.toComponent))
+        ))
+          deleteRoute(p, 'custom:' + link.id);
+        resizeButtonBox(buttonBox, +t.value);
+      });
+    else if (kind === 'button')
+      api.transact(() => {
+        const buttonBox = p.installation.boxes.find(box => box.id === id && box.kind === 'button'),
+          button = buttonBox?.components.find(button => button.id === field);
+        if (!button) return;
+        if (sub === 'size') {
+          const mm = { small: 30, medium: 45, large: 60 }[t.value];
+          button.buttonSize = t.value;
+          button.snapshot.physical.widthMm = mm;
+          button.snapshot.physical.depthMm = mm;
+        } else {
+          button.subname = t.value;
+          button.snapshot.ports[0].label = t.value;
+          const interfacePort = buttonBox.interfacePorts.find(port => port.componentId === button.id);
+          if (interfacePort) interfacePort.label = t.value;
+        }
+      });
+    else if (key.startsWith('box.'))
       api.transact(() => {
         const field = key.slice(4);
         if (field === 'physicalWidthCm') box.physicalWidthMm = +t.value * 10;

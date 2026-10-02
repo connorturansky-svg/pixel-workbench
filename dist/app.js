@@ -1,6 +1,6 @@
-import { ensureScene } from './layout-model.mjs?v=0.52.0';
-import { roomView, propsView, installRoom } from './room.js?v=0.52.0';
-import { wiringGraph, installGraph, drawGraph } from './wiring-graph.mjs?v=0.52.0';
+import { ensureScene } from './layout-model.mjs?v=0.53.0';
+import { roomView, propsView, installRoom } from './room.js?v=0.53.0';
+import { wiringGraph, installGraph, drawGraph } from './wiring-graph.mjs?v=0.53.0';
 import {
   defaultLibrary,
   ensureLibrary,
@@ -13,20 +13,20 @@ import {
   routeSpecs,
   routeGeometry,
   routeIssues
-} from './installation-model.mjs?v=0.52.0';
+} from './installation-model.mjs?v=0.53.0';
 import {
-  boxesView,
+  boxBuilderView,
   standardsView,
   bomView,
   installInstallation,
   drawBoxConnections,
   openBox,
   physicalIssues
-} from './installation-ui.mjs?v=0.52.0';
-import { APP_VERSION } from './version.mjs?v=0.52.0';
-import { installInfo } from './info.mjs?v=0.52.0';
-import { suggestView, installSuggest, afterSuggestRender, bellHtml } from './suggest.mjs?v=0.52.0';
-import { createDemoProject } from './demo-project.mjs?v=0.52.0';
+} from './installation-ui.mjs?v=0.53.0';
+import { APP_VERSION } from './version.mjs?v=0.53.0';
+import { installInfo } from './info.mjs?v=0.53.0';
+import { suggestView, installSuggest, afterSuggestRender, bellHtml } from './suggest.mjs?v=0.53.0';
+import { createDemoProject } from './demo-project.mjs?v=0.53.0';
 import {
   tailoredInitial,
   calculate,
@@ -37,7 +37,7 @@ import {
   PSU_MODELS,
   newSegment,
   uid
-} from './model.mjs?v=0.52.0';
+} from './model.mjs?v=0.53.0';
 const testing = new URLSearchParams(location.search).has('test');
 let project = tailoredInitial(),
   view = 'room',
@@ -174,14 +174,14 @@ function render() {
     ['presets', '▧', 'Pixel presets'],
     ['props', '◉', 'Props'],
     ['guide', '☷', 'Wiring guide'],
-    ['boxes', '▣', 'Controller boxes'],
+    ['boxes', '▣', 'Box builder'],
     ['standards', '⌁', 'Standards'],
     ['bom', '☷', 'Bill of materials'],
     ['suggest', '✦', 'Suggest a feature']
   ];
   if (!pages.some(x => x[0] === page)) page = 'workspace';
   $('#app').innerHTML =
-    `<aside class="sidebar"><a class="brand" href="#" data-action="page:workspace"><span class="brandmark">▦</span><span>pixel<span class="light">workbench</span></span></a><button type="button" class="brand-version" data-info="new" title="What's new in v${APP_VERSION}">v${APP_VERSION}</button><div class="workspace-label">YOUR WORKSPACE</div><div class="project-card"><span class="project-icon">P</span><div><strong>${esc(project.name)}</strong><small>${demo ? 'DEMO MODE' : '12 V pixel system'}</small></div></div><nav aria-label="Main navigation">${pages.map(([id, ic, label]) => btn(`<span class="nav-icon">${ic}</span>${label}`, 'page:' + id, 'nav ' + (id === page ? 'active' : ''), id === page ? 'aria-current="page"' : '')).join('')}</nav></aside><main><header class="topbar"><div class="crumb">Projects <span>/</span> ${esc(project.name)}</div><div class="top-actions"><span class="local-label">${storageOK ? 'Saved on this device' : 'Save a JSON backup'}</span>${btn('↓ Save project', 'export', 'btn')}${btn('↑ Open', 'import', 'btn')}${btn('↗ Wiring guide', 'page:guide', 'btn')}${demo ? btn('Exit demo', 'exit-demo', 'btn') : btn('Open demo', 'open-demo', 'btn')}${btn('Blank project', 'blank-project', 'btn danger')}${bellHtml()}<button type="button" class="info-btn" data-info="how" title="Info: how to use, what's new, architecture, shortcuts" aria-label="Info">i</button></div></header>${notifications(r)}<section class="page-head"><div><div class="eyebrow">PLAN • WIRE • DEPLOY</div><h1>${pages.find(x => x[0] === page)[2]}</h1><p>${{ workspace: 'Every connection, with the power to back it up.', hardware: 'Give every circuit a source.', presets: 'Your repeatable building blocks.', props: 'Pixel shapes, built for your space.', guide: 'A build sheet for the workbench and the field.', boxes: 'Arrange and connect the parts inside each installation box.', standards: 'Reusable cables and hardware for every project.', bom: 'A practical packing and ordering list.', suggest: 'Describe an idea. Every request is built, tested and published automatically.' }[page]}</p></div>${page === 'hardware' ? btn('+ Add controller', 'add-controller', 'btn primary') : page === 'suggest' ? '' : btn('+ Controller box', 'new-box-main', 'btn primary')}</section>${page === 'suggest' ? '' : `<div class="summary"><div><span>ADDRESSABLE DEVICES</span><strong>${r.pixels.toLocaleString()} <small>across ${project.chains.length} ports</small></strong></div><div><span>ESTIMATED LOAD</span><strong>${fmt(r.watts)} <small>W at ${project.brightness}%</small></strong></div><div><span>PSU DESIGN BUDGET</span><strong>${fmt((project.psus.reduce((n, p) => n + p.watts, 0) * project.headroom) / 100, 0)} <small>W total</small></strong></div><div><span>PLAN CHECKS</span><strong class="amber">${r.warnings.filter(w => w.level !== 'info').length} <small>+ ${r.warnings.filter(w => w.level === 'info').length} assumptions</small></strong></div></div>`}<section id="content">${{ workspace: () => workspace(r), hardware: () => hardware(r), presets: () => presets(), props: () => propsView(project), guide: () => guide(r), boxes: () => boxesView(project, library), standards: () => standardsView(library), bom: () => bomView(project), suggest: () => suggestView() }[page]()}</section><footer><span><i class="status-dot"></i> Changes sync across views</span><span>DC planning estimates • Verify against your actual hardware</span></footer></main><dialog id="modal"></dialog>`;
+    `<aside class="sidebar"><a class="brand" href="#" data-action="page:workspace"><span class="brandmark">▦</span><span>pixel<span class="light">workbench</span></span></a><button type="button" class="brand-version" data-info="new" title="What's new in v${APP_VERSION}">v${APP_VERSION}</button><div class="workspace-label">YOUR WORKSPACE</div><div class="project-card"><span class="project-icon">P</span><div><strong>${esc(project.name)}</strong><small>${demo ? 'DEMO MODE' : '12 V pixel system'}</small></div></div><nav aria-label="Main navigation">${pages.map(([id, ic, label]) => btn(`<span class="nav-icon">${ic}</span>${label}`, 'page:' + id, 'nav ' + (id === page ? 'active' : ''), id === page ? 'aria-current="page"' : '')).join('')}</nav></aside><main><header class="topbar"><div class="crumb">Projects <span>/</span> ${esc(project.name)}</div><div class="top-actions"><span class="local-label">${storageOK ? 'Saved on this device' : 'Save a JSON backup'}</span>${btn('↓ Save project', 'export', 'btn')}${btn('↑ Open', 'import', 'btn')}${btn('↗ Wiring guide', 'page:guide', 'btn')}${demo ? btn('Exit demo', 'exit-demo', 'btn') : btn('Open demo', 'open-demo', 'btn')}${btn('Blank project', 'blank-project', 'btn danger')}${bellHtml()}<button type="button" class="info-btn" data-info="how" title="Info: how to use, what's new, architecture, shortcuts" aria-label="Info">i</button></div></header>${notifications(r)}<section class="page-head"><div><div class="eyebrow">PLAN • WIRE • DEPLOY</div><h1>${pages.find(x => x[0] === page)[2]}</h1><p>${{ workspace: 'Every connection, with the power to back it up.', hardware: 'Give every circuit a source.', presets: 'Your repeatable building blocks.', props: 'Pixel shapes, built for your space.', guide: 'A build sheet for the workbench and the field.', boxes: 'Build controller enclosures and custom button boxes in separate tools.', standards: 'Reusable cables and hardware for every project.', bom: 'A practical packing and ordering list.', suggest: 'Describe an idea. Every request is built, tested and published automatically.' }[page]}</p></div>${page === 'hardware' ? btn('+ Add controller', 'add-controller', 'btn primary') : page === 'suggest' || page === 'boxes' ? '' : btn('+ Controller box', 'new-box-main', 'btn primary')}</section>${page === 'suggest' ? '' : `<div class="summary"><div><span>ADDRESSABLE DEVICES</span><strong>${r.pixels.toLocaleString()} <small>across ${project.chains.length} ports</small></strong></div><div><span>ESTIMATED LOAD</span><strong>${fmt(r.watts)} <small>W at ${project.brightness}%</small></strong></div><div><span>PSU DESIGN BUDGET</span><strong>${fmt((project.psus.reduce((n, p) => n + p.watts, 0) * project.headroom) / 100, 0)} <small>W total</small></strong></div><div><span>PLAN CHECKS</span><strong class="amber">${r.warnings.filter(w => w.level !== 'info').length} <small>+ ${r.warnings.filter(w => w.level === 'info').length} assumptions</small></strong></div></div>`}<section id="content">${{ workspace: () => workspace(r), hardware: () => hardware(r), presets: () => presets(), props: () => propsView(project), guide: () => guide(r), boxes: () => boxBuilderView(project, library), standards: () => standardsView(library), bom: () => bomView(project), suggest: () => suggestView() }[page]()}</section><footer><span><i class="status-dot"></i> Changes sync across views</span><span>DC planning estimates • Verify against your actual hardware</span></footer></main><dialog id="modal"></dialog>`;
   if (view === 'visual' && page === 'workspace') requestAnimationFrame(drawGraph);
   if (page === 'boxes') requestAnimationFrame(drawBoxConnections);
   if (page === 'suggest') afterSuggestRender();
