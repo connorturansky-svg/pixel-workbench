@@ -331,7 +331,13 @@
    "issue": 41,
    "credits": 65.01,
    "outcome": "shipped"
+  },
+  {
+   "at": "2026-10-02T18:31:21Z",
+   "issue": 36,
+   "credits": 40.63,
+   "outcome": "shipped"
   }
  ],
- "updated": "2026-10-02T18:26:34Z"
+ "updated": "2026-10-02T18:32:46Z"
 }
