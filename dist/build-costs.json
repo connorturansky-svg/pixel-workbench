@@ -5,6 +5,8 @@
   {"issue":3,"version":"0.11.0","title":"I want to improve the left nav pane so it doesn't need to scroll","outcome":"shipped","at":"2026-10-02T12:17:45Z","runs":1,"model":"gpt-5.6-sol","credits":48.15,"tokensIn":400600,"tokensCached":360800,"tokensOut":6900,"seconds":151},
   {"issue":4,"version":"0.13.0","title":"Nav bar still needs to scroll, use responsive design to prevent this…","outcome":"shipped","at":"2026-10-02T12:31:09Z","runs":1,"model":"gpt-5.6-sol","credits":42.12,"tokensIn":262200,"tokensCached":219800,"tokensOut":6100,"seconds":108},
   {"issue":5,"version":"0.14.0","title":"On the room layout view, i want to be able to use the mouse to zoom…","outcome":"shipped","at":"2026-10-02T12:36:34Z","runs":1,"model":"gpt-5.6-sol","credits":62.73,"tokensIn":286600,"tokensCached":234800,"tokensOut":13700,"seconds":162},
-  {"issue":6,"version":"0.16.0","title":"For room layout: 1","outcome":"shipped","at":"2026-10-02T12:55:43Z","runs":1,"model":"gpt-5.6-sol","credits":93.65,"tokensIn":552500,"tokensCached":468000,"tokensOut":16300,"seconds":144}
+  {"issue":6,"version":"0.16.0","title":"For room layout: 1","outcome":"shipped","at":"2026-10-02T12:55:43Z","runs":1,"model":"gpt-5.6-sol","credits":93.65,"tokensIn":552500,"tokensCached":468000,"tokensOut":16300,"seconds":144},
+  {"issue":7,"version":"0.18.0","title":"On the controller box building page, i think it would be useful, to…","outcome":"needs-info","at":"2026-10-02T13:01:28Z","runs":1,"model":"gpt-5.6-sol","credits":9.38,"tokensIn":25300,"tokensCached":9200,"tokensOut":476,"seconds":16},
+  {"issue":8,"version":"0.18.0","title":"Pivot points on the room layout and not respositionble as requested…","outcome":"shipped","at":"2026-10-02T13:05:32Z","runs":1,"model":"gpt-5.6-sol","credits":60.36,"tokensIn":514000,"tokensCached":460400,"tokensOut":7600,"seconds":127}
  ]
 }
