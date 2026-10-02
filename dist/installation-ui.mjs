@@ -14,7 +14,7 @@ import {
   componentPlacement,
   componentSearch,
   deleteRoute
-} from './installation-model.mjs?v=0.31.0';
+} from './installation-model.mjs?v=0.32.0';
 
 let api,
   boxId = '',

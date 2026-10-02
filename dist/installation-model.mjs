@@ -67,6 +67,7 @@ const inp = (type, n, prefix) =>
     type,
     direction: 'in'
   }));
+const port = (id, label, type, direction) => ({ id, label, type, direction });
 function definition(name, category, icon, ports = [], resources = {}, notes = '', physical = null) {
   return {
     id: 'def-' + id(),
@@ -93,8 +94,124 @@ const stepDownTransformer = () =>
     {},
     'Generic AC planning component. Confirm the primary and secondary voltages, VA rating, isolation, earthing and protection against the actual transformer before use.'
   );
-const baldrickInput8 = () =>
-  definition('BaldrickInput8', 'Input board', '◎', inp('digital_input', 8, 'in'), { digitalInputs: 8 });
+const baldrickBoards = () => [
+  definition(
+    'Baldrick8',
+    'Controller',
+    '▦',
+    [
+      ...Array.from({ length: 8 }, (_, i) =>
+        port('p' + (i + 1), 'Pixel output ' + (i + 1), 'pixel_output', 'out')
+      ),
+      ...Array.from({ length: 3 }, (_, i) =>
+        port('in' + (i + 1), 'Turniput ' + (i + 1), 'digital_input', 'in')
+      ),
+      port('bank1', 'Left power jack', 'low_voltage_power', 'in'),
+      port('bank2', 'Right power jack', 'low_voltage_power', 'in'),
+      port('eth1', 'Ethernet', 'ethernet', 'bidirectional')
+    ],
+    { pixelOutputs: 8, pixels: 6000, digitalInputs: 3, ethernetPorts: 1 },
+    '750 pixels per output is the current planning reference.'
+  ),
+  definition(
+    'Baldrick17',
+    'Controller',
+    '▦',
+    [
+      ...Array.from({ length: 17 }, (_, i) =>
+        port('p' + (i + 1), 'Pixel output ' + (i + 1), 'pixel_output', 'out')
+      ),
+      ...Array.from({ length: 3 }, (_, i) =>
+        port('in' + (i + 1), 'Turniput ' + (i + 1), 'digital_input', 'in')
+      ),
+      ...Array.from({ length: 4 }, (_, i) =>
+        port('bank' + (i + 1), '10AWG power bank ' + (i + 1), 'low_voltage_power', 'in')
+      ),
+      port('bank5', 'Port 17 power', 'low_voltage_power', 'in'),
+      port('eth1', 'Ethernet 1', 'ethernet', 'bidirectional'),
+      port('eth2', 'Ethernet 2', 'ethernet', 'bidirectional'),
+      port('rtc', 'RTC battery', 'low_voltage_power', 'in')
+    ],
+    { pixelOutputs: 17, pixels: 12750, digitalInputs: 3, ethernetPorts: 2 },
+    '750 pixels per output is the current planning reference.'
+  ),
+  definition(
+    'BaldrickInput',
+    'Input board',
+    '◎',
+    [
+      port('in1', 'Turniput 1', 'digital_input', 'in'),
+      port('power', 'Power jack', 'low_voltage_power', 'in'),
+      port('eth1', 'Ethernet', 'ethernet', 'bidirectional')
+    ],
+    { digitalInputs: 1, ethernetPorts: 1 }
+  ),
+  definition(
+    'BaldrickInput8',
+    'Input board',
+    '◎',
+    [
+      ...Array.from({ length: 8 }, (_, i) =>
+        port('in' + (i + 1), 'Turniput ' + (i + 1), 'digital_input', 'in')
+      ),
+      port('p1', 'Pixel output 1', 'pixel_output', 'out'),
+      port('p2', 'Pixel output 2', 'pixel_output', 'out'),
+      port('pixel-power', 'Pixel power jack', 'low_voltage_power', 'in'),
+      port('lamp-power', 'Lamp power', 'low_voltage_power', 'in'),
+      port('eth1', 'Ethernet 1', 'ethernet', 'bidirectional'),
+      port('eth2', 'Ethernet 2', 'ethernet', 'bidirectional'),
+      port('rtc', 'RTC battery', 'low_voltage_power', 'in')
+    ],
+    { digitalInputs: 8, pixelOutputs: 2, pixels: 1500, ethernetPorts: 2 }
+  ),
+  definition(
+    'BaldrickDMX',
+    'DMX',
+    '◇',
+    [
+      port('dmx-rj45', 'DMX output RJ45', 'dmx', 'out'),
+      port('dmx-3pin', 'DMX output 3-pin XLR', 'dmx', 'out'),
+      port('dmx-5pin', 'DMX output 5-pin XLR', 'dmx', 'out'),
+      port('power-barrel', 'Barrel power input', 'low_voltage_power', 'in'),
+      port('power-phoenix', 'Phoenix power input', 'low_voltage_power', 'in'),
+      port('eth1', 'Ethernet', 'ethernet', 'bidirectional')
+    ],
+    { dmxOutputs: 3, ethernetPorts: 1 },
+    'The three DMX connectors carry the same single universe. Use only one of the alternative power inputs.'
+  ),
+  definition(
+    'BaldrickSwitchy',
+    'Relay board',
+    '⌁',
+    [
+      ...Array.from({ length: 4 }, (_, i) => port('r' + (i + 1), 'Relay ' + (i + 1), 'relay_output', 'out')),
+      port('power-barrel', 'Barrel power input', 'low_voltage_power', 'in'),
+      port('power-phoenix', 'Phoenix power input', 'low_voltage_power', 'in'),
+      port('eth1', 'Ethernet', 'ethernet', 'bidirectional')
+    ],
+    { relayOutputs: 4, ethernetPorts: 1 },
+    'The power inputs supply the board, not the switched devices.'
+  ),
+  definition(
+    'BaldrickSignals',
+    'Signal board',
+    '◈',
+    [
+      port('power-barrel', 'Barrel power input', 'low_voltage_power', 'in'),
+      port('power-phoenix', 'Phoenix power input', 'low_voltage_power', 'in'),
+      port('eth1', 'Ethernet', 'ethernet', 'bidirectional'),
+      port('rtc', 'RTC battery', 'low_voltage_power', 'in')
+    ],
+    { ethernetPorts: 1 }
+  ),
+  definition(
+    'BaldrickBadge',
+    'Controller',
+    '▦',
+    [port('p1', 'Pixel output', 'pixel_output', 'out'), port('usb-power', 'USB-C power', 'usb', 'in')],
+    { pixelOutputs: 1, pixels: 95 }
+  )
+];
 const defaultBoxSizes = () =>
   [
     ['Small', 30, 20],
@@ -114,30 +231,7 @@ export function defaultLibrary() {
     notes: ''
   });
   const components = [
-    definition(
-      'Baldrick8',
-      'Controller',
-      '▦',
-      [
-        ...out('pixel_output', 8, 'p'),
-        ...inp('digital_input', 3, 'in'),
-        ...inp('low_voltage_power', 2, 'bank')
-      ],
-      { pixelOutputs: 8, pixels: 6000, digitalInputs: 3 },
-      '750 pixels per output is the current planning reference.'
-    ),
-    definition(
-      'Baldrick17',
-      'Controller',
-      '▦',
-      [
-        ...out('pixel_output', 17, 'p'),
-        ...inp('digital_input', 3, 'in'),
-        ...inp('low_voltage_power', 5, 'bank')
-      ],
-      { pixelOutputs: 17, pixels: 12750, digitalInputs: 3 },
-      '750 pixels per output is the current planning reference.'
-    ),
+    ...baldrickBoards(),
     definition(
       '12 V PSU',
       'Power',
@@ -155,14 +249,6 @@ export function defaultLibrary() {
       { distroOutputs: 6 },
       'Set the actual output count on the placed component.'
     ),
-    definition('BaldrickInput', 'Input board', '◎', inp('digital_input', 1, 'in'), { digitalInputs: 1 }),
-    baldrickInput8(),
-    definition('BaldrickDMX', 'DMX', '◇', out('dmx', 1, 'dmx'), { dmxOutputs: 1 }),
-    definition('BaldrickSwitchy', 'Relay board', '⌁', out('relay_output', 4, 'r'), { relayOutputs: 4 }),
-    definition('BaldrickSignals', 'Signal board', '◈', [
-      ...out('generic', 1, 'out'),
-      ...inp('generic', 1, 'in')
-    ]),
     definition(
       'Raspberry Pi',
       'Computer',
@@ -264,7 +350,7 @@ export function defaultLibrary() {
       )
     );
   return {
-    version: 4,
+    version: 5,
     cables: [
       cable('Grey 3m 4 pin EXT', 'Extension', 3, 4, '#899096'),
       cable('Blue 3m 3 pin EXT', 'Extension', 3, 3, '#5288c4'),
@@ -287,12 +373,37 @@ export function ensureLibrary(lib) {
     lib.version = 2;
   }
   if ((lib.version || 1) < 3) {
-    if (!lib.components.some(d => d.name === 'BaldrickInput8')) lib.components.push(baldrickInput8());
+    const input8 = baldrickBoards().find(d => d.name === 'BaldrickInput8');
+    if (!lib.components.some(d => d.name === 'BaldrickInput8')) lib.components.push(input8);
     lib.version = 3;
   }
   if ((lib.version || 1) < 4) {
     lib.boxSizes = defaultBoxSizes();
     lib.version = 4;
+  }
+  if ((lib.version || 1) < 5) {
+    for (const standard of baldrickBoards()) {
+      const current = lib.components.find(d => d.name === standard.name);
+      if (!current) {
+        lib.components.push(standard);
+        continue;
+      }
+      if (current.version === 1) {
+        current.ports = standard.ports;
+        current.resources = standard.resources;
+        current.notes = standard.notes;
+        current.version = 2;
+      } else {
+        for (const standardPort of standard.ports)
+          if (!current.ports.some(existing => existing.id === standardPort.id))
+            current.ports.push(standardPort);
+        current.resources ??= {};
+        for (const [key, value] of Object.entries(standard.resources))
+          if (!(key in current.resources)) current.resources[key] = value;
+        current.version++;
+      }
+    }
+    lib.version = 5;
   }
   lib.boxSizes ??= defaultBoxSizes();
   for (const d of lib.components) d.physical ??= { widthMm: null, depthMm: null, heightMm: null };
