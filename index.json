@@ -994,5 +994,31 @@
    "mobile.png"
   ],
   "error": ""
+ },
+ {
+  "version": "v0.44.0",
+  "date": "02/10/2026",
+  "commit": "0c27dbd1873e78c6443a9203334c9c9ef6e6ed79",
+  "issue": 26,
+  "changelog": "Long text and data panels now scroll independently, useful headings can collapse, and stronger colour accents and borders make each section easier to scan. (suggested in #26)",
+  "status": "ok",
+  "shots": [
+   "01-workspace.png",
+   "02-hardware.png",
+   "03-presets.png",
+   "04-props.png",
+   "05-guide.png",
+   "06-boxes.png",
+   "07-standards.png",
+   "08-bom.png",
+   "09-suggest.png",
+   "info-arch.png",
+   "info-how.png",
+   "info-keys.png",
+   "info-new.png",
+   "info-suggest.png",
+   "mobile.png"
+  ],
+  "error": ""
  }
 ]
