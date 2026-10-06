@@ -28,5 +28,29 @@
   "status": "failed",
   "shots": [],
   "error": "smoke test failed before any screenshot: ython312\\Lib\\site-packages\\playwright\\_impl\\_connection.py\", line 559, in wrap_api_call\n    raise rewrite_error(error, f\"{parsed_st['apiName']}: {error}\") from None\nplaywright._impl._errors.TimeoutError: Page.text_content: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator(\".brand-version\")"
+ },
+ {
+  "version": "v0.6.2",
+  "date": "02/10/2026",
+  "commit": "e83ff3da20ec2d50d9cd774f501a07c45b110e14",
+  "issue": null,
+  "changelog": "Added a small version badge under the Pixel Workbench logo. Select it to open What\u2019s new. It replaces the version label at the bottom of the sidebar.",
+  "status": "ok",
+  "shots": [
+   "01-workspace.png",
+   "02-hardware.png",
+   "03-presets.png",
+   "04-props.png",
+   "05-guide.png",
+   "06-boxes.png",
+   "07-standards.png",
+   "08-bom.png",
+   "info-arch.png",
+   "info-how.png",
+   "info-keys.png",
+   "info-new.png",
+   "mobile.png"
+  ],
+  "error": ""
  }
 ]

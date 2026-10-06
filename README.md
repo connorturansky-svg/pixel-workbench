@@ -8,6 +8,16 @@ Every release is captured by the builder's release smoke test (`automation/smoke
 
 **Screenshots failed:** gh api -X failed: Post "https://api.github.com/repos/connorturansky-svg/pixel-workbench/git/blobs": read tcp 192.168.0.199:60374->20.26.156.210:443: wsarecv: An existing connection was forcibly closed
 
+## [v0.6.2](v0.6.2/)
+
+02/10/2026 · [commit e83ff3d](https://github.com/connorturansky-svg/pixel-workbench/commit/e83ff3da20ec2d50d9cd774f501a07c45b110e14)
+
+> Added a small version badge under the Pixel Workbench logo. Select it to open What’s new. It replaces the version label at the bottom of the sidebar.
+
+<a href="v0.6.2/01-workspace.png"><img src="v0.6.2/01-workspace.png" width="420" alt="v0.6.2 workspace"></a> <a href="v0.6.2/mobile.png"><img src="v0.6.2/mobile.png" width="240" alt="v0.6.2 mobile"></a>
+
+All shots: [workspace](v0.6.2/01-workspace.png) · [hardware](v0.6.2/02-hardware.png) · [presets](v0.6.2/03-presets.png) · [props](v0.6.2/04-props.png) · [guide](v0.6.2/05-guide.png) · [boxes](v0.6.2/06-boxes.png) · [standards](v0.6.2/07-standards.png) · [bom](v0.6.2/08-bom.png) · [info arch](v0.6.2/info-arch.png) · [info how](v0.6.2/info-how.png) · [info keys](v0.6.2/info-keys.png) · [info new](v0.6.2/info-new.png) · [mobile](v0.6.2/mobile.png)
+
 ## [v0.6.1](v0.6.1/)
 
 02/10/2026 · [commit cb0c271](https://github.com/connorturansky-svg/pixel-workbench/commit/cb0c2719c29796e0999cba0ba7330bcb10159379)

@@ -1,0 +1,24 @@
+{
+ "version": "v0.6.2",
+ "date": "02/10/2026",
+ "commit": "e83ff3da20ec2d50d9cd774f501a07c45b110e14",
+ "issue": null,
+ "changelog": "Added a small version badge under the Pixel Workbench logo. Select it to open What\u2019s new. It replaces the version label at the bottom of the sidebar.",
+ "status": "ok",
+ "shots": [
+  "01-workspace.png",
+  "02-hardware.png",
+  "03-presets.png",
+  "04-props.png",
+  "05-guide.png",
+  "06-boxes.png",
+  "07-standards.png",
+  "08-bom.png",
+  "info-arch.png",
+  "info-how.png",
+  "info-keys.png",
+  "info-new.png",
+  "mobile.png"
+ ],
+ "error": ""
+}
