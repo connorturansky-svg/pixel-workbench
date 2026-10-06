@@ -18,5 +18,15 @@
   "status": "failed",
   "shots": [],
   "error": "smoke test failed before any screenshot: ython312\\Lib\\site-packages\\playwright\\_impl\\_connection.py\", line 559, in wrap_api_call\n    raise rewrite_error(error, f\"{parsed_st['apiName']}: {error}\") from None\nplaywright._impl._errors.TimeoutError: Page.text_content: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator(\".brand-version\")"
+ },
+ {
+  "version": "v0.6.1",
+  "date": "02/10/2026",
+  "commit": "cb0c2719c29796e0999cba0ba7330bcb10159379",
+  "issue": null,
+  "changelog": "Fixed the page failing to load after an update when the browser still held cached copies of older files. Every script and stylesheet is now versioned, so each release loads as one consistent set.",
+  "status": "failed",
+  "shots": [],
+  "error": "smoke test failed before any screenshot: ython312\\Lib\\site-packages\\playwright\\_impl\\_connection.py\", line 559, in wrap_api_call\n    raise rewrite_error(error, f\"{parsed_st['apiName']}: {error}\") from None\nplaywright._impl._errors.TimeoutError: Page.text_content: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator(\".brand-version\")"
  }
 ]

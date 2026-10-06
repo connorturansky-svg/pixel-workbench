@@ -8,6 +8,18 @@ Every release is captured by the builder's release smoke test (`automation/smoke
 
 **Screenshots failed:** gh api -X failed: Post "https://api.github.com/repos/connorturansky-svg/pixel-workbench/git/blobs": read tcp 192.168.0.199:60374->20.26.156.210:443: wsarecv: An existing connection was forcibly closed
 
+## [v0.6.1](v0.6.1/)
+
+02/10/2026 · [commit cb0c271](https://github.com/connorturansky-svg/pixel-workbench/commit/cb0c2719c29796e0999cba0ba7330bcb10159379)
+
+> Fixed the page failing to load after an update when the browser still held cached copies of older files. Every script and stylesheet is now versioned, so each release loads as one consistent set.
+
+**Screenshots failed:** smoke test failed before any screenshot: ython312\Lib\site-packages\playwright\_impl\_connection.py", line 559, in wrap_api_call
+    raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+playwright._impl._errors.TimeoutError: Page.text_content: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator(".brand-version")
+
 ## [v0.6.0](v0.6.0/)
 
 02/10/2026 · [commit 38cf66b](https://github.com/connorturansky-svg/pixel-workbench/commit/38cf66b0d2a49f779111c9f7a49af52e0170fa80)
