@@ -2,6 +2,16 @@
 
 Every release is captured by the builder's release smoke test (`automation/smoke.py --shots`): every page, every info tab and a mobile view. This branch is never deployed by Pages. Newest first.
 
+## [v0.67.0](v0.67.0/)
+
+06/10/2026 · [commit 8864d5b](https://github.com/connorturansky-svg/pixel-workbench/commit/8864d5b94d66645f3b76da4a384133553d751ec0) · [issue #43](https://github.com/connorturansky-svg/pixel-workbench/issues/43)
+
+> Room layout now fits whole sites or selected equipment, zooms from real scene dimensions into small boxes, keeps every typed edge port usable at all scales and magnifies the exact focused port without changing physical geometry. (suggested in #43)
+
+<a href="v0.67.0/01-workspace.png"><img src="v0.67.0/01-workspace.png" width="420" alt="v0.67.0 workspace"></a> <a href="v0.67.0/mobile.png"><img src="v0.67.0/mobile.png" width="240" alt="v0.67.0 mobile"></a>
+
+All shots: [workspace](v0.67.0/01-workspace.png) · [hardware](v0.67.0/02-hardware.png) · [presets](v0.67.0/03-presets.png) · [props](v0.67.0/04-props.png) · [guide](v0.67.0/05-guide.png) · [boxes](v0.67.0/06-boxes.png) · [standards](v0.67.0/07-standards.png) · [bom](v0.67.0/08-bom.png) · [suggest](v0.67.0/09-suggest.png) · [info arch](v0.67.0/info-arch.png) · [info how](v0.67.0/info-how.png) · [info keys](v0.67.0/info-keys.png) · [info new](v0.67.0/info-new.png) · [info suggest](v0.67.0/info-suggest.png) · [mobile](v0.67.0/mobile.png)
+
 ## [v0.66.0](v0.66.0/)
 
 06/10/2026 · [commit fe2c01b](https://github.com/connorturansky-svg/pixel-workbench/commit/fe2c01bf0d9a6b68a3f853f3b90968af45839348) · [issue #42](https://github.com/connorturansky-svg/pixel-workbench/issues/42)

@@ -1,0 +1,26 @@
+{
+ "version": "v0.67.0",
+ "date": "06/10/2026",
+ "commit": "8864d5b94d66645f3b76da4a384133553d751ec0",
+ "issue": 43,
+ "changelog": "Room layout now fits whole sites or selected equipment, zooms from real scene dimensions into small boxes, keeps every typed edge port usable at all scales and magnifies the exact focused port without changing physical geometry. (suggested in #43)",
+ "status": "ok",
+ "shots": [
+  "01-workspace.png",
+  "02-hardware.png",
+  "03-presets.png",
+  "04-props.png",
+  "05-guide.png",
+  "06-boxes.png",
+  "07-standards.png",
+  "08-bom.png",
+  "09-suggest.png",
+  "info-arch.png",
+  "info-how.png",
+  "info-keys.png",
+  "info-new.png",
+  "info-suggest.png",
+  "mobile.png"
+ ],
+ "error": ""
+}
