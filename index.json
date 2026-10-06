@@ -760,5 +760,31 @@
    "mobile.png"
   ],
   "error": ""
+ },
+ {
+  "version": "v0.35.0",
+  "date": "02/10/2026",
+  "commit": "732c239bfd0a87505d30906f0e934bd0848768a2",
+  "issue": 21,
+  "changelog": "The Wiring workspace now shows a glowing live wire while dragging, highlights connected wires and terminals on hover, and illustrates supplies, distribution, controllers and lights with breadboard-style component faces. (suggested in #21)",
+  "status": "ok",
+  "shots": [
+   "01-workspace.png",
+   "02-hardware.png",
+   "03-presets.png",
+   "04-props.png",
+   "05-guide.png",
+   "06-boxes.png",
+   "07-standards.png",
+   "08-bom.png",
+   "09-suggest.png",
+   "info-arch.png",
+   "info-how.png",
+   "info-keys.png",
+   "info-new.png",
+   "info-suggest.png",
+   "mobile.png"
+  ],
+  "error": ""
  }
 ]
