@@ -1150,5 +1150,31 @@
    "mobile.png"
   ],
   "error": ""
+ },
+ {
+  "version": "v0.50.0",
+  "date": "02/10/2026",
+  "commit": "9dea52206a9bf5277985bf9da89fc98e78e63646",
+  "issue": 31,
+  "changelog": "Pixel strings, individual floods, saved presets and prop models can now be added directly from Room layout. (suggested in #31)",
+  "status": "ok",
+  "shots": [
+   "01-workspace.png",
+   "02-hardware.png",
+   "03-presets.png",
+   "04-props.png",
+   "05-guide.png",
+   "06-boxes.png",
+   "07-standards.png",
+   "08-bom.png",
+   "09-suggest.png",
+   "info-arch.png",
+   "info-how.png",
+   "info-keys.png",
+   "info-new.png",
+   "info-suggest.png",
+   "mobile.png"
+  ],
+  "error": ""
  }
 ]
