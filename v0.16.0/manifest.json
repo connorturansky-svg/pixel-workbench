@@ -1,0 +1,25 @@
+{
+ "version": "v0.16.0",
+ "date": "02/10/2026",
+ "commit": "2b5e058cc7517db89a1d4717c5bc818162df6c95",
+ "issue": null,
+ "changelog": "Room labels are larger, sit closer to their objects and scale with the room view; a toolbar control can hide or show all labels.",
+ "status": "ok",
+ "shots": [
+  "01-workspace.png",
+  "02-hardware.png",
+  "03-presets.png",
+  "04-props.png",
+  "05-guide.png",
+  "06-boxes.png",
+  "07-standards.png",
+  "08-bom.png",
+  "09-suggest.png",
+  "info-arch.png",
+  "info-how.png",
+  "info-keys.png",
+  "info-new.png",
+  "mobile.png"
+ ],
+ "error": ""
+}
