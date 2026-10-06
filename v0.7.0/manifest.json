@@ -1,0 +1,25 @@
+{
+ "version": "v0.7.0",
+ "date": "02/10/2026",
+ "commit": "29c699d2ec5c1eeaaa7d975d085df717eaea1fea",
+ "issue": null,
+ "changelog": "New Suggest a feature page in the sidebar. Describe an idea and add screenshots (paste, drop or choose files). The issue title is taken from your first sentence. It opens a GitHub issue under your own account.",
+ "status": "ok",
+ "shots": [
+  "01-workspace.png",
+  "02-hardware.png",
+  "03-presets.png",
+  "04-props.png",
+  "05-guide.png",
+  "06-boxes.png",
+  "07-standards.png",
+  "08-bom.png",
+  "09-suggest.png",
+  "info-arch.png",
+  "info-how.png",
+  "info-keys.png",
+  "info-new.png",
+  "mobile.png"
+ ],
+ "error": ""
+}
