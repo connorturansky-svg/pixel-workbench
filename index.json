@@ -916,5 +916,31 @@
    "mobile.png"
   ],
   "error": ""
+ },
+ {
+  "version": "v0.41.0",
+  "date": "02/10/2026",
+  "commit": "66cc424cd05dfc548bfde79d2008942846d02e20",
+  "issue": null,
+  "changelog": "Suggest a feature now shows the total AI credits, estimated cost, tokens and builds from the last 28 days, just above the Daily build allowance meter.",
+  "status": "ok",
+  "shots": [
+   "01-workspace.png",
+   "02-hardware.png",
+   "03-presets.png",
+   "04-props.png",
+   "05-guide.png",
+   "06-boxes.png",
+   "07-standards.png",
+   "08-bom.png",
+   "09-suggest.png",
+   "info-arch.png",
+   "info-how.png",
+   "info-keys.png",
+   "info-new.png",
+   "info-suggest.png",
+   "mobile.png"
+  ],
+  "error": ""
  }
 ]
