@@ -43,7 +43,13 @@
    "issue": 43,
    "credits": 7.15,
    "outcome": "declined"
+  },
+  {
+   "at": "2026-10-06T13:33:24Z",
+   "issue": 44,
+   "credits": 0,
+   "outcome": "needs-info"
   }
  ],
- "updated": "2026-10-06T13:28:36Z"
+ "updated": "2026-10-06T13:33:25Z"
 }
