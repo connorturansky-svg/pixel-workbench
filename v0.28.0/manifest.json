@@ -1,0 +1,26 @@
+{
+ "version": "v0.28.0",
+ "date": "02/10/2026",
+ "commit": "8fb296838292d8b63422e99bd2b161a563bbc08f",
+ "issue": 12,
+ "changelog": "Controller-box schematics now show each component as a basic top-down hardware illustration, with every named port drawn as a colour-coded connector that remains directly wireable. (follow-up to #12)",
+ "status": "ok",
+ "shots": [
+  "01-workspace.png",
+  "02-hardware.png",
+  "03-presets.png",
+  "04-props.png",
+  "05-guide.png",
+  "06-boxes.png",
+  "07-standards.png",
+  "08-bom.png",
+  "09-suggest.png",
+  "info-arch.png",
+  "info-how.png",
+  "info-keys.png",
+  "info-new.png",
+  "info-suggest.png",
+  "mobile.png"
+ ],
+ "error": ""
+}
