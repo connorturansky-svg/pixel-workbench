@@ -1,6 +1,5 @@
 import {
   PORT_TYPES,
-  SCHEMATIC_LAYOUT_VERSION,
   BUTTON_COLOURS,
   RESOURCE_LABELS,
   ensureInstallation,
@@ -22,7 +21,7 @@ import {
   componentSizeGuides,
   deleteRoute,
   portTypeColour
-} from './installation-model.mjs?v=0.70.0';
+} from './installation-model.mjs?v=0.71.0';
 
 const SCHEMATIC_MIN_WIDTH = 1400,
   SCHEMATIC_MIN_HEIGHT = 700;
@@ -170,30 +169,6 @@ const hardwareDetail = kind =>
       : kind === 'module'
         ? '<i class="hardware-coil"></i><i class="hardware-chip"></i>'
         : '<i class="hardware-chip"></i><i class="hardware-capacitor"></i>';
-const setEthernetPortCount = (part, count) => {
-  const ports = part.snapshot.ports,
-    ethernet = ports.filter(port => port.type === 'ethernet'),
-    desired = Math.max(1, Math.floor(count));
-  if (desired < ethernet.length) {
-    const remove = new Set(ethernet.slice(desired).map(port => port.id));
-    part.snapshot.ports = ports.filter(port => !remove.has(port.id));
-  } else {
-    const used = new Set(ports.map(port => port.id));
-    let number = 1;
-    while (part.snapshot.ports.filter(port => port.type === 'ethernet').length < desired) {
-      while (used.has('eth' + number)) number++;
-      const id = 'eth' + number;
-      used.add(id);
-      part.snapshot.ports.push({
-        id,
-        label: 'Ethernet ' + number,
-        type: 'ethernet',
-        direction: 'out'
-      });
-    }
-  }
-  part.snapshot.resources.ethernetPorts = desired;
-};
 const schematicPart = (c, linkedPorts) => {
   const kind = visualKind(c);
   return `<div class="box-part ${kind} ${c.id === partId ? 'selected' : ''}" data-box-part="${E(c.id)}" style="left:${c.x}%;top:${c.y}%;--part-color:${E(c.snapshot.color || '#4b8a76')}"><div class="part-title"><span>${E(c.snapshot.icon)}</span><strong>${E(c.snapshot.name)}</strong></div><div class="hardware-face"><i class="mount-hole top-left"></i><i class="mount-hole top-right"></i><i class="mount-hole bottom-left"></i><i class="mount-hole bottom-right"></i><div class="hardware-silk"><strong>${E(c.snapshot.name)}</strong><small>${E(c.snapshot.model || c.snapshot.category)}</small></div><div class="hardware-detail" aria-hidden="true">${hardwareDetail(kind)}</div><div class="part-ports">${c.snapshot.ports
@@ -391,10 +366,9 @@ function boxesView(p, lib) {
             .join('') || '<p class="micro">No internal connections yet.</p>'
         }</div></details><details class="box-text-section" open><summary>Box capacity</summary><div class="install-disclosure-body">${resources(boxCapacity(p, box))}</div></details></section><aside class="panel part-inspector"><details class="box-details" ${boxDetailsOpen || !part ? 'open' : ''}><summary>Box details</summary><div class="box-details-body">${F('Box label', box.name, 'box.name')}${F('Description', box.description, 'box.description')}${S('Enclosure size', lib.boxSizes.find(s => s.widthCm * 10 === (box.physicalWidthMm || 400) && s.depthCm * 10 === (box.physicalDepthMm || 250))?.id || '', 'box-size-select', [['', 'Custom size'], ...lib.boxSizes.map(s => [s.id, `${s.name} · ${s.widthCm} × ${s.depthCm} cm`])])}${F('Enclosure width (cm)', (box.physicalWidthMm || 400) / 10, 'box.physicalWidthCm', 'number', 'min="2" max="1000" step="0.1"')}${F('Enclosure depth (cm)', (box.physicalDepthMm || 250) / 10, 'box.physicalDepthCm', 'number', 'min="2" max="1000" step="0.1"')}<p class="micro">Reusable sizes are managed in Standards.</p>${F('Room footprint width (m)', box.width, 'box.width', 'number', 'min="0.1" max="50" step="any"')}${F('Room footprint depth (m)', box.height, 'box.height', 'number', 'min="0.1" max="50" step="any"')}</div></details>${
           part
-            ? `<div class="component-details"><h3>${E(part.snapshot.name)}</h3>${F('Component subname', part.subname || '', 'part.subname', 'text', 'maxlength="200" placeholder="For example, 12 V feed"')}${S('Linked project hardware', part.sourceKey, 'part.sourceKey', sources(p))}${sizeGuides.length ? S('Common size guide', sizeGuides.find(guide => guide.manufacturer === part.snapshot.manufacturer && guide.model === part.snapshot.model)?.id || '', 'size-guide', [['', 'Choose a model'], ...sizeGuides.map(guide => [guide.id, `${guide.manufacturer} ${guide.model} · ${guide.physical.widthMm} × ${guide.physical.depthMm}${guide.physical.heightMm ? ` × ${guide.physical.heightMm}` : ''} mm`])]) + '<p class="micro">Applies reference dimensions to this part. Confirm the exact variant and allow for cases, connectors and airflow.</p>' : ''}${F('Position X (%)', part.x, 'part.x', 'number', 'min="0" max="100" step="any"')}${F('Position Y (%)', part.y, 'part.y', 'number', 'min="0" max="100" step="any"')}${F('Width (mm)', part.snapshot.physical?.widthMm ?? '', 'physical.widthMm', 'number', 'min="1" max="5000" step="1"')}${F('Depth (mm)', part.snapshot.physical?.depthMm ?? '', 'physical.depthMm', 'number', 'min="1" max="5000" step="1"')}${F('Height (mm)', part.snapshot.physical?.heightMm ?? '', 'physical.heightMm', 'number', 'min="1" max="5000" step="1"')}${B('Save measurements globally', 'save-size', 'text-btn')}${B(`Rotate 90° (${part.rotation || 0}°)`, 'rotate-part', 'text-btn')}${F('Stacking layer', part.stackLevel || 0, 'part.stackLevel', 'number', 'min="0" max="20" step="1"')}${part.snapshot.category === 'Network' && part.snapshot.resources?.ethernetPorts ? `<h4>Connectors</h4>${F('Ethernet ports', part.snapshot.ports.filter(port => port.type === 'ethernet').length, 'portcount.ethernet', 'number', 'min="1" max="128" step="1"')}<p class="micro">Changes the connectors shown on this placed component and its matching box edge ports.</p>` : ''}<h4>Operating limits</h4><p class="micro">Set below the reference rating when you want headroom.</p>${Object.entries(
+            ? `<div class="component-details"><h3>${E(part.snapshot.name)}</h3>${F('Component subname', part.subname || '', 'part.subname', 'text', 'maxlength="200" placeholder="For example, 12 V feed"')}${S('Linked project hardware', part.sourceKey, 'part.sourceKey', sources(p))}${sizeGuides.length ? S('Common size guide', sizeGuides.find(guide => guide.manufacturer === part.snapshot.manufacturer && guide.model === part.snapshot.model)?.id || '', 'size-guide', [['', 'Choose a model'], ...sizeGuides.map(guide => [guide.id, `${guide.manufacturer} ${guide.model} · ${guide.physical.widthMm} × ${guide.physical.depthMm}${guide.physical.heightMm ? ` × ${guide.physical.heightMm}` : ''} mm`])]) + '<p class="micro">Applies reference dimensions to this part. Confirm the exact variant and allow for cases, connectors and airflow.</p>' : ''}${F('Position X (%)', part.x, 'part.x', 'number', 'min="0" max="100" step="any"')}${F('Position Y (%)', part.y, 'part.y', 'number', 'min="0" max="100" step="any"')}${F('Width (mm)', part.snapshot.physical?.widthMm ?? '', 'physical.widthMm', 'number', 'min="1" max="5000" step="1"')}${F('Depth (mm)', part.snapshot.physical?.depthMm ?? '', 'physical.depthMm', 'number', 'min="1" max="5000" step="1"')}${F('Height (mm)', part.snapshot.physical?.heightMm ?? '', 'physical.heightMm', 'number', 'min="1" max="5000" step="1"')}${B('Save measurements globally', 'save-size', 'text-btn')}${B(`Rotate 90° (${part.rotation || 0}°)`, 'rotate-part', 'text-btn')}${F('Stacking layer', part.stackLevel || 0, 'part.stackLevel', 'number', 'min="0" max="20" step="1"')}<h4>Operating limits</h4><p class="micro">Set below the reference rating when you want headroom.</p>${Object.entries(
                 part.snapshot.resources || {}
               )
-                .filter(([k]) => !(part.snapshot.category === 'Network' && k === 'ethernetPorts'))
                 .map(([k, n]) =>
                   F(
                     RESOURCE_LABELS[k] || k,
@@ -582,7 +556,7 @@ function autoLayout(box, project) {
       const width = stage.clientWidth,
         height = stage.clientHeight,
         margin = 24;
-      api.transact(() => {
+      api.transact(() =>
         groups.forEach((group, column) => {
           const heights = group.map(c => elements.get(c.id)?.offsetHeight || 180),
             total = heights.reduce((sum, value) => sum + value, 0) + Math.max(0, group.length - 1) * 32;
@@ -597,9 +571,8 @@ function autoLayout(box, project) {
             c.y = +((y / height) * 100).toFixed(1);
             y += heights[row] + 32;
           });
-        });
-        box.schematicLayoutVersion = SCHEMATIC_LAYOUT_VERSION;
-      });
+        })
+      );
     });
   });
 }
@@ -727,10 +700,6 @@ function separateSchematicParts(stage, parts, box) {
   if (boxMode !== 'schematic' || parts.length < 2 || !box || normalizedSchematicBoxes.has(box.id))
     return false;
   normalizedSchematicBoxes.add(box.id);
-  if (box.schematicLayoutVersion !== SCHEMATIC_LAYOUT_VERSION) {
-    autoLayout(box, api.getProject());
-    return true;
-  }
   const stageRect = stage.getBoundingClientRect(),
     placed = [],
     moved = [];
@@ -1027,9 +996,7 @@ export function installInstallation(a) {
       if (buttonBox)
         api.confirmAction('Delete button box?', `Remove ${buttonBox.name} and its buttons?`, () => {
           p.installation.boxes = p.installation.boxes.filter(box => box.id !== id);
-          for (const link of p.installation.connections.filter(
-            link => link.boxId === id || link.fromKey === 'box:' + id || link.toKey === 'box:' + id
-          ))
+          for (const link of p.installation.connections.filter(link => link.boxId === id))
             deleteRoute(p, 'custom:' + link.id);
           delete p.scene?.placements?.['box:' + id];
           boxId = '';
@@ -1037,9 +1004,7 @@ export function installInstallation(a) {
     } else if (action === 'delete-box' && box)
       api.confirmAction('Delete box?', `Remove ${box.name} and its internal components?`, () => {
         p.installation.boxes = p.installation.boxes.filter(b => b.id !== box.id);
-        for (const link of p.installation.connections.filter(
-          x => x.boxId === box.id || x.fromKey === 'box:' + box.id || x.toKey === 'box:' + box.id
-        ))
+        for (const link of p.installation.connections.filter(x => x.boxId === box.id))
           deleteRoute(p, 'custom:' + link.id);
         delete p.scene?.placements?.['box:' + box.id];
         p.installation.infrastructureMigrated = false;
@@ -1129,9 +1094,7 @@ export function installInstallation(a) {
           'Update this box?',
           `Replace its current components with ${t.name} v${t.version}? Existing links and positions in this box will be removed.`,
           () => {
-            for (const link of p.installation.connections.filter(
-              x => x.boxId === box.id || x.fromKey === 'box:' + box.id || x.toKey === 'box:' + box.id
-            ))
+            for (const link of p.installation.connections.filter(x => x.boxId === box.id))
               deleteRoute(p, 'custom:' + link.id);
             updateBoxFromTemplate(box, t);
             partId = '';
@@ -1357,12 +1320,6 @@ export function installInstallation(a) {
       api.transact(() => {
         const c = box.components.find(x => x.id === partId);
         c.operatingLimits[key.slice(6)] = +t.value;
-      });
-    else if (key === 'portcount.ethernet')
-      api.transact(() => {
-        const c = box.components.find(x => x.id === partId);
-        setEthernetPortCount(c, +t.value);
-        syncInterfacePorts(box);
       });
     else if (kind === 'interface')
       api.transact(() => {

@@ -1,6 +1,5 @@
 // Physical installation planning. Definitions live in the device-local library;
 // projects retain snapshots so later library edits never rewrite old plans.
-export const SCHEMATIC_LAYOUT_VERSION = 1;
 export const PORT_TYPES = [
   'pixel_data',
   'pixel_output',
@@ -530,13 +529,6 @@ export function ensureInstallation(p) {
     }
   }
   for (const box of a.boxes) {
-    if (box.width === 4 && box.height === 2.5) {
-      box.width = Math.max(0.1, (box.physicalWidthMm || 400) / 1000);
-      box.height = Math.max(0.1, (box.physicalDepthMm || 250) / 1000);
-    } else if (box.kind === 'button' && box.width === 1.5 && box.height === 0.75) {
-      box.width = Math.max(0.1, (box.physicalWidthMm || 200) / 1000);
-      box.height = Math.max(0.1, (box.physicalDepthMm || 100) / 1000);
-    }
     if (box.kind === 'button')
       for (const button of box.components) {
         button.buttonColour ??= 'Amber';
@@ -570,11 +562,10 @@ export function makeBox(name = 'Controller box') {
     name,
     description: '',
     templateRef: null,
-    schematicLayoutVersion: SCHEMATIC_LAYOUT_VERSION,
     components: [],
     interfacePorts: [],
-    width: 0.4,
-    height: 0.25,
+    width: 4,
+    height: 2.5,
     physicalWidthMm: 400,
     physicalDepthMm: 250
   };
@@ -632,8 +623,8 @@ export function makeButtonBox(name = 'Button box', count = 1) {
   const box = makeBox(name);
   box.kind = 'button';
   box.description = 'Custom button box';
-  box.width = 0.2;
-  box.height = 0.1;
+  box.width = 1.5;
+  box.height = 0.75;
   box.physicalWidthMm = 200;
   box.physicalDepthMm = 100;
   return resizeButtonBox(box, count);
@@ -836,9 +827,6 @@ export function exposedPorts(box) {
     list.map((entry, i) => ({ ...entry, edge, t: (i + 1) / (list.length + 1) }))
   );
 }
-export function boxVisualScale(width, height) {
-  return Math.max(0.01, Math.min(1, width / 1, height / 0.7));
-}
 export function perimeterAnchor(p, boxId, componentId, portId) {
   const box = p.installation?.boxes.find(b => b.id === boxId),
     v = p.scene?.placements?.['box:' + boxId],
@@ -865,12 +853,11 @@ export function perimeterAnchor(p, boxId, componentId, portId) {
   const { edge, t } = node,
     labelled = p.installation?.showLabels !== false,
     label = node.port?.label || source?.label || '',
-    scale = boxVisualScale(v.width, v.height),
     gap = labelled
       ? edge === 'left' || edge === 'right'
-        ? Math.max(0.18, label.length * 0.045 + 0.14) * scale
-        : 0.2 * scale
-      : 0.06 * scale;
+        ? Math.max(0.18, label.length * 0.045 + 0.14)
+        : 0.2
+      : 0.06;
   return {
     x:
       v.x +
@@ -1319,14 +1306,9 @@ export function assignCable(p, routeId, standard) {
   r.cableSnapshot = standard ? copy(standard) : null;
 }
 export function connectionWarnings(p, x) {
-  const fromBox = p.installation.boxes.find(
-      b => b.id === (x.fromKey?.startsWith('box:') ? x.fromKey.slice(4) : x.boxId)
-    ),
-    toBox = p.installation.boxes.find(
-      b => b.id === (x.toKey?.startsWith('box:') ? x.toKey.slice(4) : x.boxId)
-    ),
-    a = fromBox?.components.find(c => c.id === x.fromComponent),
-    b = toBox?.components.find(c => c.id === x.toComponent),
+  const box = p.installation.boxes.find(b => b.id === x.boxId),
+    a = box?.components.find(c => c.id === x.fromComponent),
+    b = box?.components.find(c => c.id === x.toComponent),
     ap = a?.snapshot.ports.find(v => v.id === x.fromPort),
     bp = b?.snapshot.ports.find(v => v.id === x.toPort);
   const result = [];
@@ -1342,7 +1324,7 @@ export function connectionWarnings(p, x) {
       );
     return result;
   }
-  if (x.toKey && !x.toKey.startsWith('box:')) {
+  if (x.toKey) {
     if (!ap) return ['Source port no longer exists'];
     if (ap.direction === 'in') result.push('External route starts at an input port');
     if (x.toKey.startsWith('field:')) {
@@ -1361,7 +1343,7 @@ export function connectionWarnings(p, x) {
     return result;
   }
   if (!ap || !bp) return ['Port no longer exists'];
-  if (!['out', 'bidirectional'].includes(ap.direction) || !['in', 'bidirectional'].includes(bp.direction))
+  if (ap.direction !== 'out' || bp.direction !== 'in')
     result.push(`Expected output → input; got ${ap.direction} → ${bp.direction}`);
   if (ap.type !== bp.type && ap.type !== 'generic' && bp.type !== 'generic')
     result.push(`Expected ${bp.type.replaceAll('_', ' ')}; connected to ${ap.type.replaceAll('_', ' ')}`);
@@ -1488,15 +1470,9 @@ export function boxCapacity(p, box) {
     addResource(counts, resource, 1);
     generic.set(item.id, counts);
   };
-  for (const link of p.installation.connections.filter(
-    v => v.boxId === box.id || v.fromKey === 'box:' + box.id || v.toKey === 'box:' + box.id
-  )) {
-    const from =
-        (!link.fromKey || link.fromKey === 'box:' + box.id) &&
-        box.components.find(c => c.id === link.fromComponent),
-      to =
-        (!link.toKey || link.toKey === 'box:' + box.id) &&
-        box.components.find(c => c.id === link.toComponent);
+  for (const link of p.installation.connections.filter(v => v.boxId === box.id)) {
+    const from = box.components.find(c => c.id === link.fromComponent),
+      to = box.components.find(c => c.id === link.toComponent);
     const fromPort = from?.snapshot.ports.find(v => v.id === link.fromPort),
       toPort = to?.snapshot.ports.find(v => v.id === link.toPort);
     if (fromPort?.direction === 'out' || fromPort?.direction === 'bidirectional') track(from, fromPort);

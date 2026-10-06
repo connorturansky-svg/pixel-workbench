@@ -63,18 +63,6 @@ export function entities(p) {
     )
   ];
 }
-function fieldFootprint(device) {
-  const physical = device.snapshot.physical;
-  if (physical?.widthMm && physical?.depthMm)
-    return [Math.max(0.1, physical.widthMm / 1000), Math.max(0.1, physical.depthMm / 1000)];
-  const name = device.snapshot.name.toLowerCase();
-  if (/pressure mat|load cell/.test(name)) return [0.5, 0.3];
-  if (/display|projector/.test(name)) return [0.6, 0.25];
-  if (/speaker|moving light|fixture|fan/.test(name)) return [0.3, 0.3];
-  if (/smoke|fog|haze|bubble|snow/.test(name)) return [0.45, 0.3];
-  if (/motor|servo|actuator|solenoid|magnet/.test(name)) return [0.3, 0.15];
-  return [0.15, 0.15];
-}
 export function ensureScene(p) {
   p.props ??= [
     makeProp('smiley', 'prop-smiley'),
@@ -84,22 +72,9 @@ export function ensureScene(p) {
   p.scene ??= { width: 12, depth: 8, snap: 0.1, placements: {} };
   const es = entities(p);
   es.forEach((e, i) => {
+    if (p.scene.placements[e.key]) return;
     const isPixel = e.type === 'segment',
-      prop = p.props.find(pr => pr.id === e.o.propId),
-      fieldSize = e.type === 'field' ? fieldFootprint(e.o) : null,
-      boxSize =
-        e.type === 'box'
-          ? [
-              Math.max(0.1, (e.o.physicalWidthMm || 400) / 1000),
-              Math.max(0.1, (e.o.physicalDepthMm || 250) / 1000)
-            ]
-          : null,
-      existing = p.scene.placements[e.key];
-    if (existing) {
-      if (boxSize && existing.width === 2.4 && existing.height === 1.7)
-        [existing.width, existing.height] = boxSize;
-      return;
-    }
+      prop = p.props.find(pr => pr.id === e.o.propId);
     p.scene.placements[e.key] = {
       x: Math.min(p.scene.width - 0.5, isPixel ? 4 + (i % 3) * 2.2 : 1 + (i % 3) * 1.3),
       y: Math.min(
@@ -109,8 +84,8 @@ export function ensureScene(p) {
               Math.floor((i - p.controllers.length - p.psus.length - p.distros.length - p.aux.length) / 3) * 2
           : 1 + Math.floor(i / 3) * 1.25
       ),
-      width: prop?.width || boxSize?.[0] || fieldSize?.[0] || (isPixel ? 1.8 : 0.65),
-      height: prop?.height || boxSize?.[1] || fieldSize?.[1] || (isPixel ? 0.45 : 0.45),
+      width: prop?.width || (isPixel ? 1.8 : e.type === 'box' ? 2.4 : e.type === 'field' ? 0.7 : 0.65),
+      height: prop?.height || (isPixel ? 0.45 : e.type === 'box' ? 1.7 : e.type === 'field' ? 0.6 : 0.45),
       rotation: 0,
       color: prop?.color || PALETTE[isPixel ? p.chains.indexOf(e.chain) % PALETTE.length : i % PALETTE.length]
     };

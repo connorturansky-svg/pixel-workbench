@@ -59,6 +59,12 @@
   {"issue":40,"version":"0.65.0","title":"Room layout delete components","outcome":"shipped","at":"2026-10-02T18:35:30Z","runs":1,"model":"gpt-5.6-sol","credits":39.15,"tokensIn":291900,"tokensCached":255000,"tokensOut":5300,"seconds":99},
   {"issue":42,"version":"0.66.0","title":"Scale on room layout doesnt work","outcome":"shipped","at":"2026-10-06T11:31:03Z","runs":1,"model":"gpt-5.6-sol","credits":51.61,"tokensIn":223800,"tokensCached":175100,"tokensOut":10100,"seconds":122},
   {"issue":43,"version":"0.67.0","title":"Follow up from #42 regarding room layout scale","outcome":"shipped","at":"2026-10-06T11:55:58Z","runs":1,"model":"gpt-5.6-sol","credits":58.28,"tokensIn":290000,"tokensCached":245800,"tokensOut":13200,"seconds":143},
-  {"issue":43,"version":"0.68.0","title":"Follow up from #42 regarding room layout scale","outcome":"shipped","at":"2026-10-06T12:10:40Z","runs":1,"model":"gpt-5.6-sol","credits":96.4,"tokensIn":576500,"tokensCached":464300,"tokensOut":10900,"seconds":125}
+  {"issue":43,"version":"0.68.0","title":"Follow up from #42 regarding room layout scale","outcome":"shipped","at":"2026-10-06T12:10:40Z","runs":1,"model":"gpt-5.6-sol","credits":96.4,"tokensIn":576500,"tokensCached":464300,"tokensOut":10900,"seconds":125},
+  {"issue":43,"version":"0.69.0","title":"Follow up from #42 regarding room layout scale","outcome":"needs-info","at":"2026-10-06T12:18:57Z","runs":1,"model":"gpt-5.6-sol","credits":20.06,"tokensIn":72000,"tokensCached":41100,"tokensOut":1500,"seconds":27},
+  {"issue":44,"version":"0.70.0","title":"roll back request","outcome":"needs-info","at":"2026-10-06T13:18:15Z","runs":0,"model":"","credits":0,"tokensIn":0,"tokensCached":0,"tokensOut":0,"seconds":0},
+  {"issue":43,"version":"0.70.0","title":"Follow up from #42 regarding room layout scale","outcome":"needs-info","at":"2026-10-06T13:23:38Z","runs":1,"model":"gpt-5.6-sol","credits":8.71,"tokensIn":16700,"tokensCached":0,"tokensOut":184,"seconds":11},
+  {"issue":43,"version":"0.70.0","title":"Follow up from #42 regarding room layout scale","outcome":"declined","at":"2026-10-06T13:28:35Z","runs":1,"model":"gpt-5.6-sol","credits":7.15,"tokensIn":16800,"tokensCached":2800,"tokensOut":33,"seconds":7},
+  {"issue":44,"version":"0.70.0","title":"roll back request","outcome":"needs-info","at":"2026-10-06T13:33:24Z","runs":0,"model":"","credits":0,"tokensIn":0,"tokensCached":0,"tokensOut":0,"seconds":0},
+  {"issue":44,"version":"0.71.0","title":"roll back request","outcome":"shipped","at":"2026-10-06T14:13:35Z","runs":0,"model":"","credits":0,"tokensIn":0,"tokensCached":0,"tokensOut":0,"seconds":0}
  ]
 }
