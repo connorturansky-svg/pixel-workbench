@@ -552,5 +552,31 @@
    "mobile.png"
   ],
   "error": ""
+ },
+ {
+  "version": "v0.27.0",
+  "date": "02/10/2026",
+  "commit": "eb95c72925dc65a6fb9209467a125da6342af385",
+  "issue": 15,
+  "changelog": "Feature requests now have a Title field. The request number still leads the GitHub issue title, for example \u201c[Feature] #15 Your title\u201d.",
+  "status": "ok",
+  "shots": [
+   "01-workspace.png",
+   "02-hardware.png",
+   "03-presets.png",
+   "04-props.png",
+   "05-guide.png",
+   "06-boxes.png",
+   "07-standards.png",
+   "08-bom.png",
+   "09-suggest.png",
+   "info-arch.png",
+   "info-how.png",
+   "info-keys.png",
+   "info-new.png",
+   "info-suggest.png",
+   "mobile.png"
+  ],
+  "error": ""
  }
 ]
