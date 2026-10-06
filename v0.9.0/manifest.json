@@ -1,0 +1,25 @@
+{
+ "version": "v0.9.0",
+ "date": "02/10/2026",
+ "commit": "a35690dca5c4809ff39b2d467c92fec280cb80d3",
+ "issue": null,
+ "changelog": "Shipped feature requests now show the version they were released in, linked to that release on GitHub.",
+ "status": "ok",
+ "shots": [
+  "01-workspace.png",
+  "02-hardware.png",
+  "03-presets.png",
+  "04-props.png",
+  "05-guide.png",
+  "06-boxes.png",
+  "07-standards.png",
+  "08-bom.png",
+  "09-suggest.png",
+  "info-arch.png",
+  "info-how.png",
+  "info-keys.png",
+  "info-new.png",
+  "mobile.png"
+ ],
+ "error": ""
+}
