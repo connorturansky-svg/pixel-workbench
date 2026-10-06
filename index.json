@@ -1046,5 +1046,31 @@
    "mobile.png"
   ],
   "error": ""
+ },
+ {
+  "version": "v0.46.0",
+  "date": "02/10/2026",
+  "commit": "f63b55190bdbab16680647ef35085c495fdef306",
+  "issue": 29,
+  "changelog": "Room-layout buttons now have a colour selector, carry that colour into the bill of materials and show their connected box port beneath the device name. (suggested in #29)",
+  "status": "ok",
+  "shots": [
+   "01-workspace.png",
+   "02-hardware.png",
+   "03-presets.png",
+   "04-props.png",
+   "05-guide.png",
+   "06-boxes.png",
+   "07-standards.png",
+   "08-bom.png",
+   "09-suggest.png",
+   "info-arch.png",
+   "info-how.png",
+   "info-keys.png",
+   "info-new.png",
+   "info-suggest.png",
+   "mobile.png"
+  ],
+  "error": ""
  }
 ]
