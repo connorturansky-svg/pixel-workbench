@@ -1,6 +1,7 @@
 """Release smoke test: serve a dist/ folder, load the app in headless Chromium and visit every page and info tab.
 
 Usage: python automation/smoke.py [dist-folder] [--shots DIR]
+With --shots it writes stable names: NN-<page>.png, info-<tab>.png and mobile.png.
 Exits 0 when nothing failed; otherwise prints every problem and exits 1.
 """
 import functools
@@ -25,6 +26,11 @@ def serve(folder):
     return httpd
 
 
+def shot_name(value):
+    """Stable, filesystem-safe file stem: page:workspace -> workspace."""
+    return re.sub(r"[^a-z0-9]+", "-", value.split(":")[-1].lower()).strip("-") or "page"
+
+
 def main():
     args = list(sys.argv[1:])
     shots = None
@@ -33,6 +39,9 @@ def main():
         shots = args[i + 1]
         del args[i:i + 2]
         os.makedirs(shots, exist_ok=True)
+        for old in os.listdir(shots):
+            if old.endswith(".png"):
+                os.remove(os.path.join(shots, old))
     folder = os.path.abspath(args[0] if args else os.path.join(os.path.dirname(__file__), "..", "dist"))
     with open(os.path.join(folder, "version.mjs"), encoding="utf-8") as f:
         version = re.search(r"APP_VERSION\s*=\s*'([^']+)'", f.read()).group(1)
@@ -57,13 +66,13 @@ def main():
         navs = page.eval_on_selector_all("nav [data-action^='page:']", "els=>els.map(e=>e.dataset.action)")
         if len(navs) < 5:
             problems.append(f"only {len(navs)} navigation pages found")
-        for action in navs:
+        for number, action in enumerate(navs, 1):
             page.click(f"nav [data-action='{action}']")
             page.wait_for_timeout(250)
             if not (page.inner_text("#content") or "").strip():
                 problems.append(f"page {action} rendered no content")
             if shots:
-                page.screenshot(path=os.path.join(shots, action.replace(":", "-") + ".png"))
+                page.screenshot(path=os.path.join(shots, f"{number:02d}-{shot_name(action)}.png"))
         page.click("nav [data-action='page:workspace']")
         for mode in ("view:visual", "view:room"):
             if page.query_selector(f"[data-action='{mode}']"):
@@ -77,6 +86,8 @@ def main():
             page.click(f"#info-dialog [data-info-tab='{t}']")
             if not (page.inner_text("#info-dialog .info-body") or "").strip():
                 problems.append(f"info tab {t} is empty")
+            if shots:
+                page.screenshot(path=os.path.join(shots, f"info-{shot_name(t)}.png"))
         if "new" in tabs:
             page.click("#info-dialog [data-info-tab='new']")
             if f"v{version}" not in page.inner_text("#info-dialog .info-body"):

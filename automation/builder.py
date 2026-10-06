@@ -96,7 +96,7 @@ def run(args, cwd=None, env=None, timeout=300, check=True):
 
 
 def git(*a, cwd=None, check=True, timeout=300):
-    remote = bool(TOKEN) and a[0] in ("fetch", "ls-remote")
+    remote = bool(TOKEN) and a[0] in ("fetch", "ls-remote", "clone")
     auth = ["-c", "credential.helper=", "-c", "credential.helper=!gh auth git-credential"] if remote else []
     return run(["git", *auth, *a], cwd=cwd, env=gh_env() if remote else None,
                check=check, timeout=timeout).stdout.strip()
@@ -765,6 +765,167 @@ def publish_usage(state):
         log(f"usage.json not published: {scrub(str(e))[:200]}")
 
 
+# ---------------------------------------------------------------- per-version screenshots
+
+SHOTS_BRANCH = "screenshots"          # orphan branch; Pages never deploys it
+SHOT_NAME = re.compile(r"[\w-]+\.png")
+
+
+def api(method, path, body=None, check=True):
+    """GitHub REST call for this repository through gh, with an optional JSON body."""
+    args = ["api", "-X", method, f"repos/{REPO}/{path}"]
+    tmp = None
+    try:
+        if body is not None:
+            tmp = os.path.join(DATA_DIR, "api-body.json")
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump(body, f)
+            args += ["--input", tmp]
+        out = gh(*args, check=check, timeout=300)
+    finally:
+        if tmp and os.path.exists(tmp):
+            os.remove(tmp)
+    try:
+        return json.loads(out) if out else None
+    except ValueError:
+        return None
+
+
+def read_bytes(path):
+    with open(path, "rb") as f:
+        return f.read()
+
+
+def optimise_png(data):
+    """Smaller PNG through Pillow when it is installed; the original bytes otherwise (or when not smaller)."""
+    try:
+        import io
+        from PIL import Image
+        img = Image.open(io.BytesIO(data))
+        img.load()
+        buf = io.BytesIO()
+        img.convert("RGB").quantize(256, method=Image.Quantize.MEDIANCUT).save(buf, "PNG", optimize=True)
+        return buf.getvalue() if len(buf.getvalue()) < len(data) else data
+    except Exception:  # noqa: BLE001
+        return data
+
+
+def changelog_line(version_mjs):
+    """First item of the newest CHANGELOG entry, for the screenshots index."""
+    m = re.search(r"items:\s*\[\s*(['\"`])((?:\\.|(?!\1).)*)\1", version_mjs, re.S)
+    return re.sub(r"\s+", " ", m.group(2).replace("\\'", "'")).strip()[:300] if m else ""
+
+
+def shot_label(name):
+    stem = name[:-4]
+    return stem if stem == "mobile" else re.sub(r"^\d+-", "", stem).replace("-", " ")
+
+
+def shots_readme(index):
+    rows = sorted(index, key=lambda m: tuple(int(x) for x in m["version"].lstrip("v").split(".")), reverse=True)
+    out = ["# Pixel Workbench: screenshots per version", "",
+           "Every release is captured by the builder's release smoke test (`automation/smoke.py --shots`): every page, "
+           "every info tab and a mobile view. This branch is never deployed by Pages. Newest first.", ""]
+    for m in rows:
+        v = m["version"]
+        out += [f"## [{v}]({v}/)", ""]
+        meta = [m.get("date", "")]
+        if m.get("commit"):
+            meta.append(f"[commit {m['commit'][:7]}](https://github.com/{REPO}/commit/{m['commit']})")
+        if m.get("issue"):
+            meta.append(f"[issue #{m['issue']}](https://github.com/{REPO}/issues/{m['issue']})")
+        out += [" · ".join(x for x in meta if x), ""]
+        if m.get("changelog"):
+            out += [f"> {m['changelog']}", ""]
+        if m.get("status") != "ok" or not m.get("shots"):
+            out += [f"**Screenshots failed:** {m.get('error', 'unknown')}", ""]
+            continue
+        shots = m["shots"]
+        first = next((s for s in shots if re.match(r"\d+-", s)), shots[0])
+        thumbs = [first] + (["mobile.png"] if "mobile.png" in shots else [])
+        out += [" ".join(f'<a href="{v}/{s}"><img src="{v}/{s}" width="{240 if s == "mobile.png" else 420}" '
+                         f'alt="{v} {shot_label(s)}"></a>' for s in thumbs), ""]
+        out += ["All shots: " + " · ".join(f"[{shot_label(s)}]({v}/{s})" for s in shots), ""]
+    return "\n".join(out) + "\n"
+
+
+def shots_index(commit):
+    """Existing index.json (list of manifests) and the commit's tree, from the screenshots branch."""
+    tree = api("GET", f"git/commits/{commit}")["tree"]["sha"]
+    entries = api("GET", f"git/trees/{tree}?recursive=1").get("tree", [])
+    node = next((e for e in entries if e["path"] == "index.json"), None)
+    if not node:
+        return tree, []
+    blob = api("GET", f"git/blobs/{node['sha']}")
+    return tree, json.loads(base64.b64decode(blob["content"]).decode("utf-8"))
+
+
+def published_versions():
+    ref = api("GET", f"git/ref/heads/{SHOTS_BRANCH}", check=False)
+    if not ref or "object" not in ref:
+        return {}
+    return {m["version"]: m for m in shots_index(ref["object"]["sha"])[1]}
+
+
+def publish_shots(version, folder, meta, retries=2):
+    """One commit on the screenshots branch: vX.Y.Z/*.png + manifest.json + refreshed index.json and README.md.
+    Never overwrites a successfully published version; returns 'published', 'exists' or 'failed'."""
+    version = "v" + version.lstrip("v")
+    pngs = sorted(f for f in os.listdir(folder) if SHOT_NAME.fullmatch(f)) if os.path.isdir(folder) else []
+    manifest = dict(version=version, date=meta.get("date", ""), commit=meta.get("commit", ""),
+                    issue=meta.get("issue"), changelog=meta.get("changelog", ""),
+                    status="ok" if pngs else "failed", shots=pngs, error=meta.get("error", ""))
+    if not pngs and not manifest["error"]:
+        manifest["error"] = "no screenshots were captured"
+    for attempt in range(retries + 1):
+        ref = api("GET", f"git/ref/heads/{SHOTS_BRANCH}", check=False)
+        head = ref["object"]["sha"] if ref and "object" in ref else None
+        tree, index = shots_index(head) if head else (None, [])
+        have = next((m for m in index if m["version"] == version), None)
+        if have and have.get("status") == "ok":
+            return "exists"
+        index = [m for m in index if m["version"] != version] + [manifest]
+        files = {f"{version}/{n}": optimise_png(read_bytes(os.path.join(folder, n))) for n in pngs}
+        files[f"{version}/manifest.json"] = json.dumps(manifest, indent=1).encode()
+        files["index.json"] = json.dumps(index, indent=1).encode()
+        files["README.md"] = shots_readme(index).encode()
+        entries = []
+        for path, data in files.items():
+            blob = api("POST", "git/blobs", {"content": base64.b64encode(data).decode(), "encoding": "base64"})
+            entries.append({"path": path, "mode": "100644", "type": "blob", "sha": blob["sha"]})
+        new_tree = api("POST", "git/trees", dict({"tree": entries}, **({"base_tree": tree} if tree else {})))
+        commit = api("POST", "git/commits", {"message": f"Screenshots for {version}", "tree": new_tree["sha"],
+                                             "parents": [head] if head else []})
+        if not head:
+            api("POST", "git/refs", {"ref": f"refs/heads/{SHOTS_BRANCH}", "sha": commit["sha"]})
+            return "published"
+        # No force: a concurrent update makes this fail, and the loop starts again from the new head.
+        moved = api("PATCH", f"git/refs/heads/{SHOTS_BRANCH}", {"sha": commit["sha"], "force": False}, check=False)
+        if moved and "object" in moved:
+            return "published"
+    return "failed"
+
+
+def release_shots(version, sha, n):
+    """After a verified release: publish its smoke screenshots. A problem here only logs a warning."""
+    try:
+        if DRY:
+            return "dry-run"
+        folder = os.path.join(LOG_DIR, "shots", version)
+        try:
+            with open(os.path.join(BUILD_DIR, "dist", "version.mjs"), encoding="utf-8") as f:
+                line = changelog_line(f.read())
+        except OSError:
+            line = ""
+        result = publish_shots(version, folder, dict(date=datetime.now().strftime("%d/%m/%Y"), commit=sha,
+                                                     issue=n, changelog=line))
+        log(f"screenshots for v{version}: {result}")
+        return result
+    except Exception as e:  # noqa: BLE001
+        log(f"screenshots for v{version} not published (the release is unaffected): {scrub(str(e))[:200]}")
+        return "failed"
+
+
 def write_costs(records):
     path = os.path.join(BUILD_DIR, *COSTS.split("/"))
     try:
@@ -990,6 +1151,7 @@ def build(issue, state):
         label(n, add=["shipped"], remove=["in-progress", "tested"])
         gh("issue", "close", str(n), "-R", REPO, "--reason", "completed", check=False)
         log(f"#{n} shipped v{version}")
+        release_shots(version, sha, n)
         sync_owner()
         return dict(result, ok=True, outcome="shipped")
     except RequestDecision as e:

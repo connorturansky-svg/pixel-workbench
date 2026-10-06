@@ -6,7 +6,7 @@ import {
   SHORTCUTS,
   ARCHITECTURE_NOTES,
   SUGGEST_GUIDE
-} from './version.mjs?v=0.72.0';
+} from './version.mjs?v=0.73.0';
 
 const E = s =>
   String(s ?? '').replace(
@@ -53,7 +53,7 @@ ${box(410, 410, 180, 40, 'Project JSON', 'export / import backup', 'store')}
 ${box(610, 410, 180, 40, 'Guide · CSV · BOM', 'print & field sheets', 'store')}
 ${line(300, 376, 300, 408)}${line(500, 376, 500, 408)}${line(700, 376, 700, 408)}
 <rect class="arch-zone" x="10" y="474" width="800" height="76" rx="10"/><text class="z" x="24" y="494">FEATURE REQUESTS</text>
-${box(30, 500, 150, 42, 'GitHub issue', '#n title, replies', 'host')}${box(215, 500, 175, 42, 'builder.py (build PC)', 'allowed target / feature', 'core')}${box(425, 500, 170, 42, 'Restore / Copilot', 'any verified tag / AI', 'calc')}${box(630, 500, 165, 42, 'Checks + push', 'tests, cost, new tag, Pages', 'host')}
+${box(30, 500, 150, 42, 'GitHub issue', '#n title, replies', 'host')}${box(215, 500, 175, 42, 'builder.py (build PC)', 'allowed target / feature', 'core')}${box(425, 500, 170, 42, 'Restore / Copilot', 'any verified tag / AI', 'calc')}${box(630, 500, 165, 42, 'Checks + push', 'tests, cost, tag, Pages, shots', 'host')}
 ${line(180, 521, 213, 521)}${line(390, 521, 423, 521)}${line(595, 521, 628, 521)}
 </svg>`;
 }

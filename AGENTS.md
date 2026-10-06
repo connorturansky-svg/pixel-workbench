@@ -13,7 +13,7 @@ Pixel Workbench is a static, no-build web app. `dist/` holds the app source as p
 - Don't hand-edit the `?v=` cache-busting query strings. `node stamp-version.mjs` restamps them. It fails if the newest changelog entry is not `APP_VERSION` with a valid date.
 - Checks: `node check.mjs` runs them all quietly and prints `OK` or only the failure:
   - `node stamp-version.mjs`, then `node verify.mjs` and `node verify-installation.mjs`.
-  - `python automation\smoke.py dist` loads every page and info tab in a headless browser and fails on any script error.
+  - `python automation\smoke.py dist` loads every page and info tab in a headless browser and fails on any script error. With `--shots DIR` it also writes the per-version screenshots (`NN-<page>.png`, `info-<tab>.png`, `mobile.png`) that the trusted builder publishes to the `screenshots` branch after a release. Do not touch that branch or the shot naming.
 - UI:
   - Reuse the existing classes and CSS custom properties (`--ink`, `--muted`, `--line`, `--green`, `--mint`, `--orange`, `.panel`, `.btn`, `.btn.primary`, `.text-btn`).
   - Keep 4.5:1 text contrast and keyboard access, and support narrow screens (the existing `@media` breakpoints).

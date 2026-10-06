@@ -1,6 +1,9 @@
 """Offline builder regressions. Never call GitHub, Copilot, the installed builder or a live rollback."""
+import base64
+import hashlib
 import importlib.util
 import json
+import sys
 from pathlib import Path
 import subprocess
 import tempfile
@@ -266,7 +269,7 @@ class BuildFlowTests(unittest.TestCase):
         self.patches = []
         self.mocks = {}
         for name in ("ensure_worktree", "save_state", "label", "comment", "log", "rollback", "sync_owner",
-                     "download_images", "download_documents", "copilot", "checks", "push", "wait_live", "write_costs", "gh"):
+                     "download_images", "download_documents", "copilot", "checks", "push", "wait_live", "write_costs", "gh", "release_shots"):
             p = patch.object(b, name)
             self.patches.append(p)
             self.mocks[name] = p.start()
@@ -346,6 +349,198 @@ class BuildFlowTests(unittest.TestCase):
             self.assertIn("off limits", real_checks("0.69.0"))
         with patch.object(b, "changed", return_value=["README.md"]), patch.object(b, "new_network_code", return_value=True):
             self.assertIn("network", real_checks("0.69.0"))
+
+
+class FakeRepo:
+    """In-memory Git Data API for the screenshots branch (no network, no gh)."""
+    def __init__(self, fail_on=None):
+        self.blobs, self.trees, self.commits, self.refs, self.calls = {}, {}, {}, {}, []
+        self.fail_on = fail_on
+
+    def __call__(self, method, path, body=None, check=True):
+        self.calls.append((method, path))
+        if self.fail_on and self.fail_on in path:
+            raise RuntimeError("api down")
+        if method == "GET" and path.startswith("git/ref/heads/"):
+            ref = self.refs.get(path.split("/")[-1])
+            return {"object": {"sha": ref}} if ref else {"message": "Not Found"}
+        if method == "GET" and path.startswith("git/commits/"):
+            return {"tree": {"sha": self.commits[path.split("/")[-1]]["tree"]}}
+        if method == "GET" and path.startswith("git/trees/"):
+            sha = path.split("/")[2].split("?")[0]
+            return {"tree": [{"path": k, "sha": v} for k, v in self.trees[sha].items()]}
+        if method == "GET" and path.startswith("git/blobs/"):
+            return {"content": base64.b64encode(self.blobs[path.split("/")[-1]]).decode()}
+        if method == "POST" and path == "git/blobs":
+            data = base64.b64decode(body["content"])
+            sha = hashlib.sha1(data).hexdigest()
+            self.blobs[sha] = data
+            return {"sha": sha}
+        if method == "POST" and path == "git/trees":
+            files = dict(self.trees[body["base_tree"]]) if body.get("base_tree") else {}
+            files.update({e["path"]: e["sha"] for e in body["tree"]})
+            sha = hashlib.sha1(json.dumps(files, sort_keys=True).encode()).hexdigest()
+            self.trees[sha] = files
+            return {"sha": sha}
+        if method == "POST" and path == "git/commits":
+            sha = hashlib.sha1(json.dumps(body, sort_keys=True).encode()).hexdigest()
+            self.commits[sha] = body
+            return {"sha": sha}
+        if method == "POST" and path == "git/refs":
+            self.refs[body["ref"].split("/")[-1]] = body["sha"]
+            return {"object": {"sha": body["sha"]}}
+        if method == "PATCH":
+            assert body["force"] is False
+            self.refs[path.split("/")[-1]] = body["sha"]
+            return {"object": {"sha": body["sha"]}}
+        raise AssertionError((method, path))
+
+    def files(self):
+        return {k: self.blobs[v] for k, v in self.trees[self.commits[self.refs["screenshots"]]["tree"]].items()}
+
+
+class ScreenshotTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.folder = Path(self.temp.name)
+        for name in ("01-workspace.png", "09-suggest.png", "info-how.png", "mobile.png"):
+            (self.folder / name).write_bytes(b"\x89PNG fake " + name.encode())
+        self.repo = FakeRepo()
+        self.patch = patch.object(b, "api", self.repo)
+        self.patch.start()
+        self.opt = patch.object(b, "optimise_png", side_effect=lambda data: data)
+        self.opt.start()
+
+    def tearDown(self):
+        self.opt.stop()
+        self.patch.stop()
+        self.temp.cleanup()
+
+    def meta(self, **extra):
+        return dict({"date": "06/10/2026", "commit": "c" * 40, "issue": 44, "changelog": "Restored v0.61.0."}, **extra)
+
+    def test_publishes_folder_manifest_index_and_readme_in_one_commit(self):
+        self.assertEqual(b.publish_shots("0.71.0", str(self.folder), self.meta()), "published")
+        files = self.repo.files()
+        self.assertEqual(sorted(k for k in files if k.startswith("v0.71.0/")),
+                         ["v0.71.0/01-workspace.png", "v0.71.0/09-suggest.png", "v0.71.0/info-how.png",
+                          "v0.71.0/manifest.json", "v0.71.0/mobile.png"])
+        manifest = json.loads(files["v0.71.0/manifest.json"])
+        self.assertEqual((manifest["version"], manifest["issue"], manifest["status"]), ("v0.71.0", 44, "ok"))
+        self.assertEqual(manifest["commit"], "c" * 40)
+        self.assertEqual(len(self.repo.commits), 1)
+        self.assertEqual(self.repo.commits[self.repo.refs["screenshots"]]["parents"], [])
+
+    def test_readme_is_newest_first_with_thumbnails_and_links(self):
+        for version in ("0.9.0", "0.71.0", "0.70.0"):
+            b.publish_shots(version, str(self.folder), self.meta())
+        readme = self.repo.files()["README.md"].decode()
+        self.assertLess(readme.index("[v0.71.0]"), readme.index("[v0.70.0]"))
+        self.assertLess(readme.index("[v0.70.0]"), readme.index("[v0.9.0]"))
+        self.assertIn('<img src="v0.71.0/01-workspace.png"', readme)
+        self.assertIn('<img src="v0.71.0/mobile.png"', readme)
+        self.assertIn("[info how](v0.71.0/info-how.png)", readme)
+        self.assertIn("/commit/" + "c" * 40, readme)
+        self.assertIn("/issues/44", readme)
+        self.assertIn("> Restored v0.61.0.", readme)
+        self.assertEqual(len(self.repo.commits), 3)
+        self.assertEqual(self.repo.commits[self.repo.refs["screenshots"]]["parents"][0] in self.repo.commits, True)
+
+    def test_existing_version_is_never_overwritten(self):
+        b.publish_shots("0.71.0", str(self.folder), self.meta())
+        head, blobs = self.repo.refs["screenshots"], len(self.repo.blobs)
+        (self.folder / "mobile.png").write_bytes(b"changed")
+        self.assertEqual(b.publish_shots("v0.71.0", str(self.folder), self.meta()), "exists")
+        self.assertEqual((self.repo.refs["screenshots"], len(self.repo.blobs)), (head, blobs))
+        self.assertIn(b"fake mobile.png", self.repo.files()["v0.71.0/mobile.png"])
+
+    def test_failed_version_is_recorded_then_can_be_retried(self):
+        self.assertEqual(b.publish_shots("0.5.0", str(self.folder / "missing"), {"error": "smoke failed"}), "published")
+        index = json.loads(self.repo.files()["index.json"])
+        self.assertEqual((index[0]["status"], index[0]["error"]), ("failed", "smoke failed"))
+        self.assertIn("Screenshots failed", self.repo.files()["README.md"].decode())
+        self.assertEqual(b.published_versions()["v0.5.0"]["status"], "failed")
+        self.assertEqual(b.publish_shots("0.5.0", str(self.folder), self.meta()), "published")
+        index = json.loads(self.repo.files()["index.json"])
+        self.assertEqual([m["status"] for m in index], ["ok"])
+
+    def test_png_optimiser_falls_back_to_original_bytes(self):
+        self.opt.stop()
+        try:
+            self.assertEqual(b.optimise_png(b"not a png"), b"not a png")
+        finally:
+            self.opt.start()
+
+    def test_changelog_line_reads_newest_entry(self):
+        text = "export const CHANGELOG = [\n  {\n    version: '0.71.0',\n    items: [\n      'It\\'s restored. (suggested in #44)',\n      'second'\n    ]\n  },\n  {items: ['older']}"
+        self.assertEqual(b.changelog_line(text), "It's restored. (suggested in #44)")
+
+    def test_publish_failure_never_blocks_or_rolls_back_a_release(self):
+        self.repo.fail_on = "git/blobs"
+        with patch.object(b, "log") as log, patch.object(b, "LOG_DIR", str(self.folder)), \
+                patch.object(b, "BUILD_DIR", str(self.folder)):
+            os_folder = self.folder / "shots" / "0.71.0"
+            os_folder.mkdir(parents=True, exist_ok=True)
+            (os_folder / "mobile.png").write_bytes(b"png")
+            self.assertEqual(b.release_shots("0.71.0", "d" * 40, 44), "failed")
+        self.assertIn("release is unaffected", log.call_args.args[0])
+
+    def test_shipped_build_publishes_after_live_and_a_failure_is_only_a_warning(self):
+        flow = BuildFlowTests("test_normal_feature_still_invokes_agent")
+        flow.setUp()
+        try:
+            order = []
+            flow.mocks["wait_live"].side_effect = lambda *a: order.append("live")
+            flow.mocks["release_shots"].side_effect = lambda *a: order.append("shots")
+            with patch.object(b, "prepare_restore", return_value="Restored"):
+                result = b.build(issue(), flow.state)
+            self.assertTrue(result["ok"])
+            self.assertEqual(order, ["live", "shots"])
+            flow.mocks["release_shots"].side_effect = RuntimeError("boom")
+            flow.mocks["release_shots"].assert_called_once()
+        finally:
+            flow.tearDown()
+
+    def test_failed_deploy_publishes_no_screenshots(self):
+        flow = BuildFlowTests("test_normal_feature_still_invokes_agent")
+        flow.setUp()
+        try:
+            flow.mocks["wait_live"].return_value = "the Pages deploy failed"
+            with patch.object(b, "prepare_restore", return_value="Restored"):
+                b.build(issue(), flow.state)
+            flow.mocks["release_shots"].assert_not_called()
+        finally:
+            flow.tearDown()
+
+    def test_backfill_script_skips_done_tags_and_records_failures(self):
+        spec = importlib.util.spec_from_file_location("backfill", Path(__file__).with_name("backfill-shots.py"))
+        backfill = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(backfill)
+        b.publish_shots("0.1.0", str(self.folder), self.meta())
+        seen = []
+
+        def capture(tag, work):
+            seen.append(tag)
+            if tag == "v0.3.0":
+                raise RuntimeError("smoke exploded")
+            return str(self.folder), self.meta()
+        with patch.object(backfill, "release_tags", return_value=["v0.1.0", "v0.2.0", "v0.3.0", "v0.4.0"]), \
+                patch.object(backfill, "refresh_cache"), patch.object(backfill, "capture", side_effect=capture), \
+                patch.object(backfill.b, "run", return_value=Mock(stdout="token")), \
+                patch.object(backfill.b, "api", self.repo), patch.object(backfill.b, "optimise_png", side_effect=lambda d: d), \
+                patch.object(sys, "argv", ["backfill-shots.py"]):
+            code = backfill.main()
+        self.assertEqual(seen, ["v0.2.0", "v0.3.0", "v0.4.0"])
+        self.assertEqual(code, 1)
+        status = {m["version"]: m["status"] for m in b.published_versions().values()}
+        self.assertEqual(status, {"v0.1.0": "ok", "v0.2.0": "ok", "v0.3.0": "failed", "v0.4.0": "ok"})
+        seen.clear()
+        with patch.object(backfill, "release_tags", return_value=["v0.1.0", "v0.2.0", "v0.3.0", "v0.4.0"]), \
+                patch.object(backfill, "refresh_cache"), patch.object(backfill, "capture", side_effect=capture), \
+                patch.object(backfill.b, "run", return_value=Mock(stdout="token")), \
+                patch.object(backfill.b, "api", self.repo), patch.object(sys, "argv", ["backfill-shots.py"]):
+            backfill.main()
+        self.assertEqual(seen, [])
 
 
 if __name__ == "__main__":
