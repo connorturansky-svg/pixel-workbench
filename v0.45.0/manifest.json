@@ -1,0 +1,26 @@
+{
+ "version": "v0.45.0",
+ "date": "02/10/2026",
+ "commit": "17b149b4c0e31db263c6cc0e4190a9e55d3ce705",
+ "issue": 28,
+ "changelog": "Room layout controller boxes now use compact component names with their icons, shorter edge-port labels and colour-coded port-type rings while retaining full details on hover. (suggested in #28)",
+ "status": "ok",
+ "shots": [
+  "01-workspace.png",
+  "02-hardware.png",
+  "03-presets.png",
+  "04-props.png",
+  "05-guide.png",
+  "06-boxes.png",
+  "07-standards.png",
+  "08-bom.png",
+  "09-suggest.png",
+  "info-arch.png",
+  "info-how.png",
+  "info-keys.png",
+  "info-new.png",
+  "info-suggest.png",
+  "mobile.png"
+ ],
+ "error": ""
+}
