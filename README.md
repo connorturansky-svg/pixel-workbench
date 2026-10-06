@@ -8,6 +8,16 @@ Every release is captured by the builder's release smoke test (`automation/smoke
 
 **Screenshots failed:** gh api -X failed: Post "https://api.github.com/repos/connorturansky-svg/pixel-workbench/git/blobs": read tcp 192.168.0.199:60374->20.26.156.210:443: wsarecv: An existing connection was forcibly closed
 
+## [v0.24.0](v0.24.0/)
+
+02/10/2026 · [commit 0387fa8](https://github.com/connorturansky-svg/pixel-workbench/commit/0387fa8c6166b2aa10df379b7cd4ba9bd8a9d487) · [issue #12](https://github.com/connorturansky-svg/pixel-workbench/issues/12)
+
+> Controller boxes now use reusable Small, Medium and Large enclosure sizes in centimetres. Custom sizes can be managed in the device-local Standards library, box templates retain their enclosure dimensions, and the Box details panel scrolls independently. (suggested in #12)
+
+<a href="v0.24.0/01-workspace.png"><img src="v0.24.0/01-workspace.png" width="420" alt="v0.24.0 workspace"></a> <a href="v0.24.0/mobile.png"><img src="v0.24.0/mobile.png" width="240" alt="v0.24.0 mobile"></a>
+
+All shots: [workspace](v0.24.0/01-workspace.png) · [hardware](v0.24.0/02-hardware.png) · [presets](v0.24.0/03-presets.png) · [props](v0.24.0/04-props.png) · [guide](v0.24.0/05-guide.png) · [boxes](v0.24.0/06-boxes.png) · [standards](v0.24.0/07-standards.png) · [bom](v0.24.0/08-bom.png) · [suggest](v0.24.0/09-suggest.png) · [info arch](v0.24.0/info-arch.png) · [info how](v0.24.0/info-how.png) · [info keys](v0.24.0/info-keys.png) · [info new](v0.24.0/info-new.png) · [mobile](v0.24.0/mobile.png)
+
 ## [v0.23.0](v0.23.0/)
 
 02/10/2026 · [commit b1777c1](https://github.com/connorturansky-svg/pixel-workbench/commit/b1777c1d92d4bdc04d24730d4ca4133ec63760dc) · [issue #11](https://github.com/connorturansky-svg/pixel-workbench/issues/11)
