@@ -1,6 +1,6 @@
-import { ensureScene } from './layout-model.mjs?v=0.71.0';
-import { roomView, propsView, installRoom } from './room.js?v=0.71.0';
-import { wiringGraph, installGraph, drawGraph } from './wiring-graph.mjs?v=0.71.0';
+import { ensureScene } from './layout-model.mjs?v=0.72.0';
+import { roomView, propsView, installRoom } from './room.js?v=0.72.0';
+import { wiringGraph, installGraph, drawGraph } from './wiring-graph.mjs?v=0.72.0';
 import {
   defaultLibrary,
   ensureLibrary,
@@ -12,22 +12,21 @@ import {
   componentPlacement,
   routeSpecs,
   routeGeometry,
-  routeIssues,
-  projectCapacity
-} from './installation-model.mjs?v=0.71.0';
+  routeIssues
+} from './installation-model.mjs?v=0.72.0';
 import {
-  boxBuilderView,
+  boxesView,
   standardsView,
   bomView,
   installInstallation,
   drawBoxConnections,
   openBox,
   physicalIssues
-} from './installation-ui.mjs?v=0.71.0';
-import { APP_VERSION } from './version.mjs?v=0.71.0';
-import { installInfo } from './info.mjs?v=0.71.0';
-import { suggestView, installSuggest, afterSuggestRender, bellHtml } from './suggest.mjs?v=0.71.0';
-import { createDemoProject } from './demo-project.mjs?v=0.71.0';
+} from './installation-ui.mjs?v=0.72.0';
+import { APP_VERSION } from './version.mjs?v=0.72.0';
+import { installInfo } from './info.mjs?v=0.72.0';
+import { suggestView, installSuggest, afterSuggestRender, bellHtml } from './suggest.mjs?v=0.72.0';
+import { createDemoProject } from './demo-project.mjs?v=0.72.0';
 import {
   tailoredInitial,
   calculate,
@@ -38,7 +37,7 @@ import {
   PSU_MODELS,
   newSegment,
   uid
-} from './model.mjs?v=0.71.0';
+} from './model.mjs?v=0.72.0';
 const testing = new URLSearchParams(location.search).has('test');
 let project = tailoredInitial(),
   view = 'room',
@@ -165,13 +164,9 @@ function notifications(r) {
 }
 function render() {
   const migrated = migrateInfrastructure(project, library);
-  const linkedControllers = linkBoxControllers();
   ensureScene(project);
   const r = calculate(project);
-  const capacity = projectCapacity(project),
-    inputPorts = (capacity.capacity.digitalInputs || 0) + (capacity.capacity.analogueInputs || 0);
-  if (!project.chains.some(c => c.id === selected))
-    selected = project.chains.find(c => c.controller)?.id || project.chains[0]?.id;
+  if (!project.chains.some(c => c.id === selected)) selected = project.chains[0]?.id;
   if (active()) si = Math.min(si, active().segments.length - 1);
   const pages = [
     ['workspace', '⌁', 'Wiring workspace'],
@@ -179,18 +174,18 @@ function render() {
     ['presets', '▧', 'Pixel presets'],
     ['props', '◉', 'Props'],
     ['guide', '☷', 'Wiring guide'],
-    ['boxes', '▣', 'Box builder'],
+    ['boxes', '▣', 'Controller boxes'],
     ['standards', '⌁', 'Standards'],
     ['bom', '☷', 'Bill of materials'],
     ['suggest', '✦', 'Suggest a feature']
   ];
   if (!pages.some(x => x[0] === page)) page = 'workspace';
   $('#app').innerHTML =
-    `<aside class="sidebar"><a class="brand" href="#" data-action="page:workspace"><span class="brandmark">▦</span><span>pixel<span class="light">workbench</span></span></a><button type="button" class="brand-version" data-info="new" title="What's new in v${APP_VERSION}">v${APP_VERSION}</button><div class="workspace-label">YOUR WORKSPACE</div><div class="project-card"><span class="project-icon">P</span><div><strong>${esc(project.name)}</strong><small>${demo ? 'DEMO MODE' : '12 V pixel system'}</small></div></div><nav aria-label="Main navigation">${pages.map(([id, ic, label]) => btn(`<span class="nav-icon">${ic}</span>${label}`, 'page:' + id, 'nav ' + (id === page ? 'active' : ''), id === page ? 'aria-current="page"' : '')).join('')}</nav></aside><main><header class="topbar"><div class="crumb">Projects <span>/</span> ${esc(project.name)}</div><div class="top-actions"><span class="local-label">${storageOK ? 'Saved on this device' : 'Save a JSON backup'}</span>${btn('↓ Save project', 'export', 'btn')}${btn('↑ Open', 'import', 'btn')}${btn('↗ Wiring guide', 'page:guide', 'btn')}${demo ? btn('Exit demo', 'exit-demo', 'btn') : btn('Open demo', 'open-demo', 'btn')}${btn('Blank project', 'blank-project', 'btn danger')}${bellHtml()}<button type="button" class="info-btn" data-info="how" title="Info: how to use, what's new, architecture, shortcuts" aria-label="Info">i</button></div></header>${notifications(r)}<section class="page-head"><div><div class="eyebrow">PLAN • WIRE • DEPLOY</div><h1>${pages.find(x => x[0] === page)[2]}</h1><p>${{ workspace: 'Every connection, with the power to back it up.', hardware: 'Give every circuit a source.', presets: 'Your repeatable building blocks.', props: 'Pixel shapes, built for your space.', guide: 'A build sheet for the workbench and the field.', boxes: 'Build controller enclosures and custom button boxes in separate tools.', standards: 'Reusable cables and hardware for every project.', bom: 'A practical packing and ordering list.', suggest: 'Describe an idea. Every request is built, tested and published automatically.' }[page]}</p></div>${page === 'hardware' ? btn('+ Add controller', 'add-controller', 'btn primary') : page === 'suggest' || page === 'boxes' ? '' : btn('+ Controller box', 'new-box-main', 'btn primary')}</section>${page === 'suggest' ? '' : `<div class="summary"><div><span>ADDRESSABLE DEVICES</span><strong>${r.pixels.toLocaleString()} <small>of ${(capacity.capacity.pixels || 0).toLocaleString()} capacity</small></strong></div><div><span>ESTIMATED LOAD</span><strong>${fmt(r.watts)} <small>W at ${project.brightness}%</small></strong></div><div><span>PSU DESIGN BUDGET</span><strong>${fmt(((capacity.capacity.psuWatts || 0) * project.headroom) / 100, 0)} <small>W total</small></strong></div><div><span>INPUT / AUDIO PORTS</span><strong>${inputPorts} <small>inputs · ${capacity.capacity.audioOutputs || 0} audio</small></strong></div><div><span>PLAN CHECKS</span><strong class="amber">${r.warnings.filter(w => w.level !== 'info').length} <small>+ ${r.warnings.filter(w => w.level === 'info').length} assumptions</small></strong></div></div>`}<section id="content">${{ workspace: () => workspace(r), hardware: () => hardware(r), presets: () => presets(), props: () => propsView(project), guide: () => guide(r), boxes: () => boxBuilderView(project, library), standards: () => standardsView(library), bom: () => bomView(project), suggest: () => suggestView() }[page]()}</section><footer><span><i class="status-dot"></i> Changes sync across views</span><span>DC planning estimates • Verify against your actual hardware</span></footer></main><dialog id="modal"></dialog>`;
+    `<aside class="sidebar"><a class="brand" href="#" data-action="page:workspace"><span class="brandmark">▦</span><span>pixel<span class="light">workbench</span></span></a><button type="button" class="brand-version" data-info="new" title="What's new in v${APP_VERSION}">v${APP_VERSION}</button><div class="workspace-label">YOUR WORKSPACE</div><div class="project-card"><span class="project-icon">P</span><div><strong>${esc(project.name)}</strong><small>${demo ? 'DEMO MODE' : '12 V pixel system'}</small></div></div><nav aria-label="Main navigation">${pages.map(([id, ic, label]) => btn(`<span class="nav-icon">${ic}</span>${label}`, 'page:' + id, 'nav ' + (id === page ? 'active' : ''), id === page ? 'aria-current="page"' : '')).join('')}</nav></aside><main><header class="topbar"><div class="crumb">Projects <span>/</span> ${esc(project.name)}</div><div class="top-actions"><span class="local-label">${storageOK ? 'Saved on this device' : 'Save a JSON backup'}</span>${btn('↓ Save project', 'export', 'btn')}${btn('↑ Open', 'import', 'btn')}${btn('↗ Wiring guide', 'page:guide', 'btn')}${demo ? btn('Exit demo', 'exit-demo', 'btn') : btn('Open demo', 'open-demo', 'btn')}${btn('Blank project', 'blank-project', 'btn danger')}${bellHtml()}<button type="button" class="info-btn" data-info="how" title="Info: how to use, what's new, architecture, shortcuts" aria-label="Info">i</button></div></header>${notifications(r)}<section class="page-head"><div><div class="eyebrow">PLAN • WIRE • DEPLOY</div><h1>${pages.find(x => x[0] === page)[2]}</h1><p>${{ workspace: 'Every connection, with the power to back it up.', hardware: 'Give every circuit a source.', presets: 'Your repeatable building blocks.', props: 'Pixel shapes, built for your space.', guide: 'A build sheet for the workbench and the field.', boxes: 'Arrange and connect the parts inside each installation box.', standards: 'Reusable cables and hardware for every project.', bom: 'A practical packing and ordering list.', suggest: 'Describe an idea. Every request is built, tested and published automatically.' }[page]}</p></div>${page === 'hardware' ? btn('+ Add controller', 'add-controller', 'btn primary') : page === 'suggest' ? '' : btn('+ Controller box', 'new-box-main', 'btn primary')}</section>${page === 'suggest' ? '' : `<div class="summary"><div><span>ADDRESSABLE DEVICES</span><strong>${r.pixels.toLocaleString()} <small>across ${project.chains.length} ports</small></strong></div><div><span>ESTIMATED LOAD</span><strong>${fmt(r.watts)} <small>W at ${project.brightness}%</small></strong></div><div><span>PSU DESIGN BUDGET</span><strong>${fmt((project.psus.reduce((n, p) => n + p.watts, 0) * project.headroom) / 100, 0)} <small>W total</small></strong></div><div><span>PLAN CHECKS</span><strong class="amber">${r.warnings.filter(w => w.level !== 'info').length} <small>+ ${r.warnings.filter(w => w.level === 'info').length} assumptions</small></strong></div></div>`}<section id="content">${{ workspace: () => workspace(r), hardware: () => hardware(r), presets: () => presets(), props: () => propsView(project), guide: () => guide(r), boxes: () => boxesView(project, library), standards: () => standardsView(library), bom: () => bomView(project), suggest: () => suggestView() }[page]()}</section><footer><span><i class="status-dot"></i> Changes sync across views</span><span>DC planning estimates • Verify against your actual hardware</span></footer></main><dialog id="modal"></dialog>`;
   if (view === 'visual' && page === 'workspace') requestAnimationFrame(drawGraph);
   if (page === 'boxes') requestAnimationFrame(drawBoxConnections);
   if (page === 'suggest') afterSuggestRender();
-  if (migrated || linkedControllers) save();
+  if (migrated) save();
 }
 function checks(r) {
   return `<details class="checks panel" open><summary class="checks-title"><h3>Plan checks <span>${r.warnings.length}</span></h3><small>Includes 100% white checks</small></summary><div class="scroll-list">${r.warnings.map(w => `<div class="check"><span class="check-icon ${w.level}">${w.level === 'info' ? 'i' : '!'}</span><div><strong>${esc(w.title)}</strong><p>${esc(w.detail)}</p></div>${w.chain ? btn('View', 'select:' + w.chain, 'text-btn') : ''}</div>`).join('') || '<p class="empty">No calculated limits exceeded. Verify the assumptions before building.</p>'}</div></details>`;
@@ -214,7 +209,7 @@ function visual(r) {
   return wiringGraph(project, r);
 }
 function tableView(r) {
-  return `<div class="panel table-panel"><table><thead><tr><th>Port</th><th>Chain</th><th>Load</th><th>Channels</th></tr></thead><tbody>${project.chains.map(ch => `<tr class="${ch.id === selected ? 'row-selected' : ''}"><td>${btn(ch.controller ? 'P' + ch.port : '!', 'select:' + ch.id, 'port-button')}</td><td>${btn(esc(ch.name), 'select:' + ch.id, 'text-btn')}<small>${esc(project.controllers.find(c => c.id === ch.controller)?.name || 'Not connected')} · ${ch.segments.length} segments</small></td><td>${fmt(r.chains[ch.id].watts)} W</td><td>${r.chains[ch.id].start}–${r.chains[ch.id].end}</td></tr>`).join('')}</tbody></table>${!project.chains.length ? '<p class="empty">Add an output to begin.</p>' : ''}</div>`;
+  return `<div class="panel table-panel"><table><thead><tr><th>Port</th><th>Chain</th><th>Load</th><th>Channels</th></tr></thead><tbody>${project.chains.map(ch => `<tr class="${ch.id === selected ? 'row-selected' : ''}"><td>${btn('P' + ch.port, 'select:' + ch.id, 'port-button')}</td><td>${btn(esc(ch.name), 'select:' + ch.id, 'text-btn')}<small>${esc(project.controllers.find(c => c.id === ch.controller).name)} · ${ch.segments.length} segments</small></td><td>${fmt(r.chains[ch.id].watts)} W</td><td>${r.chains[ch.id].start}–${r.chains[ch.id].end}</td></tr>`).join('')}</tbody></table>${!project.chains.length ? '<p class="empty">Add an output to begin.</p>' : ''}</div>`;
 }
 function chainDetail(r) {
   const ch = active();
@@ -231,8 +226,6 @@ function inspector(r) {
     path = `chains.${ci}`,
     sp = `${path}.segments.${si}`,
     sr = r.chains[ch.id].segments.find(x => x.id === s.id);
-  if (!c)
-    return `<div class="inspector-body"><div class="check"><span class="check-icon warn">!</span><div><strong>Not connected</strong><p>In Room layout, route this pixel group from a box pixel output.</p></div></div><div class="inspector-actions">${btn('Remove output', 'remove-chain', 'text-btn danger')}</div></div>`;
   return `<div class="inspector-body">${inp('Output name', ch.name, `${path}.name`, { text: true })}<div class="two">${sel(
     'Controller',
     ch.controller,
@@ -362,7 +355,6 @@ function sourceFor(ch, s, r) {
   const cr = r.chains[ch.id],
     sr = cr.segments.find(x => x.id === s.id),
     ps = project.psus.find(p => p.id === sr?.source);
-  if (!ch.controller) return 'Not connected';
   return s.inject
     ? `${project.distros.find(d => d.id === s.distro)?.name} / ${ps?.name}`
     : `${ps?.name} via ${ch.segments[0].id === s.id ? 'Baldrick bank ' + (cr.bank + 1) : 'upstream section'}`;
@@ -378,10 +370,10 @@ function guide(r) {
   return `<div class="guide-actions">${btn('Print / save PDF', 'print', 'btn primary')}${btn('↓ Channel / port CSV', 'csv', 'btn')}${btn('↓ Project JSON', 'export', 'btn')}</div><article class="guide panel"><div class="guide-title"><div class="eyebrow">PIXEL WORKBENCH · BUILD SHEET</div><h2>${esc(project.name)}</h2><p>12 V DC · ${project.brightness}% planning brightness · ${r.channels} channels<br>${fmt(r.watts)} W estimated / ${fmt(r.fullWatts)} W full white</p></div><div class="notice">Planning draft · ${r.warnings.length} checks / assumptions. Confirm actual pixel power, cables, PSU model and bank limits before wiring. This guide does not configure FPP.</div><h3>01 / Power inventory</h3><div class="table-panel"><table><thead><tr><th>Supply</th><th>Model / rating</th><th>Planned / full white</th></tr></thead><tbody>${project.psus.map(p => `<tr><td>${esc(p.name)}</td><td>${esc(PSU_MODELS[p.model].name)}<br>12 V · ${p.watts} W</td><td>${fmt(r.psus[p.id].watts)} / ${fmt(r.psus[p.id].fullWatts)} W</td></tr>`).join('')}</tbody></table></div><h3>02 / Controller bank feeds</h3>${project.controllers.map(c => `<p><strong>${esc(c.name)} · ${BOARDS[c.model].name} · ${esc(c.host || 'IP unassigned')}</strong><br>${c.bankPsus.map((id, b) => `Bank ${b + 1}, ports ${b * 4 + 1}–${Math.min(b * 4 + 4, BOARDS[c.model].ports)} ← ${esc(project.psus.find(p => p.id === id)?.name)} DC ${c.bankPsuPorts[b]} · ${c.bankM[b]} m / ${c.bankAwg[b]} AWG · limit ${c.bankLimits[b] ? c.bankLimits[b] + ' A' : 'UNCONFIRMED'}`).join('<br>')}</p>`).join('')}<h3>03 / Distro feeds</h3>${project.distros.map(d => `<p><strong>${esc(d.name)}</strong> ← ${esc(project.psus.find(p => p.id === d.psu)?.name)} DC ${d.psuPort} · ${d.outputs} outputs · ${d.amps} A total · ${d.fuse} A/output ceiling.</p>`).join('')}<h3>04 / Data chains & power sections</h3>${project.chains
     .map(
       ch =>
-        `<section class="guide-chain"><h4>${ch.controller ? 'P' + ch.port : 'NOT CONNECTED'} · ${esc(ch.name)} <span>CH ${r.chains[ch.id].start}–${r.chains[ch.id].end}</span></h4><p>Data from ${esc(project.controllers.find(c => c.id === ch.controller)?.name || 'no assigned pixel output')}. Keep devices in this order.</p><ol>${ch.segments
+        `<section class="guide-chain"><h4>P${ch.port} · ${esc(ch.name)} <span>CH ${r.chains[ch.id].start}–${r.chains[ch.id].end}</span></h4><p>Data from ${esc(project.controllers.find(c => c.id === ch.controller).name)}. Keep devices in this order.</p><ol>${ch.segments
           .map((s, i) => {
             const n = s.inject ? s.distroPort : 0;
-            return `<li><strong>${s.count} ${s.kind}${s.count > 1 ? 's' : ''} · ${s.watts} W each · ${s.channels} channels/device</strong><br>Data lead: ${s.leadM} m / ${s.leadAwg} AWG. String: ${s.spacing} m pitch / ${s.stringAwg} AWG.<br>Power: ${esc(sourceFor(ch, s, r))}${s.inject ? ` · distro output ${n} · ${s.feedM} m / ${s.feedAwg} AWG · ${s.fuse} A fuse.<br><strong class="amber">Disconnect upstream V+ at this segment.</strong> Continue data and the equipment-required signal reference. Run a dedicated load return to this PSU.` : ` · ${i === 0 && ch.controller ? BOARDS[project.controllers.find(c => c.id === ch.controller).model].fuse + ' A port fuse' : i === 0 ? 'assign a suitable fused supply' : 'V+ and return continue from previous section'}.`}<br>Estimated endpoint: ${r.chains[ch.id].segments.find(x => x.id === s.id)?.endV > 0 ? fmt(r.chains[ch.id].segments.find(x => x.id === s.id).endV, 2) + ' V' : 'outside model range'}.</li>`;
+            return `<li><strong>${s.count} ${s.kind}${s.count > 1 ? 's' : ''} · ${s.watts} W each · ${s.channels} channels/device</strong><br>Data lead: ${s.leadM} m / ${s.leadAwg} AWG. String: ${s.spacing} m pitch / ${s.stringAwg} AWG.<br>Power: ${esc(sourceFor(ch, s, r))}${s.inject ? ` · distro output ${n} · ${s.feedM} m / ${s.feedAwg} AWG · ${s.fuse} A fuse.<br><strong class="amber">Disconnect upstream V+ at this segment.</strong> Continue data and the equipment-required signal reference. Run a dedicated load return to this PSU.` : ` · ${i === 0 ? BOARDS[project.controllers.find(c => c.id === ch.controller).model].fuse + ' A port fuse' : 'V+ and return continue from previous section'}.`}<br>Estimated endpoint: ${r.chains[ch.id].segments.find(x => x.id === s.id)?.endV > 0 ? fmt(r.chains[ch.id].segments.find(x => x.id === s.id).endV, 2) + ' V' : 'outside model range'}.</li>`;
           })
           .join('')}</ol></section>`
     )
@@ -451,33 +443,6 @@ function allocatePowerTerminals(count) {
     result.push(pair);
   }
   return result;
-}
-function linkBoxControllers() {
-  let linked = 0;
-  const models = { Baldrick8: 'b8', Baldrick17: 'b17', BaldrickInput8: 'input8' };
-  for (const box of project.installation?.boxes || [])
-    for (const part of box.components) {
-      const model = !part.sourceKey && models[part.snapshot.name];
-      if (!model) continue;
-      const board = BOARDS[model],
-        terminals = allocatePowerTerminals(board.banks),
-        id = uid();
-      project.controllers.push({
-        id,
-        model,
-        name: part.subname || `${part.snapshot.name} · ${box.name}`,
-        host: '',
-        bankPsus: terminals.map(x => x[0]),
-        bankPsuPorts: terminals.map(x => x[1]),
-        bankLimits: Array(board.banks).fill(0),
-        bankM: Array(board.banks).fill(0.5),
-        bankAwg: Array(board.banks).fill(10),
-        io: Array(board.inputs).fill('')
-      });
-      part.sourceKey = 'controller:' + id;
-      linked++;
-    }
-  return linked;
 }
 function addChain(controllerId, port) {
   const c =
@@ -549,9 +514,9 @@ function csv() {
     ch.segments.forEach((s, i) => {
       const end = start + s.count * s.channels - 1;
       rows.push([
-        c?.name || 'Not connected',
-        c?.host || '',
-        ch.port || '',
+        c.name,
+        c.host,
+        ch.port,
         ch.name,
         i + 1,
         s.kind,
@@ -565,7 +530,7 @@ function csv() {
         s.inject ? 'YES' : 'NO',
         s.inject ? s.feedM : s.leadM,
         s.inject ? s.feedAwg : s.leadAwg,
-        s.inject ? s.fuse : i === 0 && c ? BOARDS[c.model].fuse : i === 0 ? '' : 'upstream'
+        s.inject ? s.fuse : i === 0 ? BOARDS[c.model].fuse : 'upstream'
       ]);
       start = end + 1;
     });
@@ -1156,17 +1121,7 @@ installRoom({
     const part = box?.components.find(c => c.id === source.componentId);
     const port = part?.snapshot.ports.find(v => v.id === source.portId);
     if (!port) return;
-    transact(() => {
-      const chain = key.startsWith('segment:')
-          ? project.chains.find(ch => ch.segments.some(s => 'segment:' + s.id === key))
-          : null,
-        controllerId = part.sourceKey?.startsWith('controller:') ? part.sourceKey.slice(11) : null,
-        output = /^p(\d+)$/.exec(port.id);
-      if (chain && !chain.controller && controllerId && output) {
-        chain.controller = controllerId;
-        chain.port = +output[1];
-        return;
-      }
+    transact(() =>
       project.installation.connections.push({
         id: 'link-' + uid(),
         boxId: box.id,
@@ -1183,8 +1138,8 @@ installRoom({
         kind: port.type.includes('power') ? 'power' : port.type.includes('pixel') ? 'data' : 'other',
         name: box.name + ' / ' + part.snapshot.name + ' ' + port.label + ' to ' + key,
         acknowledged: false
-      });
-    });
+      })
+    );
   },
   showFieldLibrary: () => {
     const defs = library.components.filter(d => componentPlacement(d) !== 'internal');

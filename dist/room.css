@@ -115,8 +115,6 @@
 .room-inspector {
   position: sticky;
   top: 15px;
-  max-height: calc(100vh - 30px);
-  overflow-y: auto;
   border-top: 4px solid #d4a65b;
   background: #fffbf4;
 }
@@ -129,32 +127,6 @@
 }
 .room-inspector .inspector-body > label {
   margin-top: 15px;
-}
-.room-inspector-section {
-  border-top: 1px solid var(--line);
-}
-.room-inspector-section:first-child {
-  border-top: 0;
-}
-.room-inspector-section summary {
-  padding: 13px 18px;
-  color: var(--ink);
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.7px;
-  text-transform: uppercase;
-  cursor: pointer;
-}
-.room-inspector-section summary:hover,
-.room-inspector-section summary:focus-visible {
-  background: #f6eddc;
-}
-.room-inspector-section summary:focus-visible {
-  outline: 2px solid #287159;
-  outline-offset: -2px;
-}
-.room-inspector-section-body {
-  padding: 4px 18px 18px;
 }
 .room-type {
   font-size: 11px;
@@ -319,38 +291,28 @@
   margin-bottom: 20px;
 }
 .room-object-label {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
   fill: #284f47;
   paint-order: stroke;
   stroke: #f9fbfa;
-  stroke-width: 2.5;
+  stroke-width: 4;
 }
 .room-object-detail {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
   fill: #597a70;
   paint-order: stroke;
   stroke: #f9fbfa;
-  stroke-width: 2;
-}
-.room-unconnected circle {
-  fill: var(--orange);
-  stroke: white;
-  stroke-width: 2;
-}
-.room-unconnected text {
-  fill: #2c2417;
-  font-size: 16px;
-  font-weight: 800;
+  stroke-width: 3;
 }
 .room-port-label {
-  font-size: 7px;
+  font-size: 8px;
   font-weight: 700;
   fill: #234d43;
   paint-order: stroke;
   stroke: #f9fbfa;
-  stroke-width: 1.5;
+  stroke-width: 2.5;
   pointer-events: none;
 }
 #room-wire-preview {
@@ -372,7 +334,6 @@
   }
   .room-inspector {
     position: static;
-    max-height: 720px;
   }
   .room-inspector .inspector-body {
     display: block;

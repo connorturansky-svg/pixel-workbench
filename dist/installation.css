@@ -225,18 +225,10 @@
     stroke-width 180ms;
 }
 .box-wire.preview {
+  stroke: #d9982d;
   stroke-width: 2;
   stroke-dasharray: 7 5;
   pointer-events: none;
-}
-.box-wire.warning {
-  stroke-width: 4;
-  stroke-dasharray: 9 4;
-  filter: drop-shadow(0 0 2px #c04c35);
-}
-.box-wire-node {
-  stroke: #254c3c;
-  stroke-width: 1.5;
 }
 .box-wire.connection-highlight {
   stroke-width: 5;
@@ -833,53 +825,6 @@
   border-color: #2e8461;
   color: #1f6348;
   font-weight: 700;
-}
-.box-builder-tabs {
-  margin: 0 0 18px;
-}
-.button-box-card {
-  border-top: 4px solid var(--green);
-}
-.button-box-controls {
-  display: grid;
-  gap: 10px;
-  margin-top: 14px;
-}
-.button-box-control {
-  display: grid;
-  grid-template-columns: 58px 1fr;
-  gap: 12px;
-  align-items: center;
-  padding: 10px;
-  border: 1px solid var(--line);
-  border-radius: 7px;
-  background: #f7faf8;
-}
-.button-box-control > div {
-  display: grid;
-  gap: 7px;
-}
-.button-box-control small {
-  color: var(--muted);
-}
-.button-size-preview {
-  display: block;
-  margin: auto;
-  border-radius: 50%;
-  border: 4px solid #fff;
-  box-shadow: 0 0 0 2px var(--ink);
-}
-.button-size-preview.small {
-  width: 22px;
-  height: 22px;
-}
-.button-size-preview.medium {
-  width: 32px;
-  height: 32px;
-}
-.button-size-preview.large {
-  width: 44px;
-  height: 44px;
 }
 .physical-status {
   display: flex;

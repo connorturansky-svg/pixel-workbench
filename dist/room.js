@@ -5,22 +5,21 @@ import {
   makeProp,
   PALETTE,
   clampPosition
-} from './layout-model.mjs?v=0.71.0';
+} from './layout-model.mjs?v=0.72.0';
 import {
   ensureInstallation,
-  BUTTON_COLOURS,
   exposedPorts,
   perimeterAnchor,
   deleteRoute,
   portTypeColour
-} from './installation-model.mjs?v=0.71.0';
+} from './installation-model.mjs?v=0.72.0';
 import {
   routeLayer,
   routeControls,
   routeInspector,
   installRoutes,
   refreshRoutes
-} from './installation-room.mjs?v=0.71.0';
+} from './installation-room.mjs?v=0.72.0';
 let api,
   chosen = '',
   propId = 'prop-smiley',
@@ -157,6 +156,14 @@ function fieldVisual(device, w, h) {
     `<rect x="18" y="20" width="64" height="64" rx="10" fill="${E(device.snapshot.color || '#4b8a76')}" stroke="#244d43" stroke-width="4"/><circle cx="50" cy="52" r="17" fill="#e8f1ec" stroke="#34594d" stroke-width="4"/><path d="M50 35v34M33 52h34" stroke="#6a8f82" stroke-width="3"/>`
   );
 }
+const BUTTON_COLOURS = [
+  ['Red', '#dc654f'],
+  ['Amber', '#f1c75b'],
+  ['Green', '#55a66f'],
+  ['Blue', '#4d8fd1'],
+  ['White', '#e8eeeb'],
+  ['Black', '#29322f']
+];
 function fieldConnectionLabel(p, device) {
   const key = 'field:' + device.id,
     link = p.installation.connections.find(x => x.fromKey === key || x.toKey === key);
@@ -178,7 +185,7 @@ export function roomView(p) {
     v = p.scene.placements[chosen];
   return `<div class="room-toolbar"><div><strong>Room layout</strong><span>Bird’s-eye · drag objects to position · drag empty space to pan</span></div><div>${b('+ Pixels / flood', 'add-pixels', 'btn')}${b('+ Field device', 'field-library', 'btn')}${b(showGrid ? 'Grid on' : 'Grid off', 'grid', 'btn ' + (showGrid ? 'pressed' : ''))}</div></div>${routeControls(p)}<div class="room-workspace"><div class="room-panel panel"><div class="room-dimensions"><span>${p.scene.width} m × ${p.scene.depth} m</span><span>${p.scene.snap ? 'Snap ' + p.scene.snap + ' m' : 'Free positioning'}</span></div><div class="room-stage"><div class="room-scroll"><svg id="room-canvas" viewBox="0 0 ${p.scene.width * 100} ${p.scene.depth * 100}" style="width:${zoom * 100}%;min-width:${zoom * 100}%" role="img" aria-label="Bird’s-eye room layout. Drag objects to position, drag empty space to pan, or use the mouse wheel to zoom."><defs><pattern id="room-grid" width="100" height="100" patternUnits="userSpaceOnUse"><path d="M100 0H0V100" fill="none" stroke="#dce5e4" stroke-width="1"/></pattern></defs><rect width="100%" height="100%" fill="#f9fbfa"/>${showGrid ? '<rect width="100%" height="100%" fill="url(#room-grid)"/>' : ''}<rect x="3" y="3" width="${p.scene.width * 100 - 6}" height="${p.scene.depth * 100 - 6}" fill="none" stroke="#9cafad" stroke-width="6"/><g id="room-routes">${routeLayer(p)}</g><path id="room-wire-preview" aria-hidden="true"/>${es.map(en => node(p, en)).join('')}</svg></div><div class="room-camera" role="group" aria-label="Room view controls"><button type="button" data-room="zoom-out" aria-label="Zoom out" title="Zoom out">−</button><span data-room-zoom aria-live="polite">${Math.round(zoom * 100)}%</span><button type="button" data-room="zoom-in" aria-label="Zoom in" title="Zoom in">+</button><button type="button" data-room="home" aria-label="Reset zoom and recenter room" title="Reset zoom and recenter">⌂</button></div></div><div class="room-key"><span><i></i> Data <i class="room-power-key"></i> Power <i class="room-inject-key"></i> Injection</span><span>Mouse wheel zooms · drag empty space to pan</span></div></div><aside class="panel room-inspector"><div class="inspector-title"><h3>Layout inspector</h3><span class="pill">2D</span></div><div class="inspector-body">${
     e
-      ? `<details class="room-inspector-section"><summary>Selected object</summary><div class="room-inspector-section-body"><span class="room-type">${e.type === 'segment' ? 'PIXEL GROUP' : e.type.toUpperCase()}</span><h3>${E(e.name)}</h3>${pick(
+      ? `<span class="room-type">${e.type === 'segment' ? 'PIXEL GROUP' : e.type.toUpperCase()}</span><h3>${E(e.name)}</h3>${pick(
           'Selected object',
           chosen,
           'selection',
@@ -197,9 +204,9 @@ export function roomView(p) {
                 'item.color',
                 'color'
               )
-        }${e.type === 'field' ? '' : `<div class="colour-swatches">${PALETTE.map(c => `<button data-room="colour:${c}" style="background:${c}" aria-label="Use colour ${c}"></button>`).join('')}</div>`}${e.type === 'box' ? b('Edit box internals', 'open-box:' + e.id) : ''}${e.type === 'field' ? b('Remove field device', 'delete-field:' + e.id, 'text-btn danger') : ''}${e.type === 'segment' ? `${b('Edit wiring for this group', 'wire:' + e.chain.id)}<p class="micro">${e.o.count} ${E(e.o.kind)} pixels${e.o.propId ? ' · ' + E(p.props.find(pr => pr.id === e.o.propId)?.name) : ''}. Size and colour are layout labels, not output brightness or LED colours.</p>` : '<p class="micro">Box dimensions are a layout reference. Edit electrical ratings in Hardware & power.</p>'}</div></details>`
+        }${e.type === 'field' ? '' : `<div class="colour-swatches">${PALETTE.map(c => `<button data-room="colour:${c}" style="background:${c}" aria-label="Use colour ${c}"></button>`).join('')}</div>`}${e.type === 'box' ? b('Edit box internals', 'open-box:' + e.id) : ''}${e.type === 'field' ? b('Remove field device', 'delete-field:' + e.id, 'text-btn danger') : ''}${e.type === 'segment' ? `${b('Edit wiring for this group', 'wire:' + e.chain.id)}<p class="micro">${e.o.count} ${E(e.o.kind)} pixels${e.o.propId ? ' · ' + E(p.props.find(pr => pr.id === e.o.propId)?.name) : ''}. Size and colour are layout labels, not output brightness or LED colours.</p>` : '<p class="micro">Box dimensions are a layout reference. Edit electrical ratings in Hardware & power.</p>'}`
       : ''
-  }${routeInspector(p, api.getLibrary())}<details class="room-inspector-section"><summary>Room settings</summary><div class="room-inspector-section-body"><div class="two">${field('Width (m)', p.scene.width, 'scene.width', 'number', 2, 100)}${field('Depth (m)', p.scene.depth, 'scene.depth', 'number', 2, 100)}</div>${pick(
+  }${routeInspector(p, api.getLibrary())}<div class="section-label">ROOM SETTINGS</div><div class="two">${field('Width (m)', p.scene.width, 'scene.width', 'number', 2, 100)}${field('Depth (m)', p.scene.depth, 'scene.depth', 'number', 2, 100)}</div>${pick(
     'Snap to grid',
     p.scene.snap,
     'scene.snap',
@@ -211,7 +218,7 @@ export function roomView(p) {
       [0.5, '50 cm'],
       [1, '1 m']
     ]
-  )}<p class="micro">Drag any box or pixel group. Arrow keys move a selected object; Shift moves 1 m. Dimensions and positions are saved with your project.</p></div></details></div></aside></div>`;
+  )}<p class="micro">Drag any box or pixel group. Arrow keys move a selected object; Shift moves 1 m. Dimensions and positions are saved with your project.</p></div></aside></div>`;
 }
 const componentShortName = name =>
   name
@@ -235,21 +242,14 @@ function boxVisual(box, w, h) {
     cellW = w / cols,
     cellH = (h - header) / rows,
     labels = api.getProject().installation.showLabels;
-  return `<g><rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="4" fill="#193f39" stroke="#4f806a" stroke-width="3"/>${labels ? `<text x="${-w / 2 + 8}" y="${-h / 2 + 13}" fill="white" font-size="12" font-weight="700">${E(box.name.slice(0, 30))}</text>` : ''}${items
+  return `<g><rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="4" fill="#193f39" stroke="#4f806a" stroke-width="3"/>${labels ? `<text x="${-w / 2 + 8}" y="${-h / 2 + 13}" fill="white" font-size="13" font-weight="700">${E(box.name.slice(0, 30))}</text>` : ''}${items
     .map((part, i) => {
       const x = -w / 2 + (i % cols) * cellW,
         y = -h / 2 + header + Math.floor(i / cols) * cellH,
         c = part.snapshot.color || '#4b8a76',
-        limit = Math.max(4, Math.floor(cellW / 5)),
+        limit = Math.max(4, Math.floor(cellW / 6)),
         shortName = componentShortName(part.snapshot.name);
-      if (box.kind === 'button') {
-        const labelHeight = labels ? 11 : 0,
-          scale = Math.max(0.18, Math.min((cellW - 8) / 62, (cellH - labelHeight - 4) / 62)),
-          cx = x + cellW / 2,
-          cy = y + (cellH - labelHeight) / 2;
-        return `<g><g transform="translate(${cx} ${cy}) scale(${scale}) translate(-50 -51)"><rect x="22" y="38" width="56" height="42" rx="8" fill="#505c58" stroke="#243a34" stroke-width="4"/><ellipse cx="50" cy="40" rx="23" ry="18" fill="${E(c)}" stroke="#f5f7f4" stroke-width="5"/><ellipse cx="50" cy="36" rx="13" ry="8" fill="#ffffff55"/></g>${labels ? `<text x="${cx}" y="${y + cellH - 3}" text-anchor="middle" font-size="8" fill="white" paint-order="stroke" stroke="#153d36" stroke-width="1">${E((part.subname || shortName).slice(0, limit * 2))}</text>` : ''}<title>${E(part.snapshot.name)}${part.subname ? ` (${E(part.subname)})` : ''} · ${E(part.buttonColour || 'Custom')} face · ${E(part.snapshot.ports.length)} ports</title></g>`;
-      }
-      return `<g><rect x="${x + 1}" y="${y + 1}" width="${cellW - 2}" height="${cellH - 2}" fill="${E(c)}" fill-opacity=".9" stroke="white" stroke-width="1"/>${labels ? `<text x="${x + 4}" y="${y + Math.min(14, cellH / 2)}" font-size="9" fill="white" paint-order="stroke" stroke="#153d36" stroke-width="1">${E(shortName.slice(0, limit))}</text>${cellH >= 30 ? `<text x="${x + cellW / 2}" y="${y + Math.min(cellH - 5, 32)}" text-anchor="middle" font-size="14" fill="white">${E(part.snapshot.icon)}</text>` : ''}${part.subname && cellH >= 46 ? `<text x="${x + 4}" y="${y + Math.min(cellH - 5, 47)}" font-size="8" fill="white" paint-order="stroke" stroke="#153d36" stroke-width="1">(${E(part.subname.slice(0, limit))})</text>` : ''}` : ''}<title>${E(part.snapshot.name)}${part.subname ? ` (${E(part.subname)})` : ''} · ${E(part.snapshot.ports.length)} ports</title></g>`;
+      return `<g><rect x="${x + 1}" y="${y + 1}" width="${cellW - 2}" height="${cellH - 2}" fill="${E(c)}" fill-opacity=".9" stroke="white" stroke-width="1"/>${labels ? `<text x="${x + 5}" y="${y + Math.min(16, cellH / 2)}" font-size="11" fill="white" paint-order="stroke" stroke="#153d36" stroke-width="2">${E(shortName.slice(0, limit))}</text>${cellH >= 30 ? `<text x="${x + cellW / 2}" y="${y + Math.min(cellH - 5, 33)}" text-anchor="middle" font-size="16" fill="white" paint-order="stroke" stroke="#153d36" stroke-width="2">${E(part.snapshot.icon)}</text>` : ''}${part.subname && cellH >= 46 ? `<text x="${x + 5}" y="${y + Math.min(cellH - 5, 48)}" font-size="9" fill="white" paint-order="stroke" stroke="#153d36" stroke-width="2">(${E(part.subname.slice(0, limit))})</text>` : ''}` : ''}<title>${E(part.snapshot.name)}${part.subname ? ` (${E(part.subname)})` : ''} · ${E(part.snapshot.ports.length)} ports</title></g>`;
     })
     .join(
       ''
@@ -267,12 +267,12 @@ function boxVisual(box, w, h) {
         innerY = edge === 'top' ? -h / 2 : edge === 'bottom' ? h / 2 : y,
         pillX =
           Math.min(x, innerX) -
-          (edge === 'top' || edge === 'bottom' ? Math.max(12, label.length * 2.25 + 7) : 0),
-        pillY = Math.min(y, innerY) - (edge === 'left' || edge === 'right' ? 6 : 0),
+          (edge === 'top' || edge === 'bottom' ? Math.max(12, label.length * 2.5 + 8) : 0),
+        pillY = Math.min(y, innerY) - (edge === 'left' || edge === 'right' ? 7 : 0),
         pillW =
-          edge === 'left' || edge === 'right' ? Math.abs(x - innerX) : Math.max(24, label.length * 4.5 + 14),
-        pillH = edge === 'top' || edge === 'bottom' ? Math.abs(y - innerY) : 12;
-      return `<g class="room-external-node" data-room-port="${E(box.id)}:${E(component.id)}:${E(port.id)}" data-anchor-x="${x}" data-anchor-y="${y}"><rect x="${pillX}" y="${pillY}" width="${pillW}" height="${pillH}" rx="6" fill="${E(component.snapshot.color || '#4b8a76')}" stroke="${portTypeColour(port.type)}" stroke-width="2"/><title>${E(box.name)} → ${E(component.snapshot.name)}${component.subname ? ` (${E(component.subname)})` : ''} → ${E(port.label)} (${E(port.type)})</title>${labels ? `<text class="room-port-label" x="${(x + innerX) / 2}" y="${(y + innerY) / 2 + 2.5}" text-anchor="middle">${E(label)}</text>` : ''}</g>`;
+          edge === 'left' || edge === 'right' ? Math.abs(x - innerX) : Math.max(24, label.length * 5 + 16),
+        pillH = edge === 'top' || edge === 'bottom' ? Math.abs(y - innerY) : 14;
+      return `<g class="room-external-node" data-room-port="${E(box.id)}:${E(component.id)}:${E(port.id)}" data-anchor-x="${x}" data-anchor-y="${y}"><rect x="${pillX}" y="${pillY}" width="${pillW}" height="${pillH}" rx="7" fill="${E(component.snapshot.color || '#4b8a76')}" stroke="${portTypeColour(port.type)}" stroke-width="2.5"/><title>${E(box.name)} → ${E(component.snapshot.name)}${component.subname ? ` (${E(component.subname)})` : ''} → ${E(port.label)} (${E(port.type)})</title>${labels ? `<text class="room-port-label" x="${(x + innerX) / 2}" y="${(y + innerY) / 2 + 3}" text-anchor="middle">${E(label)}</text>` : ''}</g>`;
     })
     .join('')}</g>`;
 }
@@ -280,10 +280,6 @@ function node(p, e) {
   const v = p.scene.placements[e.key],
     pr = p.props.find(pr => pr.id === e.o.propId),
     is = e.type === 'segment',
-    connected =
-      !is ||
-      !!e.chain.controller ||
-      p.installation.connections.some(x => x.fromKey === e.key || x.toKey === e.key),
     w = v.width * 100,
     h = v.height * 100,
     labels = p.installation.showLabels;
@@ -292,7 +288,7 @@ function node(p, e) {
     : e.type === 'field'
       ? fieldConnectionLabel(p, e.o)
       : '';
-  return `<g data-room-node="${E(e.key)}" tabindex="0" role="button" aria-label="Move ${E(e.name)}" transform="translate(${v.x * 100} ${v.y * 100})" class="room-object ${chosen === e.key ? 'chosen' : ''}"><g transform="rotate(${v.rotation})"><rect x="${-w / 2 - 6}" y="${-h / 2 - 6}" width="${w + 12}" height="${h + 12}" rx="7" fill="transparent" class="selection-ring" stroke="${chosen === e.key ? '#153f3d' : 'transparent'}" stroke-width="2"/>${is ? `<svg x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" viewBox="0 0 100 100" preserveAspectRatio="none">${e.o.kind === 'flood' && !pr ? floodSvg(e.o.count, v.color) : propSvg(pr ? { ...pr, color: v.color } : { shape: 'line', count: e.o.count, columns: Math.min(e.o.count, 8), color: v.color }, e.o.count)}</svg><rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" fill="transparent"/>${connected ? '' : `<g class="room-unconnected" transform="translate(${w / 2 - 5} ${-h / 2 + 5})"><circle r="12"/><text y="5" text-anchor="middle">!</text><title>Not connected to a pixel output</title></g>`}` : `${e.type === 'box' ? boxVisual(e.o, w, h) : e.type === 'field' ? fieldVisual(e.o, w, h) : e.type === 'psu' ? `<rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="3" fill="#e7f0e8" stroke="${v.color}" stroke-width="4"/><path d="M${w / 2 - 10} ${-h / 2}v${h}" stroke="${v.color}" stroke-width="5"/>` : e.type === 'distro' ? `<path d="M${-w / 2} ${-h / 2}h${w - 8}l8 8v${h - 8}h${-w}z" fill="#e9f1f4" stroke="${v.color}" stroke-width="4"/>` : e.type === 'controller' ? `<rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="10" fill="#173f34" stroke="${v.color}" stroke-width="4"/>` : `<rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="6" fill="${v.color}"/>`}${labels ? `<text text-anchor="middle" y="4" fill="${e.type === 'psu' || e.type === 'distro' ? '#28483d' : 'white'}" font-size="${Math.min(14, w / 5)}" font-weight="700">${e.type === 'box' || e.type === 'field' ? '' : { controller: 'CTRL', psu: 'PSU', distro: 'DIST', aux: 'I/O' }[e.type]}</text>` : ''}`}</g>${labels ? `${e.type === 'box' ? '' : `<text class="room-object-label" x="0" y="${h / 2 + 16}" text-anchor="middle">${E(e.name.length > 30 ? e.name.slice(0, 28) + '…' : e.name)}</text>`}${detail ? `<text class="room-object-detail" x="0" y="${h / 2 + 30}" text-anchor="middle">(${E(detail)})</text>` : ''}` : ''}</g>`;
+  return `<g data-room-node="${E(e.key)}" tabindex="0" role="button" aria-label="Move ${E(e.name)}" transform="translate(${v.x * 100} ${v.y * 100})" class="room-object ${chosen === e.key ? 'chosen' : ''}"><g transform="rotate(${v.rotation})"><rect x="${-w / 2 - 6}" y="${-h / 2 - 6}" width="${w + 12}" height="${h + 12}" rx="7" fill="transparent" class="selection-ring" stroke="${chosen === e.key ? '#153f3d' : 'transparent'}" stroke-width="2"/>${is ? `<svg x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" viewBox="0 0 100 100" preserveAspectRatio="none">${e.o.kind === 'flood' && !pr ? floodSvg(e.o.count, v.color) : propSvg(pr ? { ...pr, color: v.color } : { shape: 'line', count: e.o.count, columns: Math.min(e.o.count, 8), color: v.color }, e.o.count)}</svg><rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" fill="transparent"/>` : `${e.type === 'box' ? boxVisual(e.o, w, h) : e.type === 'field' ? fieldVisual(e.o, w, h) : e.type === 'psu' ? `<rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="3" fill="#e7f0e8" stroke="${v.color}" stroke-width="4"/><path d="M${w / 2 - 10} ${-h / 2}v${h}" stroke="${v.color}" stroke-width="5"/>` : e.type === 'distro' ? `<path d="M${-w / 2} ${-h / 2}h${w - 8}l8 8v${h - 8}h${-w}z" fill="#e9f1f4" stroke="${v.color}" stroke-width="4"/>` : e.type === 'controller' ? `<rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="10" fill="#173f34" stroke="${v.color}" stroke-width="4"/>` : `<rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="6" fill="${v.color}"/>`}${labels ? `<text text-anchor="middle" y="4" fill="${e.type === 'psu' || e.type === 'distro' ? '#28483d' : 'white'}" font-size="${Math.min(14, w / 5)}" font-weight="700">${e.type === 'box' || e.type === 'field' ? '' : { controller: 'CTRL', psu: 'PSU', distro: 'DIST', aux: 'I/O' }[e.type]}</text>` : ''}`}</g>${labels ? `${e.type === 'box' ? '' : `<text class="room-object-label" x="0" y="${h / 2 + 16}" text-anchor="middle">${E(e.name.length > 30 ? e.name.slice(0, 28) + '…' : e.name)}</text>`}${detail ? `<text class="room-object-detail" x="0" y="${h / 2 + 30}" text-anchor="middle">(${E(detail)})</text>` : ''}` : ''}</g>`;
 }
 export function propsView(p) {
   ensureScene(p);
@@ -713,12 +709,12 @@ function place(pr, p) {
         const [mode, id, port] = f.get('target').split('|'),
           s = api.newSegment(pr.kind);
         Object.assign(s, { count: pr.count, watts: pr.watts, channels: pr.channels, propId: pr.id });
-        if (mode === 'new' || mode === 'unconnected')
+        if (mode === 'new')
           p.chains.push({
             id: 'r-' + Math.random().toString(36).slice(2, 10),
             name: pr.name,
-            controller: mode === 'unconnected' ? '' : id,
-            port: mode === 'unconnected' ? 0 : +port,
+            controller: id,
+            port: +port,
             segments: [s]
           });
         else p.chains.find(c => c.id === id).segments.push(s);
@@ -744,14 +740,15 @@ function outputOptions(p) {
         free.push([c.id + '|' + port, c.name + ' · port ' + port]);
   return [
     ...free.map(([id, name]) => `<option value="new|${id}">New output: ${E(name)}</option>`),
-    ...p.chains
-      .filter(ch => ch.controller)
-      .map(ch => `<option value="append|${ch.id}">Append to ${E(ch.name)} · P${ch.port}</option>`),
-    '<option value="unconnected||0">Not connected yet · show warning</option>'
+    ...p.chains.map(ch => `<option value="append|${ch.id}">Append to ${E(ch.name)} · P${ch.port}</option>`)
   ];
 }
 function addPixels(p) {
   const targets = outputOptions(p);
+  if (!targets.length) {
+    api.toast('Add a controller first.');
+    return;
+  }
   api.modal(
     'Add pixels or a flood',
     `<label>Pixels / flood<select name="item"><optgroup label="Individual items"><option value="custom|seed">Seed pixel string · 100 pixels</option><option value="custom|bullet">Bullet pixel string · 100 pixels</option><option value="custom|flood">Single flood · 10 W</option></optgroup>${p.presets.length ? `<optgroup label="Saved presets">${p.presets.map(x => `<option value="preset|${x.id}">${E(x.name)} · ${x.count} ${E(x.kind)}</option>`).join('')}</optgroup>` : ''}${
@@ -780,12 +777,12 @@ function addPixels(p) {
           });
         if (pr) Object.assign(s, { count: pr.count, watts: pr.watts, channels: pr.channels, propId: pr.id });
         const name = pr?.name || preset?.name || (sourceId === 'flood' ? 'Flood light' : 'Pixel string');
-        if (mode === 'new' || mode === 'unconnected')
+        if (mode === 'new')
           p.chains.push({
             id: 'r-' + Math.random().toString(36).slice(2, 10),
             name,
-            controller: mode === 'unconnected' ? '' : targetId,
-            port: mode === 'unconnected' ? 0 : +port,
+            controller: targetId,
+            port: +port,
             segments: [s]
           });
         else p.chains.find(ch => ch.id === targetId).segments.push(s);

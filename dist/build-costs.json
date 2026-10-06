@@ -65,6 +65,7 @@
   {"issue":43,"version":"0.70.0","title":"Follow up from #42 regarding room layout scale","outcome":"needs-info","at":"2026-10-06T13:23:38Z","runs":1,"model":"gpt-5.6-sol","credits":8.71,"tokensIn":16700,"tokensCached":0,"tokensOut":184,"seconds":11},
   {"issue":43,"version":"0.70.0","title":"Follow up from #42 regarding room layout scale","outcome":"declined","at":"2026-10-06T13:28:35Z","runs":1,"model":"gpt-5.6-sol","credits":7.15,"tokensIn":16800,"tokensCached":2800,"tokensOut":33,"seconds":7},
   {"issue":44,"version":"0.70.0","title":"roll back request","outcome":"needs-info","at":"2026-10-06T13:33:24Z","runs":0,"model":"","credits":0,"tokensIn":0,"tokensCached":0,"tokensOut":0,"seconds":0},
-  {"issue":44,"version":"0.71.0","title":"roll back request","outcome":"shipped","at":"2026-10-06T14:13:35Z","runs":0,"model":"","credits":0,"tokensIn":0,"tokensCached":0,"tokensOut":0,"seconds":0}
+  {"issue":44,"version":"0.71.0","title":"roll back request","outcome":"shipped","at":"2026-10-06T14:13:35Z","runs":0,"model":"","credits":0,"tokensIn":0,"tokensCached":0,"tokensOut":0,"seconds":0},
+  {"issue":45,"version":"0.72.0","title":"roll back request","outcome":"shipped","at":"2026-10-06T14:23:49Z","runs":0,"model":"","credits":0,"tokensIn":0,"tokensCached":0,"tokensOut":0,"seconds":0}
  ]
 }
