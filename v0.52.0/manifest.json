@@ -1,0 +1,26 @@
+{
+ "version": "v0.52.0",
+ "date": "02/10/2026",
+ "commit": "0345e3e72f3a363016ba95b4c9c10fefd21ff8df",
+ "issue": 33,
+ "changelog": "Room layout now uses one controller-box title, labelled pill-shaped edge ports, port-matched cable colours and button endpoints that meet the visible symbol. (suggested in #33)",
+ "status": "ok",
+ "shots": [
+  "01-workspace.png",
+  "02-hardware.png",
+  "03-presets.png",
+  "04-props.png",
+  "05-guide.png",
+  "06-boxes.png",
+  "07-standards.png",
+  "08-bom.png",
+  "09-suggest.png",
+  "info-arch.png",
+  "info-how.png",
+  "info-keys.png",
+  "info-new.png",
+  "info-suggest.png",
+  "mobile.png"
+ ],
+ "error": ""
+}
