@@ -21,6 +21,8 @@ b = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(b)
 
 CACHE = os.path.join(b.DATA_DIR, "shots-source.git")
+# the private cache is bare; git may be configured with safe.bareRepository=explicit
+os.environ.update(GIT_CONFIG_COUNT="1", GIT_CONFIG_KEY_0="safe.bareRepository", GIT_CONFIG_VALUE_0="all")
 
 
 def release_tags():

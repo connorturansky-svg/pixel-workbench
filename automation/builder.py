@@ -781,7 +781,15 @@ def api(method, path, body=None, check=True):
             with open(tmp, "w", encoding="utf-8") as f:
                 json.dump(body, f)
             args += ["--input", tmp]
-        out = gh(*args, check=check, timeout=300)
+        for attempt in range(3):
+            try:
+                out = gh(*args, check=check, timeout=300)
+                break
+            except Exception as e:
+                transient = any(w in str(e).lower() for w in ("forcibly closed", "timeout", "timed out", "eof", "connection reset", " 502", " 503"))
+                if attempt == 2 or not transient:
+                    raise
+                time.sleep(3 * (attempt + 1))
     finally:
         if tmp and os.path.exists(tmp):
             os.remove(tmp)
