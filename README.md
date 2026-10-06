@@ -2,6 +2,12 @@
 
 Every release is captured by the builder's release smoke test (`automation/smoke.py --shots`): every page, every info tab and a mobile view. This branch is never deployed by Pages. Newest first.
 
+## [v0.68.0](v0.68.0/)
+
+
+
+**Screenshots failed:** gh api -X failed: gh: Reference already exists (HTTP 422)
+
 ## [v0.67.0](v0.67.0/)
 
 06/10/2026 · [commit 8864d5b](https://github.com/connorturansky-svg/pixel-workbench/commit/8864d5b94d66645f3b76da4a384133553d751ec0) · [issue #43](https://github.com/connorturansky-svg/pixel-workbench/issues/43)
