@@ -1,0 +1,26 @@
+{
+ "version": "v0.29.0",
+ "date": "02/10/2026",
+ "commit": "93fb94b9edf228a9529046c121bcfcfcf7375d87",
+ "issue": 15,
+ "changelog": "Controller-box wiring now follows the pointer while dragging, routes around components where possible, fills ports that are linked and softly highlights both ends when a port or wire is hovered. (suggested in #15)",
+ "status": "ok",
+ "shots": [
+  "01-workspace.png",
+  "02-hardware.png",
+  "03-presets.png",
+  "04-props.png",
+  "05-guide.png",
+  "06-boxes.png",
+  "07-standards.png",
+  "08-bom.png",
+  "09-suggest.png",
+  "info-arch.png",
+  "info-how.png",
+  "info-keys.png",
+  "info-new.png",
+  "info-suggest.png",
+  "mobile.png"
+ ],
+ "error": ""
+}
