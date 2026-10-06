@@ -295,10 +295,14 @@ def builder_comment(c):
             and MARK in (c.get("body") or ""))
 
 
-RESTORE_INTENT = re.compile(r"\b(?:roll\s*back|rollback|revert|restore|go back|return)\b", re.I)
+# Roll-forward wording only counts next to a version cue, so "upgrade to dark mode" stays a feature request.
+RESTORE_INTENT = re.compile(r"\b(?:roll\s*back|rollback|revert|restore|go back|return)\b|"
+                            r"\b(?:roll\s*forward|rollforward|go forward|upgrade to|move to)\b"
+                            r"(?=[^\n]{0,40}?(?:\bv?\d|\bversion\b|\brelease\b))", re.I)
 RESTORE_VERSION = re.compile(r"(?<![\w./-])v?(\d+\.\d+\.\d+)(?![\w/-]|\.\d)", re.I)
 # Shorthand: "version 61", "v61", "0.61" or "v0.61" mean the single release tag v0.61.N on the remote.
 RESTORE_SHORT = re.compile(r"(?<![\w./-])(?:(?:version|release)\s+v?(\d+)|v(\d+)|v?(\d+\.\d+))(?![\w/-]|\.\d)", re.I)
+ROLLFORWARD_NOTE = "This release is newer than the version that was live, so no saved project data is affected."
 ROLLBACK_WARNING = ("Projects saved by a newer version may lose data fields this restored version does not "
                     "support. Export your project as JSON before reloading the app.")
 
@@ -336,7 +340,7 @@ def restore_request(issue):
               and (c.get("author") or {}).get("login", "").lower() in ALLOWED_AUTHORS]
     target, active = None, False
     for text in texts:
-        if re.search(r"\b(?:do not|don't|cancel|no longer|not)\s+(?:the\s+)?(?:roll\s*back|rollback|revert|restore)\b",
+        if re.search(r"\b(?:do not|don't|cancel|no longer|not)\s+(?:the\s+)?(?:roll\s*back|rollback|roll\s*forward|rollforward|revert|restore)\b",
                      text, re.I):
             active, target = False, None
             continue
@@ -351,17 +355,17 @@ def restore_request(issue):
                                   "permissions or safety rules. Request only an app release target.")
         if re.search(r"\b(?:and|also|except|but)\s+(?:also\s+)?(?:add|change|keep|remove|make|fix|disable)\b",
                      text, re.I):
-            raise RequestDecision("NEEDS-INFO", "Request a single version rollback on its own. "
+            raise RequestDecision("NEEDS-INFO", "Request a single version restore (roll back or forward) on its own. "
                                   "File any additional feature changes separately.")
         # Other kinds of 'restore' (e.g. restoring a deleted prop) remain ordinary feature requests.
-        if not active and not versions and not re.search(r"\b(?:version|release|app|roll\s*back|rollback|revert)\b",
+        if not active and not versions and not re.search(r"\b(?:version|release|app|roll\s*back|rollback|roll\s*forward|rollforward|revert)\b",
                                                          text, re.I):
             continue
         active = True
         target = next(iter(versions)) if len(versions) == 1 else None
     if active and not target:
         raise RequestDecision("NEEDS-INFO", "Which single released version should be restored? "
-                              "Reply, for example: Roll back the app to v0.65.0 (or version 61).")
+                              "Reply, for example: Roll back or forward the app to v0.65.0 (or version 61).")
     return target if active else None
 
 
@@ -449,10 +453,14 @@ def prepare_restore(spec, version, issue):
                                     if not re.search(r"builder|suggest\.mjs|version\.mjs", n, re.I)]
     exports["ARCHITECTURE_NOTES"] += [n for n in json.loads(data)["ARCHITECTURE_NOTES"]
                                      if re.search(r"builder|suggest\.mjs|version\.mjs", n, re.I)]
+    newer = tuple(map(int, tag[1:].split("."))) > tuple(map(int, str(exports["APP_VERSION"]).split(".")))
     exports["APP_VERSION"] = version
-    summary = f"Restored the app from {tag}; the Suggest page, build costs and builder are unchanged.\n\n**Warning:** {ROLLBACK_WARNING}"
+    # A target newer than the live release cannot lose saved data, so it carries no data-loss warning.
+    note = ROLLFORWARD_NOTE if newer else "Warning: " + ROLLBACK_WARNING
+    verb = "Rolled forward to" if newer else "Restored the app from"
+    summary = f"{verb} {tag}; the Suggest page, build costs and builder are unchanged.\n\n" + (note if newer else f"**{note.split(':')[0]}:** {ROLLBACK_WARNING}")
     exports["CHANGELOG"].insert(0, {"version": version, "date": datetime.now().strftime("%d/%m/%Y"),
-                                    "items": [f"Restored the app from {tag} (suggested in #{issue['number']}).", "Warning: " + ROLLBACK_WARNING]})
+                                    "items": [f"{verb} {tag} (suggested in #{issue['number']}).", note]})
     with open(os.path.join(BUILD_DIR, "dist", "version.mjs"), "w", encoding="utf-8", newline="\n") as f:
         for key, value in exports.items():
             encoded = "'" + version + "'" if key == "APP_VERSION" else json.dumps(value, ensure_ascii=False)

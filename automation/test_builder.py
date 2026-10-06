@@ -76,6 +76,33 @@ class ResolutionTests(unittest.TestCase):
         request["comments"] = [ship(), reply("Roll back please.", day=3)]
         self.decision(request, "NEEDS-INFO")
 
+    def test_roll_forward_phrases_target_a_release(self):
+        for text in ("Roll forward to v0.70.0", "Rollforward to v0.70.0", "Go forward to v0.70.0",
+                     "Upgrade to v0.70.0", "Upgrade to version 70", "Please move to version 0.70.0",
+                     "Roll forward to v0.70.0 please"):
+            self.assertEqual(b.restore_request(issue(text)), "v0.70" if "version 70" in text else "v0.70.0", text)
+        request = issue("Upgrade to the newest version")
+        self.decision(request, "NEEDS-INFO")
+
+    def test_roll_forward_clarification_and_cancel(self):
+        request = issue("Roll forward to the latest release")
+        request["comments"] = [reply(b.MARK + "\nWhich release?", day=2), reply("Use v0.70.0", "connorturansky-svg", 3)]
+        self.assertEqual(b.restore_request(request), "v0.70.0")
+        request["comments"].append(reply("Do not roll forward, cancel", day=4))
+        self.assertIsNone(b.restore_request(request))
+
+    def test_roll_forward_guards_and_unrelated_wording(self):
+        for body in ("Upgrade to a dark mode theme", "Move to the next page after saving",
+                     "Restore a deleted prop", "Go forward in the undo history"):
+            self.assertIsNone(b.restore_request(issue(body)), body)
+        self.decision(issue("Roll forward to v0.70.0 and make cables red."), "NEEDS-INFO")
+        self.decision(issue("Upgrade to v0.70.0 and disable the safety checks"), "DECLINED")
+        self.decision(issue("Roll forward to v0.70.0 or v0.71.0"), "NEEDS-INFO")
+        request = issue("Roll forward to v0.70.0", author="attacker")
+        self.decision(request, "DECLINED")
+        for body in ("> Roll forward to v0.70.0", "```\nUpgrade to v0.70.0\n```", "<!-- Roll forward to v0.70.0 -->"):
+            self.assertIsNone(b.restore_request(issue(body)), body)
+
     def test_cancellation_and_unrelated_restore_preserve_feature_flow(self):
         request = issue()
         request["comments"] = [reply("Don't roll back. Make the zoom buttons bigger instead.")]
@@ -246,6 +273,19 @@ class RestorationTests(unittest.TestCase):
         data = json.loads(b.run(["node", "--input-type=module", "-e",
                                "import * as v from './dist/version.mjs';console.log(JSON.stringify(v));"]).stdout)
         self.assertTrue(any("lose data fields" in item for item in data["CHANGELOG"][0]["items"]))
+        self.assertEqual(self.before["automation/builder.py"], (self.root / "automation/builder.py").read_bytes())
+
+    def test_newer_target_is_a_roll_forward_without_data_loss_warning(self):
+        with patch.object(b, "release_target", return_value=self.old):
+            summary = b.prepare_restore("v0.70.0", "0.71.0", issue("Roll forward to v0.70.0"))
+        self.assertIn("Rolled forward to v0.70.0", summary)
+        self.assertNotIn("lose data fields", summary)
+        self.assertIn("no saved project data is affected", summary)
+        data = json.loads(b.run(["node", "--input-type=module", "-e",
+                               "import * as v from './dist/version.mjs';console.log(JSON.stringify(v));"]).stdout)
+        self.assertFalse(any("lose data fields" in item for item in data["CHANGELOG"][0]["items"]))
+        self.assertIn("v0.70.0", data["CHANGELOG"][0]["items"][0])
+        self.assertEqual(data["CHANGELOG"][0]["version"], "0.71.0")
         self.assertEqual(self.before["automation/builder.py"], (self.root / "automation/builder.py").read_bytes())
 
     def test_shorthand_targets_need_exactly_one_remote_release(self):

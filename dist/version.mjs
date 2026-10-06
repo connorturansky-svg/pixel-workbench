@@ -1,6 +1,6 @@
 export const ABOUT =
   'Pixel Workbench is a device-local planner for 12 V pixel systems built on Baldrick controllers and FPP. Use it to lay out a room, size power and injection, design controller boxes and produce a wiring guide, bill of materials and channel CSV. Calculations are planning estimates. Confirm ratings and wiring against the actual equipment.';
-export const APP_VERSION = '0.73.0';
+export const APP_VERSION = '0.74.0';
 export const ARCHITECTURE_NOTES = [
   'A static, no-build web app: plain ES modules, HTML and CSS served from dist/. Pushing to main publishes dist/ to GitHub Pages through the Actions workflow.',
   'app.js holds the project state, re-renders the whole interface and derives the global categorized notification strip from shared calculation and layout checks. Every view (wiring, room, boxes, standards, BOM, guide) reads the same project, so changes appear in every view. wiring-graph.mjs renders breadboard-style component faces, live drag wires and connected endpoint highlighting. room.js keeps the room camera zoom and pan while the layout is open, creates pixel strings, floods, presets and prop instances on controller outputs, draws recognisable field-device and flood-light plan symbols, stores selectable button colours, labels field-device connection destinations, renders compact icon-labelled box components and typed edge-port pills, and previews type-coloured box-port cables during drag-to-connect. installation-ui.mjs derives top-down component illustrations, connector states, component-coloured readable active edge ports, collapsible edge-port groups, a large scrollable and zoomable auto-layout schematic, and obstacle-aware wire paths for active edge ports from each component snapshot; installation-model.mjs supplies the named real-world connector catalog, colour-specific button BOM rows, per-box standards sync, inactive edge-port records for every component connector, visible-symbol room route anchors for field devices and lights, and common component-size guides. Controller-box instances retain their optional subnames, exact ports, schematic positions, rotation and stacking layers. Enclosure sizes and physical component dimensions are reusable device-library standards.',
@@ -13,6 +13,13 @@ export const ARCHITECTURE_NOTES = [
   'version.mjs is the single source for the version, changelog, help text and shortcuts. info.mjs renders the i dialog.'
 ];
 export const CHANGELOG = [
+  {
+    version: '0.74.0',
+    date: '06/10/2026',
+    items: [
+      'Roll-forward requests now work: “Roll forward to v0.70.0”, “go forward”, “upgrade to” or “move to” a released version restore that release as a new version, just like a rollback. A release newer than the live one carries no data-loss warning. Requests such as “upgrade to dark mode” or “restore a deleted prop” remain ordinary feature requests.'
+    ]
+  },
   {
     version: '0.73.0',
     date: '06/10/2026',
@@ -659,7 +666,7 @@ export const SUGGEST_GUIDE = [
   ],
   [
     'Restore an earlier app version',
-    'Approved accounts can submit “Roll back the app to v0.65.0”, replacing the number with one released version (“version 61” works when one release matches), or use Add a follow-up within 7 days of shipping. The latest target clarification from you or an approved owner wins. The builder verifies the release and publishes that release’s app under a new, higher version number; it does not rewrite history. The old version may not understand projects saved by newer versions, so fields it lacks can be lost: export a JSON backup before reloading. The request tools and costs stay current. Missing or ambiguous versions need a reply before anything is released.'
+    'Approved accounts can submit “Roll back the app to v0.65.0” or “Roll forward to v0.70.0” (also “upgrade to”), replacing the number with one released version (“version 61” works when one release matches), or use Add a follow-up within 7 days of shipping. The latest target clarification from you or an approved owner wins. The builder verifies the release and publishes that release’s app under a new, higher version number; it does not rewrite history. Going back to an older version may not understand projects saved by newer versions, so fields it lacks can be lost: export a JSON backup before reloading. Moving to a newer release than the live one carries no such risk. The request tools and costs stay current. Missing or ambiguous versions need a reply before anything is released.'
   ],
   [
     'Replying on GitHub',
