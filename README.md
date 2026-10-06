@@ -8,6 +8,16 @@ Every release is captured by the builder's release smoke test (`automation/smoke
 
 **Screenshots failed:** gh api -X failed: Post "https://api.github.com/repos/connorturansky-svg/pixel-workbench/git/blobs": read tcp 192.168.0.199:60374->20.26.156.210:443: wsarecv: An existing connection was forcibly closed
 
+## [v0.42.0](v0.42.0/)
+
+02/10/2026 · [commit c289ae4](https://github.com/connorturansky-svg/pixel-workbench/commit/c289ae4b98ff219caba1f4fa0a6c9b43c0ece48c) · [issue #25](https://github.com/connorturansky-svg/pixel-workbench/issues/25)
+
+> Each controller box can now sync changed hardware names, colours, ports and other component standards while keeping its layout and connections. (suggested in #25)
+
+<a href="v0.42.0/01-workspace.png"><img src="v0.42.0/01-workspace.png" width="420" alt="v0.42.0 workspace"></a> <a href="v0.42.0/mobile.png"><img src="v0.42.0/mobile.png" width="240" alt="v0.42.0 mobile"></a>
+
+All shots: [workspace](v0.42.0/01-workspace.png) · [hardware](v0.42.0/02-hardware.png) · [presets](v0.42.0/03-presets.png) · [props](v0.42.0/04-props.png) · [guide](v0.42.0/05-guide.png) · [boxes](v0.42.0/06-boxes.png) · [standards](v0.42.0/07-standards.png) · [bom](v0.42.0/08-bom.png) · [suggest](v0.42.0/09-suggest.png) · [info arch](v0.42.0/info-arch.png) · [info how](v0.42.0/info-how.png) · [info keys](v0.42.0/info-keys.png) · [info new](v0.42.0/info-new.png) · [info suggest](v0.42.0/info-suggest.png) · [mobile](v0.42.0/mobile.png)
+
 ## [v0.41.0](v0.41.0/)
 
 02/10/2026 · [commit 66cc424](https://github.com/connorturansky-svg/pixel-workbench/commit/66cc424cd05dfc548bfde79d2008942846d02e20)
