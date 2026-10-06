@@ -1,0 +1,26 @@
+{
+ "version": "v0.33.0",
+ "date": "02/10/2026",
+ "commit": "d77109d3f59730c0111f36590b7b997a80b577ab",
+ "issue": 19,
+ "changelog": "Controller-box components now offer common Mean Well LRS power-supply and Raspberry Pi size guides that fill the model footprint while keeping dimensions editable. (suggested in #19)",
+ "status": "ok",
+ "shots": [
+  "01-workspace.png",
+  "02-hardware.png",
+  "03-presets.png",
+  "04-props.png",
+  "05-guide.png",
+  "06-boxes.png",
+  "07-standards.png",
+  "08-bom.png",
+  "09-suggest.png",
+  "info-arch.png",
+  "info-how.png",
+  "info-keys.png",
+  "info-new.png",
+  "info-suggest.png",
+  "mobile.png"
+ ],
+ "error": ""
+}
