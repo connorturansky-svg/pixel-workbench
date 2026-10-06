@@ -44,9 +44,13 @@ All shots: [workspace](v0.70.0/01-workspace.png) · [hardware](v0.70.0/02-hardwa
 
 ## [v0.69.0](v0.69.0/)
 
+06/10/2026 · [commit 5868dc3](https://github.com/connorturansky-svg/pixel-workbench/commit/5868dc3ed50fbcf546b629f73c664c55c0f3d316)
 
+> Approved requesters can ask for an explicit released-version rollback. The trusted builder restores compatible historical presentation as a new release, keeps current saved-plan handling, electrical checks, requests and accounting, and asks for clarification when a target is missing or unsafe.
 
-**Screenshots failed:** gh api -X failed: gh: We received a malformed request from your client. Sorry about that. Please try resubmitting your request and contact us if the problem persists. (HTTP 400)
+<a href="v0.69.0/01-workspace.png"><img src="v0.69.0/01-workspace.png" width="420" alt="v0.69.0 workspace"></a> <a href="v0.69.0/mobile.png"><img src="v0.69.0/mobile.png" width="240" alt="v0.69.0 mobile"></a>
+
+All shots: [workspace](v0.69.0/01-workspace.png) · [hardware](v0.69.0/02-hardware.png) · [presets](v0.69.0/03-presets.png) · [props](v0.69.0/04-props.png) · [guide](v0.69.0/05-guide.png) · [boxes](v0.69.0/06-boxes.png) · [standards](v0.69.0/07-standards.png) · [bom](v0.69.0/08-bom.png) · [suggest](v0.69.0/09-suggest.png) · [info arch](v0.69.0/info-arch.png) · [info how](v0.69.0/info-how.png) · [info keys](v0.69.0/info-keys.png) · [info new](v0.69.0/info-new.png) · [info suggest](v0.69.0/info-suggest.png) · [mobile](v0.69.0/mobile.png)
 
 ## [v0.68.0](v0.68.0/)
 

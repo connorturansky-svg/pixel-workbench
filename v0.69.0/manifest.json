@@ -1,10 +1,26 @@
 {
  "version": "v0.69.0",
- "date": "",
- "commit": "",
+ "date": "06/10/2026",
+ "commit": "5868dc3ed50fbcf546b629f73c664c55c0f3d316",
  "issue": null,
- "changelog": "",
- "status": "failed",
- "shots": [],
- "error": "gh api -X failed: gh: We received a malformed request from your client. Sorry about that. Please try resubmitting your request and contact us if the problem persists. (HTTP 400)"
+ "changelog": "Approved requesters can ask for an explicit released-version rollback. The trusted builder restores compatible historical presentation as a new release, keeps current saved-plan handling, electrical checks, requests and accounting, and asks for clarification when a target is missing or unsafe.",
+ "status": "ok",
+ "shots": [
+  "01-workspace.png",
+  "02-hardware.png",
+  "03-presets.png",
+  "04-props.png",
+  "05-guide.png",
+  "06-boxes.png",
+  "07-standards.png",
+  "08-bom.png",
+  "09-suggest.png",
+  "info-arch.png",
+  "info-how.png",
+  "info-keys.png",
+  "info-new.png",
+  "info-suggest.png",
+  "mobile.png"
+ ],
+ "error": ""
 }
