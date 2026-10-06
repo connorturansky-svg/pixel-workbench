@@ -297,6 +297,17 @@ def builder_comment(c):
 
 RESTORE_INTENT = re.compile(r"\b(?:roll\s*back|rollback|revert|restore|go back|return)\b", re.I)
 RESTORE_VERSION = re.compile(r"(?<![\w./-])v?(\d+\.\d+\.\d+)(?![\w/-]|\.\d)", re.I)
+# Shorthand: "version 61", "v61", "0.61" or "v0.61" mean the single release tag v0.61.N on the remote.
+RESTORE_SHORT = re.compile(r"(?<![\w./-])(?:(?:version|release)\s+v?(\d+)|v(\d+)|v?(\d+\.\d+))(?![\w/-]|\.\d)", re.I)
+ROLLBACK_WARNING = ("Projects saved by a newer version may lose data fields this restored version does not "
+                    "support. Export your project as JSON before reloading the app.")
+
+
+def short_targets(text):
+    found = set()
+    for minor, vminor, pair in RESTORE_SHORT.findall(text):
+        found.add("v" + (pair or "0." + (minor or vminor)))
+    return found
 AUTOMATION_INSTRUCTION = re.compile(
     r"\b(?:ignore|override|bypass)\b.*\b(?:instructions?|rules?|checks?|safety|allowlist)\b|"
     r"\b(?:automation|workflows?|secrets?|credentials?|tokens?|permissions?|force.push|"
@@ -330,9 +341,9 @@ def restore_request(issue):
             active, target = False, None
             continue
         intent = bool(RESTORE_INTENT.search(text))
-        versions = set(RESTORE_VERSION.findall(text))
+        versions = {"v" + v for v in RESTORE_VERSION.findall(text)} or short_targets(text)
         clarification = active and bool(re.search(r"\b(?:target|version|instead|meant|use)\b", text, re.I)
-                                         or re.fullmatch(r"v?\d+\.\d+\.\d+(?:\s+please)?[.!]?", text, re.I))
+                                         or re.fullmatch(r"v?\d+(?:\.\d+){0,2}(?:\s+please)?[.!]?", text, re.I))
         if not intent and not clarification:
             continue
         if AUTOMATION_INSTRUCTION.search(text):
@@ -350,8 +361,21 @@ def restore_request(issue):
         target = next(iter(versions)) if len(versions) == 1 else None
     if active and not target:
         raise RequestDecision("NEEDS-INFO", "Which single released version should be restored? "
-                              "Reply, for example: Roll back the app to v0.65.0.")
-    return "v" + target if active else None
+                              "Reply, for example: Roll back the app to v0.65.0 (or version 61).")
+    return target if active else None
+
+
+def resolve_tag(spec):
+    """vX.Y.Z is exact; shorthand vX.Y must match exactly one release tag vX.Y.N on origin."""
+    if re.fullmatch(r"v\d+\.\d+\.\d+", spec):
+        return spec
+    tags = sorted({line.split()[1][len("refs/tags/"):].removesuffix("^{}")
+                   for line in git("ls-remote", "--tags", "origin", f"refs/tags/{spec}.*").splitlines()
+                   if re.fullmatch(r"refs/tags/v\d+\.\d+\.\d+(?:\^\{\})?", line.split()[1])})
+    if len(tags) != 1:
+        raise RequestDecision("NEEDS-INFO", f"{spec} matches " + (", ".join(tags) if tags else "no release tag")
+                              + f" in {REPO}. Reply with one full released version, for example v0.65.0.")
+    return tags[0]
 
 
 def release_target(tag):
@@ -378,11 +402,6 @@ def release_target(tag):
 
 RESTORE_KEEP = {"dist/build-costs.json", "dist/suggest.mjs", "dist/suggest.css",
                 "dist/version.mjs", "dist/info.mjs", "dist/info.css"}
-RESTORE_PRESENTATION = {"dist/room.js", "dist/room.css", "dist/style.css", "dist/features.css"}
-
-
-def presentation_file(path):
-    return path in RESTORE_PRESENTATION or path.endswith(".css")
 
 
 def unstamp(text):
@@ -400,22 +419,12 @@ def app_tree(ref):
     return entries
 
 
-def prepare_restore(tag, version, issue):
-    """Stage historical presentation with current data, safety, request and builder infrastructure."""
+def prepare_restore(spec, version, issue):
+    """Stage the historical app as a new release, keeping builder, request and ledger infrastructure."""
+    tag = resolve_tag(spec)
     commit = release_target(tag)
     current, old = app_tree("HEAD"), app_tree(commit)
     paths = sorted((current.keys() | old.keys()) - RESTORE_KEEP)
-    incompatible = [p for p in paths if not presentation_file(p)
-                    and unstamp(current.get(p, "")) != unstamp(old.get(p, ""))]
-    if incompatible:
-        raise RequestDecision("NEEDS-INFO", f"Rollback to {tag} is blocked: data migrations, electrical warnings "
-                              "or non-presentation behaviour differ in " + ", ".join(incompatible)
-                              + ". Saved JSON/localStorage and safety checks cannot be downgraded automatically. "
-                              "Choose a compatible release or ask the owner for a reviewed migration.")
-    room = old.get("dist/room.js", "")
-    if re.search(r"\blocalStorage\b|\b(?:fetch|eval)\s*\(", room):
-        raise RequestDecision("NEEDS-INFO", f"Rollback to {tag} is blocked: historical room code accesses storage "
-                              "or the network directly.")
     # git restore handles both additions and deletions, without checking out historical automation.
     if paths:
         git("restore", "--source=" + commit, "--worktree", "--", *paths)
@@ -441,9 +450,9 @@ def prepare_restore(tag, version, issue):
     exports["ARCHITECTURE_NOTES"] += [n for n in json.loads(data)["ARCHITECTURE_NOTES"]
                                      if re.search(r"builder|suggest\.mjs|version\.mjs", n, re.I)]
     exports["APP_VERSION"] = version
-    summary = f"Restored compatible app presentation from {tag}; saved plans, electrical checks and requests remain current."
+    summary = f"Restored the app from {tag}; the Suggest page, build costs and builder are unchanged.\n\n**Warning:** {ROLLBACK_WARNING}"
     exports["CHANGELOG"].insert(0, {"version": version, "date": datetime.now().strftime("%d/%m/%Y"),
-                                    "items": [summary + f" (suggested in #{issue['number']})"]})
+                                    "items": [f"Restored the app from {tag} (suggested in #{issue['number']}).", "Warning: " + ROLLBACK_WARNING]})
     with open(os.path.join(BUILD_DIR, "dist", "version.mjs"), "w", encoding="utf-8", newline="\n") as f:
         for key, value in exports.items():
             encoded = "'" + version + "'" if key == "APP_VERSION" else json.dumps(value, ensure_ascii=False)
@@ -985,7 +994,7 @@ def build(issue, state):
         return dict(result, ok=True, outcome="shipped")
     except RequestDecision as e:
         rollback()
-        comment(n, f"{e}\n\nReply on this issue with a single compatible release target to try again."
+        comment(n, f"{e}\n\nReply on this issue with a single released version to try again."
                 if e.kind == "NEEDS-INFO" else str(e))
         label(n, add=[e.kind.lower()], remove=["in-progress", "tested"])
         if e.kind == "DECLINED" and not DRY:

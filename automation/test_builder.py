@@ -31,6 +31,15 @@ class ResolutionTests(unittest.TestCase):
             b.restore_request(request)
         self.assertEqual(error.exception.kind, kind)
 
+    def test_shorthand_versions_parse_to_release_specs(self):
+        for text in ("Roll back the pixel workbench project to version 61", "Roll back the app to v61",
+                     "Roll back to 0.61", "Revert to v0.61"):
+            self.assertEqual(b.restore_request(issue(text)), "v0.61", text)
+        request = issue("Roll back the pixel workbench project to version 61")
+        request["comments"] = [reply(b.MARK + "\nWhich release?", day=2), reply("Roll back the app to v0.61.0.", "connorturansky-svg", 3)]
+        self.assertEqual(b.restore_request(request), "v0.61.0")
+        self.decision(issue("Roll back to version 61 or version 62"), "NEEDS-INFO")
+
     def test_new_issue_title_and_inline_version(self):
         self.assertEqual(b.restore_request(issue("Please restore the app to `v0.65.0`.")), "v0.65.0")
         self.assertEqual(b.restore_request(issue("", "[Feature] Roll back to v0.65.0")), "v0.65.0")
@@ -202,7 +211,7 @@ class RestorationTests(unittest.TestCase):
         self.git("-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "--quiet", "-m", message)
 
     def restore(self):
-        with patch.object(b, "release_target", return_value=self.old):
+        with patch.object(b, "release_target", return_value=self.old), patch.object(b, "git", wraps=b.git):
             return b.prepare_restore("v0.65.0", "0.69.0", issue())
 
     def test_restores_additions_deletions_preserves_infrastructure_and_monotonic_version(self):
@@ -224,16 +233,28 @@ class RestorationTests(unittest.TestCase):
         self.assertEqual(data["HOW_TO_USE"][0][1], "0.65.0")
         self.assertIn("automation/builder.py 0.68.0", data["ARCHITECTURE_NOTES"])
 
-    def test_blocks_changed_data_or_safety_before_any_write(self):
+    def test_changed_data_modules_are_restored_with_data_loss_warning(self):
         self.write("dist/model.mjs", "export const safe = 2;\n")
         self.commit("changed schema or warnings")
-        with self.assertRaises(b.RequestDecision) as error:
-            self.restore()
-        self.assertEqual(error.exception.kind, "NEEDS-INFO")
-        self.assertIn("dist/model.mjs", str(error.exception))
-        self.assertIn("current", (self.root / "dist/room.js").read_text())
-        self.assertEqual(self.git("status", "--short"), "")
+        summary = self.restore()
+        self.assertEqual((self.root / "dist/model.mjs").read_text(), "export const safe = 1;\n")
+        self.assertIn("lose data fields", summary)
+        self.assertIn("Export your project as JSON", summary)
+        data = json.loads(b.run(["node", "--input-type=module", "-e",
+                               "import * as v from './dist/version.mjs';console.log(JSON.stringify(v));"]).stdout)
+        self.assertTrue(any("lose data fields" in item for item in data["CHANGELOG"][0]["items"]))
+        self.assertEqual(self.before["automation/builder.py"], (self.root / "automation/builder.py").read_bytes())
 
+    def test_shorthand_targets_need_exactly_one_remote_release(self):
+        def tags(output):
+            return patch.object(b, "git", return_value=output)
+        with tags("a\trefs/tags/v0.61.0\nb\trefs/tags/v0.61.0^{}"):
+            self.assertEqual(b.resolve_tag("v0.61"), "v0.61.0")
+        for output in ("", "a\trefs/tags/v0.61.0\nb\trefs/tags/v0.61.1", "a\trefs/tags/v0.61.0-evil"):
+            with tags(output), self.assertRaises(b.RequestDecision) as error:
+                b.resolve_tag("v0.61")
+            self.assertEqual(error.exception.kind, "NEEDS-INFO")
+        self.assertEqual(b.resolve_tag("v0.65.0"), "v0.65.0")
     def test_unsafe_historical_tree_is_blocked(self):
         with patch.object(b, "git", return_value="120000 blob " + "a" * 40 + "\tdist/link.mjs"):
             with self.assertRaises(b.RequestDecision):
