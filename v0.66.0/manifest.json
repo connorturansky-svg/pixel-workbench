@@ -1,0 +1,26 @@
+{
+ "version": "v0.66.0",
+ "date": "06/10/2026",
+ "commit": "fe2c01bf0d9a6b68a3f853f3b90968af45839348",
+ "issue": 42,
+ "changelog": "Room layout now uses projected-size detail levels with readable box ports and screen-space line weights, so site overviews stay clear while close editing reveals internals without oversized outlines. (suggested in #42)",
+ "status": "ok",
+ "shots": [
+  "01-workspace.png",
+  "02-hardware.png",
+  "03-presets.png",
+  "04-props.png",
+  "05-guide.png",
+  "06-boxes.png",
+  "07-standards.png",
+  "08-bom.png",
+  "09-suggest.png",
+  "info-arch.png",
+  "info-how.png",
+  "info-keys.png",
+  "info-new.png",
+  "info-suggest.png",
+  "mobile.png"
+ ],
+ "error": ""
+}
