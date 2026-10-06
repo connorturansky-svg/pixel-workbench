@@ -8,6 +8,16 @@ Every release is captured by the builder's release smoke test (`automation/smoke
 
 **Screenshots failed:** gh api -X failed: Post "https://api.github.com/repos/connorturansky-svg/pixel-workbench/git/blobs": read tcp 192.168.0.199:60374->20.26.156.210:443: wsarecv: An existing connection was forcibly closed
 
+## [v0.40.0](v0.40.0/)
+
+02/10/2026 · [commit 8364a9a](https://github.com/connorturansky-svg/pixel-workbench/commit/8364a9a9916dde783363f3ffc3b4855635c7e617) · [issue #21](https://github.com/connorturansky-svg/pixel-workbench/issues/21)
+
+> Room layout now shows a live cable growing from a controller-box port while it is dragged, with valid field-device and pixel-group destinations highlighted. (follow-up to #21)
+
+<a href="v0.40.0/01-workspace.png"><img src="v0.40.0/01-workspace.png" width="420" alt="v0.40.0 workspace"></a> <a href="v0.40.0/mobile.png"><img src="v0.40.0/mobile.png" width="240" alt="v0.40.0 mobile"></a>
+
+All shots: [workspace](v0.40.0/01-workspace.png) · [hardware](v0.40.0/02-hardware.png) · [presets](v0.40.0/03-presets.png) · [props](v0.40.0/04-props.png) · [guide](v0.40.0/05-guide.png) · [boxes](v0.40.0/06-boxes.png) · [standards](v0.40.0/07-standards.png) · [bom](v0.40.0/08-bom.png) · [suggest](v0.40.0/09-suggest.png) · [info arch](v0.40.0/info-arch.png) · [info how](v0.40.0/info-how.png) · [info keys](v0.40.0/info-keys.png) · [info new](v0.40.0/info-new.png) · [info suggest](v0.40.0/info-suggest.png) · [mobile](v0.40.0/mobile.png)
+
 ## [v0.39.0](v0.39.0/)
 
 02/10/2026 · [commit 93f893a](https://github.com/connorturansky-svg/pixel-workbench/commit/93f893a659b25f83797a01f72ea69d9956d45f6b) · [issue #24](https://github.com/connorturansky-svg/pixel-workbench/issues/24)
