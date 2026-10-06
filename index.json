@@ -968,5 +968,31 @@
    "mobile.png"
   ],
   "error": ""
+ },
+ {
+  "version": "v0.43.0",
+  "date": "02/10/2026",
+  "commit": "2c3c84fd1eca4008f105b46639f29db7934e7ecb",
+  "issue": 27,
+  "changelog": "Controller-box edge ports now keep their labels inside the schematic and use the matching component-standard colour. (suggested in #27)",
+  "status": "ok",
+  "shots": [
+   "01-workspace.png",
+   "02-hardware.png",
+   "03-presets.png",
+   "04-props.png",
+   "05-guide.png",
+   "06-boxes.png",
+   "07-standards.png",
+   "08-bom.png",
+   "09-suggest.png",
+   "info-arch.png",
+   "info-how.png",
+   "info-keys.png",
+   "info-new.png",
+   "info-suggest.png",
+   "mobile.png"
+  ],
+  "error": ""
  }
 ]
