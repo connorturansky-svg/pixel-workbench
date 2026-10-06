@@ -6,7 +6,7 @@ import {
   SHORTCUTS,
   ARCHITECTURE_NOTES,
   SUGGEST_GUIDE
-} from './version.mjs?v=0.66.0';
+} from './version.mjs?v=0.67.0';
 
 const E = s =>
   String(s ?? '').replace(
@@ -40,7 +40,7 @@ ${box(300, 170, 220, 48, 'app.js', 'state, notifications & pages', 'core')}
 ${line(410, 144, 410, 168)}
 ${box(30, 250, 170, 48, 'model.mjs', 'pixels, power, wire drop', 'calc')}
 ${box(215, 250, 190, 48, 'wiring-graph.mjs', 'illustrated drag wiring', 'ui')}
-${box(420, 250, 190, 48, 'room.js · installation-room', 'live drag & edge routing', 'ui')}
+${box(420, 250, 190, 48, 'room.js · installation-room', 'semantic camera & edge routing', 'ui')}
 ${box(625, 250, 170, 48, 'installation-ui.mjs', 'controller + button builders', 'ui')}
 ${box(30, 320, 170, 48, 'layout-model.mjs', 'scene & props', 'calc')}
 ${box(215, 320, 190, 48, 'installation-model.mjs', 'boxes, standards sync, routes', 'calc')}

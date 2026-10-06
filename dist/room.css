@@ -62,7 +62,7 @@
 .room-scroll > svg {
   display: block;
   aspect-ratio: auto;
-  min-height: 320px;
+  height: auto;
   touch-action: none;
 }
 .room-camera {
@@ -88,6 +88,11 @@
   color: var(--ink);
   font-size: 18px;
   font-weight: 700;
+}
+.room-camera .room-fit {
+  width: auto;
+  padding: 0 8px;
+  font-size: 11px;
 }
 .room-camera button:hover,
 .room-camera button:focus-visible {
@@ -345,7 +350,7 @@
   font-weight: 800;
 }
 .room-port-label {
-  font-size: calc(12px * var(--room-unit, 1));
+  font-size: clamp(calc(9px * var(--room-unit, 1)), 8px, calc(16px * var(--room-unit, 1)));
   font-weight: 700;
   fill: #234d43;
   paint-order: stroke;
@@ -387,14 +392,46 @@
   vector-effect: non-scaling-stroke;
 }
 .room-box-name {
-  font-size: calc(13px * var(--room-unit, 1));
+  font-size: clamp(calc(10px * var(--room-unit, 1)), 10px, calc(24px * var(--room-unit, 1)));
 }
-.room-object[data-room-detail='overview'] .room-box-internals,
-.room-object[data-room-detail='overview'] .room-external-node {
+.room-component-label {
+  font-size: clamp(calc(10px * var(--room-unit, 1)), 9px, calc(20px * var(--room-unit, 1)));
+}
+.room-component-subname {
+  font-size: clamp(calc(9px * var(--room-unit, 1)), 8px, calc(16px * var(--room-unit, 1)));
+}
+.room-component-icon {
+  font-size: clamp(calc(12px * var(--room-unit, 1)), 14px, calc(30px * var(--room-unit, 1)));
+}
+.room-overview-label {
   display: none;
+}
+.room-overview-label path {
+  fill: none;
+  stroke: #688a80;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+.room-overview-label text {
+  font-size: calc(12px * var(--room-unit, 1));
+  font-weight: 700;
+  fill: #284f47;
+  paint-order: stroke;
+  stroke: #f9fbfa;
+  stroke-width: calc(2px * var(--room-unit, 1));
+}
+.room-object[data-room-detail='overview'] .room-box-internals {
+  opacity: 0;
+  pointer-events: none;
 }
 .room-object[data-room-detail='overview'] .room-overview-marker {
   display: block;
+}
+.room-object[data-room-detail='overview'] .room-overview-label {
+  display: block;
+}
+.room-object[data-room-detail='overview'] .room-port-label {
+  display: none;
 }
 .room-object[data-room-detail='equipment'] .room-port-label {
   display: none;
@@ -683,10 +720,19 @@
 .room-external-node {
   cursor: crosshair;
   pointer-events: all;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition:
+    transform 120ms ease,
+    filter 120ms ease;
 }
-.room-external-node:hover {
-  stroke: #173c32;
-  stroke-width: 3;
+.room-external-node:is(:hover, :focus-visible) {
+  filter: drop-shadow(0 0 3px #f9fbfa) drop-shadow(0 0 2px #173c32);
+  outline: none;
+  transform: scale(1.65);
+}
+.room-external-node:is(:hover, :focus-visible) .room-port-label {
+  display: block;
 }
 .physical-route.has-issues .route-line {
   filter: drop-shadow(0 0 2px #c04c35);

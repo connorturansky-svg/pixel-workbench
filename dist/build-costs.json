@@ -57,6 +57,7 @@
   {"issue":41,"version":"0.63.0","title":"wire connections","outcome":"shipped","at":"2026-10-02T18:25:54Z","runs":1,"model":"gpt-5.6-sol","credits":65.01,"tokensIn":543000,"tokensCached":490200,"tokensOut":9500,"seconds":132},
   {"issue":36,"version":"0.64.0","title":"schematic view is still not clear","outcome":"shipped","at":"2026-10-02T18:31:21Z","runs":1,"model":"gpt-5.6-sol","credits":40.63,"tokensIn":288300,"tokensCached":251600,"tokensOut":6100,"seconds":104},
   {"issue":40,"version":"0.65.0","title":"Room layout delete components","outcome":"shipped","at":"2026-10-02T18:35:30Z","runs":1,"model":"gpt-5.6-sol","credits":39.15,"tokensIn":291900,"tokensCached":255000,"tokensOut":5300,"seconds":99},
-  {"issue":42,"version":"0.66.0","title":"Scale on room layout doesnt work","outcome":"shipped","at":"2026-10-06T11:31:03Z","runs":1,"model":"gpt-5.6-sol","credits":51.61,"tokensIn":223800,"tokensCached":175100,"tokensOut":10100,"seconds":122}
+  {"issue":42,"version":"0.66.0","title":"Scale on room layout doesnt work","outcome":"shipped","at":"2026-10-06T11:31:03Z","runs":1,"model":"gpt-5.6-sol","credits":51.61,"tokensIn":223800,"tokensCached":175100,"tokensOut":10100,"seconds":122},
+  {"issue":43,"version":"0.67.0","title":"Follow up from #42 regarding room layout scale","outcome":"shipped","at":"2026-10-06T11:55:58Z","runs":1,"model":"gpt-5.6-sol","credits":58.28,"tokensIn":290000,"tokensCached":245800,"tokensOut":13200,"seconds":143}
  ]
 }
