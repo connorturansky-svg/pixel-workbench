@@ -1228,5 +1228,31 @@
    "mobile.png"
   ],
   "error": ""
+ },
+ {
+  "version": "v0.53.0",
+  "date": "02/10/2026",
+  "commit": "fb1618550686de3d0a1e7487fa8dec134aec40c5",
+  "issue": 29,
+  "changelog": "Box builder now separates controller and button-box tools, with custom 1\u20135 button enclosures, individual ports and Small, Medium or Large controls. (follow-up to #29)",
+  "status": "ok",
+  "shots": [
+   "01-workspace.png",
+   "02-hardware.png",
+   "03-presets.png",
+   "04-props.png",
+   "05-guide.png",
+   "06-boxes.png",
+   "07-standards.png",
+   "08-bom.png",
+   "09-suggest.png",
+   "info-arch.png",
+   "info-how.png",
+   "info-keys.png",
+   "info-new.png",
+   "info-suggest.png",
+   "mobile.png"
+  ],
+  "error": ""
  }
 ]

@@ -8,6 +8,16 @@ Every release is captured by the builder's release smoke test (`automation/smoke
 
 **Screenshots failed:** gh api -X failed: Post "https://api.github.com/repos/connorturansky-svg/pixel-workbench/git/blobs": read tcp 192.168.0.199:60374->20.26.156.210:443: wsarecv: An existing connection was forcibly closed
 
+## [v0.53.0](v0.53.0/)
+
+02/10/2026 · [commit fb16185](https://github.com/connorturansky-svg/pixel-workbench/commit/fb1618550686de3d0a1e7487fa8dec134aec40c5) · [issue #29](https://github.com/connorturansky-svg/pixel-workbench/issues/29)
+
+> Box builder now separates controller and button-box tools, with custom 1–5 button enclosures, individual ports and Small, Medium or Large controls. (follow-up to #29)
+
+<a href="v0.53.0/01-workspace.png"><img src="v0.53.0/01-workspace.png" width="420" alt="v0.53.0 workspace"></a> <a href="v0.53.0/mobile.png"><img src="v0.53.0/mobile.png" width="240" alt="v0.53.0 mobile"></a>
+
+All shots: [workspace](v0.53.0/01-workspace.png) · [hardware](v0.53.0/02-hardware.png) · [presets](v0.53.0/03-presets.png) · [props](v0.53.0/04-props.png) · [guide](v0.53.0/05-guide.png) · [boxes](v0.53.0/06-boxes.png) · [standards](v0.53.0/07-standards.png) · [bom](v0.53.0/08-bom.png) · [suggest](v0.53.0/09-suggest.png) · [info arch](v0.53.0/info-arch.png) · [info how](v0.53.0/info-how.png) · [info keys](v0.53.0/info-keys.png) · [info new](v0.53.0/info-new.png) · [info suggest](v0.53.0/info-suggest.png) · [mobile](v0.53.0/mobile.png)
+
 ## [v0.52.0](v0.52.0/)
 
 02/10/2026 · [commit 0345e3e](https://github.com/connorturansky-svg/pixel-workbench/commit/0345e3e72f3a363016ba95b4c9c10fefd21ff8df) · [issue #33](https://github.com/connorturansky-svg/pixel-workbench/issues/33)
