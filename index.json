@@ -327,5 +327,30 @@
    "mobile.png"
   ],
   "error": ""
+ },
+ {
+  "version": "v0.18.0",
+  "date": "02/10/2026",
+  "commit": "919e2f0a63d960c9b214d5f6dbd995d08fbcac0c",
+  "issue": 8,
+  "changelog": "Cable-route pivots now keep hold of the pointer throughout a room-layout drag, so they can be repositioned reliably like other movable items. (suggested in #8)",
+  "status": "ok",
+  "shots": [
+   "01-workspace.png",
+   "02-hardware.png",
+   "03-presets.png",
+   "04-props.png",
+   "05-guide.png",
+   "06-boxes.png",
+   "07-standards.png",
+   "08-bom.png",
+   "09-suggest.png",
+   "info-arch.png",
+   "info-how.png",
+   "info-keys.png",
+   "info-new.png",
+   "mobile.png"
+  ],
+  "error": ""
  }
 ]
