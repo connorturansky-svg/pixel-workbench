@@ -838,5 +838,31 @@
    "mobile.png"
   ],
   "error": ""
+ },
+ {
+  "version": "v0.38.0",
+  "date": "02/10/2026",
+  "commit": "015783e4aa2aa2ec8f55d80dfddd62b88107fb69",
+  "issue": 23,
+  "changelog": "Controller boxes now create an inactive edge port for every component connector, with editable labels and collapsible component groups for activation. (suggested in #23)",
+  "status": "ok",
+  "shots": [
+   "01-workspace.png",
+   "02-hardware.png",
+   "03-presets.png",
+   "04-props.png",
+   "05-guide.png",
+   "06-boxes.png",
+   "07-standards.png",
+   "08-bom.png",
+   "09-suggest.png",
+   "info-arch.png",
+   "info-how.png",
+   "info-keys.png",
+   "info-new.png",
+   "info-suggest.png",
+   "mobile.png"
+  ],
+  "error": ""
  }
 ]
