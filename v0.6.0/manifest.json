@@ -1,0 +1,10 @@
+{
+ "version": "v0.6.0",
+ "date": "02/10/2026",
+ "commit": "38cf66b0d2a49f779111c9f7a49af52e0170fa80",
+ "issue": null,
+ "changelog": "Info / Help moves from the sidebar into a single i button (top bar) that opens a fixed-size dialog with How to use, What\u2019s new, Architecture and Shortcuts tabs.",
+ "status": "failed",
+ "shots": [],
+ "error": "smoke test failed before any screenshot: ython312\\Lib\\site-packages\\playwright\\_impl\\_connection.py\", line 559, in wrap_api_call\n    raise rewrite_error(error, f\"{parsed_st['apiName']}: {error}\") from None\nplaywright._impl._errors.TimeoutError: Page.text_content: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator(\".brand-version\")"
+}
