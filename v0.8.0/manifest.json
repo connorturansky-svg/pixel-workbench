@@ -1,0 +1,25 @@
+{
+ "version": "v0.8.0",
+ "date": "02/10/2026",
+ "commit": "4da7681a18b91d859ff9d7f8decfc8a8d0a2f315",
+ "issue": 1,
+ "changelog": "The Suggest a feature page now shows the total number of requests beside the build-status heading. The total updates whenever the request list loads or refreshes. (suggested in #1)",
+ "status": "ok",
+ "shots": [
+  "01-workspace.png",
+  "02-hardware.png",
+  "03-presets.png",
+  "04-props.png",
+  "05-guide.png",
+  "06-boxes.png",
+  "07-standards.png",
+  "08-bom.png",
+  "09-suggest.png",
+  "info-arch.png",
+  "info-how.png",
+  "info-keys.png",
+  "info-new.png",
+  "mobile.png"
+ ],
+ "error": ""
+}
