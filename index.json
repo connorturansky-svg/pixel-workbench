@@ -1602,5 +1602,15 @@
   "status": "failed",
   "shots": [],
   "error": "gh api -X failed: gh: Reference already exists (HTTP 422)"
+ },
+ {
+  "version": "v0.69.0",
+  "date": "",
+  "commit": "",
+  "issue": null,
+  "changelog": "",
+  "status": "failed",
+  "shots": [],
+  "error": "gh api -X failed: gh: We received a malformed request from your client. Sorry about that. Please try resubmitting your request and contact us if the problem persists. (HTTP 400)"
  }
 ]

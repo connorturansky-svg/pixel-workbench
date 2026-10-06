@@ -2,6 +2,12 @@
 
 Every release is captured by the builder's release smoke test (`automation/smoke.py --shots`): every page, every info tab and a mobile view. This branch is never deployed by Pages. Newest first.
 
+## [v0.69.0](v0.69.0/)
+
+
+
+**Screenshots failed:** gh api -X failed: gh: We received a malformed request from your client. Sorry about that. Please try resubmitting your request and contact us if the problem persists. (HTTP 400)
+
 ## [v0.68.0](v0.68.0/)
 
 
