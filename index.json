@@ -1098,5 +1098,31 @@
    "mobile.png"
   ],
   "error": ""
+ },
+ {
+  "version": "v0.48.0",
+  "date": "02/10/2026",
+  "commit": "20276dd26bdf44a484cb0dc2368ce98971a1b785",
+  "issue": 30,
+  "changelog": "Disabled controller-box edge ports are now hidden from the schematic while remaining available in the edge-port editor. (suggested in #30)",
+  "status": "ok",
+  "shots": [
+   "01-workspace.png",
+   "02-hardware.png",
+   "03-presets.png",
+   "04-props.png",
+   "05-guide.png",
+   "06-boxes.png",
+   "07-standards.png",
+   "08-bom.png",
+   "09-suggest.png",
+   "info-arch.png",
+   "info-how.png",
+   "info-keys.png",
+   "info-new.png",
+   "info-suggest.png",
+   "mobile.png"
+  ],
+  "error": ""
  }
 ]

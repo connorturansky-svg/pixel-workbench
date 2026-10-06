@@ -8,6 +8,16 @@ Every release is captured by the builder's release smoke test (`automation/smoke
 
 **Screenshots failed:** gh api -X failed: Post "https://api.github.com/repos/connorturansky-svg/pixel-workbench/git/blobs": read tcp 192.168.0.199:60374->20.26.156.210:443: wsarecv: An existing connection was forcibly closed
 
+## [v0.48.0](v0.48.0/)
+
+02/10/2026 · [commit 20276dd](https://github.com/connorturansky-svg/pixel-workbench/commit/20276dd26bdf44a484cb0dc2368ce98971a1b785) · [issue #30](https://github.com/connorturansky-svg/pixel-workbench/issues/30)
+
+> Disabled controller-box edge ports are now hidden from the schematic while remaining available in the edge-port editor. (suggested in #30)
+
+<a href="v0.48.0/01-workspace.png"><img src="v0.48.0/01-workspace.png" width="420" alt="v0.48.0 workspace"></a> <a href="v0.48.0/mobile.png"><img src="v0.48.0/mobile.png" width="240" alt="v0.48.0 mobile"></a>
+
+All shots: [workspace](v0.48.0/01-workspace.png) · [hardware](v0.48.0/02-hardware.png) · [presets](v0.48.0/03-presets.png) · [props](v0.48.0/04-props.png) · [guide](v0.48.0/05-guide.png) · [boxes](v0.48.0/06-boxes.png) · [standards](v0.48.0/07-standards.png) · [bom](v0.48.0/08-bom.png) · [suggest](v0.48.0/09-suggest.png) · [info arch](v0.48.0/info-arch.png) · [info how](v0.48.0/info-how.png) · [info keys](v0.48.0/info-keys.png) · [info new](v0.48.0/info-new.png) · [info suggest](v0.48.0/info-suggest.png) · [mobile](v0.48.0/mobile.png)
+
 ## [v0.47.0](v0.47.0/)
 
 02/10/2026 · [commit fecc21c](https://github.com/connorturansky-svg/pixel-workbench/commit/fecc21cae611ce69532391fc7e2f0b6f756024b3) · [issue #26](https://github.com/connorturansky-svg/pixel-workbench/issues/26)
