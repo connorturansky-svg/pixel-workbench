@@ -8,6 +8,16 @@ Every release is captured by the builder's release smoke test (`automation/smoke
 
 **Screenshots failed:** gh api -X failed: Post "https://api.github.com/repos/connorturansky-svg/pixel-workbench/git/blobs": read tcp 192.168.0.199:60374->20.26.156.210:443: wsarecv: An existing connection was forcibly closed
 
+## [v0.34.0](v0.34.0/)
+
+02/10/2026 · [commit 6a8e400](https://github.com/connorturansky-svg/pixel-workbench/commit/6a8e400b5f1791708469788d6f49ddbd04eeac3d) · [issue #20](https://github.com/connorturansky-svg/pixel-workbench/issues/20)
+
+> Controller-box schematics now have a scrollable zoom canvas and an automatic flow-chart layout that spaces connected components while existing wire routes avoid other parts. (suggested in #20)
+
+<a href="v0.34.0/01-workspace.png"><img src="v0.34.0/01-workspace.png" width="420" alt="v0.34.0 workspace"></a> <a href="v0.34.0/mobile.png"><img src="v0.34.0/mobile.png" width="240" alt="v0.34.0 mobile"></a>
+
+All shots: [workspace](v0.34.0/01-workspace.png) · [hardware](v0.34.0/02-hardware.png) · [presets](v0.34.0/03-presets.png) · [props](v0.34.0/04-props.png) · [guide](v0.34.0/05-guide.png) · [boxes](v0.34.0/06-boxes.png) · [standards](v0.34.0/07-standards.png) · [bom](v0.34.0/08-bom.png) · [suggest](v0.34.0/09-suggest.png) · [info arch](v0.34.0/info-arch.png) · [info how](v0.34.0/info-how.png) · [info keys](v0.34.0/info-keys.png) · [info new](v0.34.0/info-new.png) · [info suggest](v0.34.0/info-suggest.png) · [mobile](v0.34.0/mobile.png)
+
 ## [v0.33.0](v0.33.0/)
 
 02/10/2026 · [commit d77109d](https://github.com/connorturansky-svg/pixel-workbench/commit/d77109d3f59730c0111f36590b7b997a80b577ab) · [issue #19](https://github.com/connorturansky-svg/pixel-workbench/issues/19)

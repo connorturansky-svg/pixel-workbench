@@ -1,0 +1,26 @@
+{
+ "version": "v0.34.0",
+ "date": "02/10/2026",
+ "commit": "6a8e400b5f1791708469788d6f49ddbd04eeac3d",
+ "issue": 20,
+ "changelog": "Controller-box schematics now have a scrollable zoom canvas and an automatic flow-chart layout that spaces connected components while existing wire routes avoid other parts. (suggested in #20)",
+ "status": "ok",
+ "shots": [
+  "01-workspace.png",
+  "02-hardware.png",
+  "03-presets.png",
+  "04-props.png",
+  "05-guide.png",
+  "06-boxes.png",
+  "07-standards.png",
+  "08-bom.png",
+  "09-suggest.png",
+  "info-arch.png",
+  "info-how.png",
+  "info-keys.png",
+  "info-new.png",
+  "info-suggest.png",
+  "mobile.png"
+ ],
+ "error": ""
+}
