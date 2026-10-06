@@ -127,5 +127,30 @@
    "mobile.png"
   ],
   "error": ""
+ },
+ {
+  "version": "v0.10.0",
+  "date": "02/10/2026",
+  "commit": "f3ad0e41d39fcb5e7ea445c48ae95b1f3756d490",
+  "issue": null,
+  "changelog": "Suggest a feature now submits from inside the app. Select Submit and the request is filed in the background, with your screenshots attached. GitHub no longer opens in a new tab.",
+  "status": "ok",
+  "shots": [
+   "01-workspace.png",
+   "02-hardware.png",
+   "03-presets.png",
+   "04-props.png",
+   "05-guide.png",
+   "06-boxes.png",
+   "07-standards.png",
+   "08-bom.png",
+   "09-suggest.png",
+   "info-arch.png",
+   "info-how.png",
+   "info-keys.png",
+   "info-new.png",
+   "mobile.png"
+  ],
+  "error": ""
  }
 ]
