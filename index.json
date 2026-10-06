@@ -452,5 +452,30 @@
    "mobile.png"
   ],
   "error": ""
+ },
+ {
+  "version": "v0.23.0",
+  "date": "02/10/2026",
+  "commit": "b1777c1d92d4bdc04d24730d4ca4133ec63760dc",
+  "issue": 11,
+  "changelog": "Each component placed in a controller box can now have its own optional subname, shown beneath the hardware name in box and room layouts. Subnames are retained in reusable box templates. (suggested in #11)",
+  "status": "ok",
+  "shots": [
+   "01-workspace.png",
+   "02-hardware.png",
+   "03-presets.png",
+   "04-props.png",
+   "05-guide.png",
+   "06-boxes.png",
+   "07-standards.png",
+   "08-bom.png",
+   "09-suggest.png",
+   "info-arch.png",
+   "info-how.png",
+   "info-keys.png",
+   "info-new.png",
+   "mobile.png"
+  ],
+  "error": ""
  }
 ]
