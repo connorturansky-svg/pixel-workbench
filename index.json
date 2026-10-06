@@ -1,0 +1,12 @@
+[
+ {
+  "version": "v0.61.0",
+  "date": "",
+  "commit": "",
+  "issue": null,
+  "changelog": "",
+  "status": "failed",
+  "shots": [],
+  "error": "gh api -X failed: Post \"https://api.github.com/repos/connorturansky-svg/pixel-workbench/git/blobs\": read tcp 192.168.0.199:60374->20.26.156.210:443: wsarecv: An existing connection was forcibly closed"
+ }
+]
