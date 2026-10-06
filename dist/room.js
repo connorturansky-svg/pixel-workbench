@@ -5,7 +5,7 @@ import {
   makeProp,
   PALETTE,
   clampPosition
-} from './layout-model.mjs?v=0.67.0';
+} from './layout-model.mjs?v=0.68.0';
 import {
   ensureInstallation,
   BUTTON_COLOURS,
@@ -14,14 +14,14 @@ import {
   perimeterAnchor,
   deleteRoute,
   portTypeColour
-} from './installation-model.mjs?v=0.67.0';
+} from './installation-model.mjs?v=0.68.0';
 import {
   routeLayer,
   routeControls,
   routeInspector,
   installRoutes,
   refreshRoutes
-} from './installation-room.mjs?v=0.67.0';
+} from './installation-room.mjs?v=0.68.0';
 let api,
   chosen = '',
   propId = 'prop-smiley',
@@ -134,6 +134,7 @@ function updateVisualScale() {
     const boxMatrix = box.getScreenCTM(),
       boxScale = boxMatrix ? Math.hypot(boxMatrix.a, boxMatrix.b) : rootScale;
     box.style.setProperty('--room-unit', 1 / (boxScale || 1));
+    box.style.setProperty('--room-port-scale', Math.max(0.35, Math.min(1.25, 2.2 / boxScale)));
   }
 }
 function propSvg(pr, count = pr.count, numbered = false) {
@@ -286,25 +287,51 @@ const componentShortName = name =>
     .replace(/\bDistribution\b/gi, 'DIST')
     .replace(/\bAmplifier\b/gi, 'AMP')
     .replace(/\bTransformer\b/gi, 'XFMR');
+function componentLines(name, limit) {
+  const words = name.split(/\s+/),
+    lines = [];
+  for (const word of words) {
+    const current = lines.at(-1);
+    if (!current || current.length + word.length + 1 > limit) lines.push(word);
+    else lines[lines.length - 1] += ' ' + word;
+  }
+  if (lines.length > 2) {
+    lines[1] = lines.slice(1).join(' ');
+    lines.length = 2;
+  }
+  return lines.map(line => (line.length > limit ? line.slice(0, Math.max(2, limit - 1)) + '…' : line));
+}
 function boxVisual(box, w, h) {
   const scale = boxVisualScale(w / 100, h / 100);
   w /= scale;
   h /= scale;
   const items = box.components,
+    ports = exposedPorts(box),
     n = items.length,
     cols = Math.max(1, Math.ceil(Math.sqrt((n * w) / Math.max(h, 1)))),
     rows = Math.max(1, Math.ceil(n / cols)),
-    header = 18,
+    header = 22,
     cellW = w / cols,
     cellH = (h - header) / rows,
-    labels = api.getProject().installation.showLabels;
-  return `<g class="room-box-visual" transform="scale(${scale})"><rect class="room-box-shell" x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="4" fill="#193f39" stroke="#4f806a"/><circle class="room-overview-marker" cx="0" cy="0"/><g class="room-box-internals">${labels ? `<text class="room-box-name" x="${-w / 2 + 8}" y="${-h / 2 + 13}" fill="white" font-weight="700">${E(box.name.slice(0, 30))}</text>` : ''}${items
+    labels = api.getProject().installation.showLabels,
+    inputs = ports.filter(({ port }) => port.direction === 'in').length,
+    outputs = ports.filter(({ port }) => port.direction === 'out').length,
+    bidirectional = ports.length - inputs - outputs,
+    configuration = ports.length
+      ? [inputs && `${inputs} IN`, outputs && `${outputs} OUT`, bidirectional && `${bidirectional} I/O`]
+          .filter(Boolean)
+          .join(' / ')
+      : box.interfacePorts?.length
+        ? 'NO ACTIVE EDGE PORTS'
+        : `${n} COMPONENT${n === 1 ? '' : 'S'}`;
+  return `<g class="room-box-visual" transform="scale(${scale})"><rect class="room-box-shell" x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="4" fill="#193f39" stroke="#4f806a"/><circle class="room-overview-marker" cx="0" cy="0"/><g class="room-box-internals">${labels ? `<text class="room-box-name" x="${-w / 2 + 6}" y="${-h / 2 + 10}" fill="white" font-weight="700">${E(box.name.length > 32 ? box.name.slice(0, 30) + '…' : box.name)}</text><text class="room-box-configuration" x="${-w / 2 + 6}" y="${-h / 2 + 18}" fill="#d7ebe4">${E(configuration)}</text>` : ''}${items
     .map((part, i) => {
       const x = -w / 2 + (i % cols) * cellW,
         y = -h / 2 + header + Math.floor(i / cols) * cellH,
         c = part.snapshot.color || '#4b8a76',
-        limit = Math.max(4, Math.floor(cellW / 5)),
-        shortName = componentShortName(part.snapshot.name);
+        limit = Math.max(5, Math.floor((cellW - 8) / 3.8)),
+        shortName = componentShortName(part.snapshot.name),
+        lines = componentLines(part.snapshot.name, limit);
       if (box.kind === 'button') {
         const labelHeight = labels ? 11 : 0,
           scale = Math.max(0.18, Math.min((cellW - 8) / 62, (cellH - labelHeight - 4) / 62)),
@@ -312,13 +339,11 @@ function boxVisual(box, w, h) {
           cy = y + (cellH - labelHeight) / 2;
         return `<g><g transform="translate(${cx} ${cy}) scale(${scale}) translate(-50 -51)"><rect x="22" y="38" width="56" height="42" rx="8" fill="#505c58" stroke="#243a34" stroke-width="4"/><ellipse cx="50" cy="40" rx="23" ry="18" fill="${E(c)}" stroke="#f5f7f4" stroke-width="5"/><ellipse cx="50" cy="36" rx="13" ry="8" fill="#ffffff55"/></g>${labels ? `<text class="room-component-label" x="${cx}" y="${y + cellH - 3}" text-anchor="middle" font-size="8" fill="white" paint-order="stroke" stroke="#153d36" stroke-width="1">${E((part.subname || shortName).slice(0, limit * 2))}</text>` : ''}<title>${E(part.snapshot.name)}${part.subname ? ` (${E(part.subname)})` : ''} · ${E(part.buttonColour || 'Custom')} face · ${E(part.snapshot.ports.length)} ports</title></g>`;
       }
-      return `<g><rect x="${x + 1}" y="${y + 1}" width="${cellW - 2}" height="${cellH - 2}" fill="${E(c)}" fill-opacity=".9" stroke="white" stroke-width="1"/>${labels ? `<text class="room-component-label" x="${x + 4}" y="${y + Math.min(14, cellH / 2)}" font-size="9" fill="white" paint-order="stroke" stroke="#153d36" stroke-width="1">${E(shortName.slice(0, limit))}</text>${cellH >= 30 ? `<text class="room-component-icon" x="${x + cellW / 2}" y="${y + Math.min(cellH - 5, 32)}" text-anchor="middle" font-size="14" fill="white">${E(part.snapshot.icon)}</text>` : ''}${part.subname && cellH >= 46 ? `<text class="room-component-subname" x="${x + 4}" y="${y + Math.min(cellH - 5, 47)}" font-size="8" fill="white" paint-order="stroke" stroke="#153d36" stroke-width="1">(${E(part.subname.slice(0, limit))})</text>` : ''}` : ''}<title>${E(part.snapshot.name)}${part.subname ? ` (${E(part.subname)})` : ''} · ${E(part.snapshot.ports.length)} ports</title></g>`;
+      return `<g class="room-component-card"><rect x="${x + 1}" y="${y + 1}" width="${cellW - 2}" height="${cellH - 2}" rx="2" fill="${E(c)}" fill-opacity=".92" stroke="#f4f8f5" stroke-width=".7"/>${labels ? `<text class="room-component-label" x="${x + 4}" y="${y + 10}" fill="white">${lines.map((line, lineIndex) => `<tspan x="${x + 4}" dy="${lineIndex ? 8 : 0}">${E(line)}</tspan>`).join('')}</text>${cellH >= 29 ? `<text class="room-component-icon" x="${x + cellW / 2}" y="${y + cellH - 7}" text-anchor="middle" fill="white">${E(part.snapshot.icon)}</text>` : ''}${part.subname && cellH >= 44 ? `<text class="room-component-subname" x="${x + 4}" y="${y + cellH - 4}" fill="white">(${E(part.subname.length > limit ? part.subname.slice(0, limit - 1) + '…' : part.subname)})</text>` : ''}` : ''}<title>${E(part.snapshot.name)}${part.subname ? ` (${E(part.subname)})` : ''} · ${E(part.snapshot.ports.length)} ports</title></g>`;
     })
     .join(
       ''
-    )}${n || !labels ? '' : '<text text-anchor="middle" y="5" fill="white" font-size="11">EMPTY BOX</text>'}</g>${exposedPorts(
-    box
-  )
+    )}${n || !labels ? '' : '<text text-anchor="middle" y="5" fill="white" font-size="11">EMPTY BOX</text>'}</g>${ports
     .map(({ component, port, edge }) => {
       const point = perimeterAnchor(api.getProject(), box.id, component.id, port.id);
       if (!point) return '';
@@ -330,10 +355,14 @@ function boxVisual(box, w, h) {
         innerY = edge === 'top' ? -h / 2 : edge === 'bottom' ? h / 2 : y,
         pillX =
           Math.min(x, innerX) -
-          (edge === 'top' || edge === 'bottom' ? Math.max(12, label.length * 2.25 + 7) : 0),
+          (edge === 'top' || edge === 'bottom'
+            ? Math.max(12, Math.min(w * 0.38, label.length * 2.4 + 8))
+            : 0),
         pillY = Math.min(y, innerY) - (edge === 'left' || edge === 'right' ? 6 : 0),
         pillW =
-          edge === 'left' || edge === 'right' ? Math.abs(x - innerX) : Math.max(24, label.length * 4.5 + 14),
+          edge === 'left' || edge === 'right'
+            ? Math.abs(x - innerX)
+            : Math.max(24, Math.min(w * 0.76, label.length * 4.8 + 16)),
         pillH = edge === 'top' || edge === 'bottom' ? Math.abs(y - innerY) : 12;
       return `<g class="room-external-node" data-room-port="${E(box.id)}:${E(component.id)}:${E(port.id)}" data-anchor-x="${x}" data-anchor-y="${y}" tabindex="0" role="button" aria-label="${E(box.name)} ${E(component.snapshot.name)} ${E(port.label)} ${E(port.type)} port"><rect class="room-port-hit" x="${pillX}" y="${pillY}" width="${pillW}" height="${pillH}" rx="6"/><rect class="room-port-symbol" x="${pillX}" y="${pillY}" width="${pillW}" height="${pillH}" rx="6" fill="${E(component.snapshot.color || '#4b8a76')}" stroke="${portTypeColour(port.type)}"/><title>${E(box.name)} → ${E(component.snapshot.name)}${component.subname ? ` (${E(component.subname)})` : ''} → ${E(port.label)} (${E(port.type)})</title>${labels ? `<text class="room-port-label" x="${(x + innerX) / 2}" y="${(y + innerY) / 2 + 2.5}" text-anchor="middle">${E(label)}</text>` : ''}</g>`;
     })
@@ -768,10 +797,15 @@ function up(ev) {
     return;
   }
   if (roomWire?.pointer === ev.pointerId && !drag) {
-    const target = document.elementFromPoint(ev.clientX, ev.clientY)?.closest('[data-room-node]');
+    const element = document.elementFromPoint(ev.clientX, ev.clientY),
+      targetPort = element?.closest('[data-room-port]'),
+      target = element?.closest('[data-room-node]');
     roomWire.pointer = null;
     refreshRoomWire();
-    if (target) completeRoomWire(target.dataset.roomNode);
+    if (targetPort) {
+      const [boxId, componentId, portId] = targetPort.dataset.roomPort.split(':');
+      completeRoomWire({ boxId, componentId, portId });
+    } else if (target) completeRoomWire(target.dataset.roomNode);
     return;
   }
   if (!drag || ev.pointerId !== drag.pointer) return;

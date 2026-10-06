@@ -379,7 +379,7 @@
 .room-port-hit {
   fill: transparent;
   stroke: transparent;
-  stroke-width: 14;
+  stroke-width: 4;
   vector-effect: non-scaling-stroke;
   pointer-events: stroke;
 }
@@ -392,16 +392,49 @@
   vector-effect: non-scaling-stroke;
 }
 .room-box-name {
-  font-size: clamp(calc(10px * var(--room-unit, 1)), 10px, calc(24px * var(--room-unit, 1)));
+  font-size: calc(12px * var(--room-unit, 1));
+}
+.room-box-configuration {
+  font-size: calc(8px * var(--room-unit, 1));
+  font-weight: 700;
 }
 .room-component-label {
-  font-size: clamp(calc(10px * var(--room-unit, 1)), 9px, calc(20px * var(--room-unit, 1)));
+  font-size: calc(10px * var(--room-unit, 1));
+  font-weight: 700;
+  paint-order: stroke;
+  stroke: #153d36;
+  stroke-width: calc(1px * var(--room-unit, 1));
 }
 .room-component-subname {
-  font-size: clamp(calc(9px * var(--room-unit, 1)), 8px, calc(16px * var(--room-unit, 1)));
+  font-size: calc(8px * var(--room-unit, 1));
 }
 .room-component-icon {
-  font-size: clamp(calc(12px * var(--room-unit, 1)), 14px, calc(30px * var(--room-unit, 1)));
+  font-size: calc(15px * var(--room-unit, 1));
+  paint-order: stroke;
+  stroke: #153d36;
+  stroke-width: calc(1px * var(--room-unit, 1));
+}
+.room-component-card rect {
+  vector-effect: non-scaling-stroke;
+}
+.room-object[data-room-detail='equipment'] .room-component-subname,
+.room-object[data-room-detail='equipment'] .room-component-label tspan:nth-child(n + 2) {
+  display: none;
+}
+.room-object[data-room-detail='detail'] .room-box-name {
+  font-size: calc(16px * var(--room-unit, 1));
+}
+.room-object[data-room-detail='detail'] .room-box-configuration {
+  font-size: calc(10px * var(--room-unit, 1));
+}
+.room-object[data-room-detail='detail'] .room-component-label {
+  font-size: calc(13px * var(--room-unit, 1));
+}
+.room-object[data-room-detail='detail'] .room-component-subname {
+  font-size: calc(10px * var(--room-unit, 1));
+}
+.room-object[data-room-detail='detail'] .room-component-icon {
+  font-size: calc(20px * var(--room-unit, 1));
 }
 .room-overview-label {
   display: none;
@@ -722,6 +755,7 @@
   pointer-events: all;
   transform-box: fill-box;
   transform-origin: center;
+  scale: var(--room-port-scale, 1);
   transition:
     transform 120ms ease,
     filter 120ms ease;
