@@ -1,0 +1,26 @@
+{
+ "version": "v0.54.0",
+ "date": "02/10/2026",
+ "commit": "53eac16fc7ffe07662fa2491d1057e9b7bce6114",
+ "issue": 34,
+ "changelog": "Baldrick8 and Baldrick17 controllers added directly inside a controller box now provide usable pixel outputs for room floods, strings and props. (suggested in #34)",
+ "status": "ok",
+ "shots": [
+  "01-workspace.png",
+  "02-hardware.png",
+  "03-presets.png",
+  "04-props.png",
+  "05-guide.png",
+  "06-boxes.png",
+  "07-standards.png",
+  "08-bom.png",
+  "09-suggest.png",
+  "info-arch.png",
+  "info-how.png",
+  "info-keys.png",
+  "info-new.png",
+  "info-suggest.png",
+  "mobile.png"
+ ],
+ "error": ""
+}

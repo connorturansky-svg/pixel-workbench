@@ -8,6 +8,16 @@ Every release is captured by the builder's release smoke test (`automation/smoke
 
 **Screenshots failed:** gh api -X failed: Post "https://api.github.com/repos/connorturansky-svg/pixel-workbench/git/blobs": read tcp 192.168.0.199:60374->20.26.156.210:443: wsarecv: An existing connection was forcibly closed
 
+## [v0.54.0](v0.54.0/)
+
+02/10/2026 · [commit 53eac16](https://github.com/connorturansky-svg/pixel-workbench/commit/53eac16fc7ffe07662fa2491d1057e9b7bce6114) · [issue #34](https://github.com/connorturansky-svg/pixel-workbench/issues/34)
+
+> Baldrick8 and Baldrick17 controllers added directly inside a controller box now provide usable pixel outputs for room floods, strings and props. (suggested in #34)
+
+<a href="v0.54.0/01-workspace.png"><img src="v0.54.0/01-workspace.png" width="420" alt="v0.54.0 workspace"></a> <a href="v0.54.0/mobile.png"><img src="v0.54.0/mobile.png" width="240" alt="v0.54.0 mobile"></a>
+
+All shots: [workspace](v0.54.0/01-workspace.png) · [hardware](v0.54.0/02-hardware.png) · [presets](v0.54.0/03-presets.png) · [props](v0.54.0/04-props.png) · [guide](v0.54.0/05-guide.png) · [boxes](v0.54.0/06-boxes.png) · [standards](v0.54.0/07-standards.png) · [bom](v0.54.0/08-bom.png) · [suggest](v0.54.0/09-suggest.png) · [info arch](v0.54.0/info-arch.png) · [info how](v0.54.0/info-how.png) · [info keys](v0.54.0/info-keys.png) · [info new](v0.54.0/info-new.png) · [info suggest](v0.54.0/info-suggest.png) · [mobile](v0.54.0/mobile.png)
+
 ## [v0.53.0](v0.53.0/)
 
 02/10/2026 · [commit fb16185](https://github.com/connorturansky-svg/pixel-workbench/commit/fb1618550686de3d0a1e7487fa8dec134aec40c5) · [issue #29](https://github.com/connorturansky-svg/pixel-workbench/issues/29)
