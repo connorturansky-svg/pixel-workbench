@@ -527,5 +527,30 @@
    "mobile.png"
   ],
   "error": ""
+ },
+ {
+  "version": "v0.26.0",
+  "date": "02/10/2026",
+  "commit": "c556c76d619e226fbef837e1dd39049057d366cb",
+  "issue": null,
+  "changelog": "Automatic feature builds now use fewer AI credits. The app\u2019s code is formatted into short, readable lines, so the build agent reads far less text to find what it needs.",
+  "status": "ok",
+  "shots": [
+   "01-workspace.png",
+   "02-hardware.png",
+   "03-presets.png",
+   "04-props.png",
+   "05-guide.png",
+   "06-boxes.png",
+   "07-standards.png",
+   "08-bom.png",
+   "09-suggest.png",
+   "info-arch.png",
+   "info-how.png",
+   "info-keys.png",
+   "info-new.png",
+   "mobile.png"
+  ],
+  "error": ""
  }
 ]
