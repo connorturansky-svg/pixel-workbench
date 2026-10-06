@@ -50,9 +50,13 @@ All shots: [workspace](v0.70.0/01-workspace.png) · [hardware](v0.70.0/02-hardwa
 
 ## [v0.68.0](v0.68.0/)
 
+06/10/2026 · [commit 69d8e04](https://github.com/connorturansky-svg/pixel-workbench/commit/69d8e04744659656ce6117e5597765b2bf7f9b7d) · [issue #43](https://github.com/connorturansky-svg/pixel-workbench/issues/43)
 
+> Configured room boxes again show a contained name and port summary, readable full component names and symbols, exact colour-coded edge ports, and drag wiring between real ports; unconfigured migrated boxes now clearly identify inactive edge ports instead of inventing them. (follow-up to #43)
 
-**Screenshots failed:** gh api -X failed: gh: Reference already exists (HTTP 422)
+<a href="v0.68.0/01-workspace.png"><img src="v0.68.0/01-workspace.png" width="420" alt="v0.68.0 workspace"></a> <a href="v0.68.0/mobile.png"><img src="v0.68.0/mobile.png" width="240" alt="v0.68.0 mobile"></a>
+
+All shots: [workspace](v0.68.0/01-workspace.png) · [hardware](v0.68.0/02-hardware.png) · [presets](v0.68.0/03-presets.png) · [props](v0.68.0/04-props.png) · [guide](v0.68.0/05-guide.png) · [boxes](v0.68.0/06-boxes.png) · [standards](v0.68.0/07-standards.png) · [bom](v0.68.0/08-bom.png) · [suggest](v0.68.0/09-suggest.png) · [info arch](v0.68.0/info-arch.png) · [info how](v0.68.0/info-how.png) · [info keys](v0.68.0/info-keys.png) · [info new](v0.68.0/info-new.png) · [info suggest](v0.68.0/info-suggest.png) · [mobile](v0.68.0/mobile.png)
 
 ## [v0.67.0](v0.67.0/)
 

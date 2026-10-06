@@ -1,10 +1,26 @@
 {
  "version": "v0.68.0",
- "date": "",
- "commit": "",
- "issue": null,
- "changelog": "",
- "status": "failed",
- "shots": [],
- "error": "gh api -X failed: gh: Reference already exists (HTTP 422)"
+ "date": "06/10/2026",
+ "commit": "69d8e04744659656ce6117e5597765b2bf7f9b7d",
+ "issue": 43,
+ "changelog": "Configured room boxes again show a contained name and port summary, readable full component names and symbols, exact colour-coded edge ports, and drag wiring between real ports; unconfigured migrated boxes now clearly identify inactive edge ports instead of inventing them. (follow-up to #43)",
+ "status": "ok",
+ "shots": [
+  "01-workspace.png",
+  "02-hardware.png",
+  "03-presets.png",
+  "04-props.png",
+  "05-guide.png",
+  "06-boxes.png",
+  "07-standards.png",
+  "08-bom.png",
+  "09-suggest.png",
+  "info-arch.png",
+  "info-how.png",
+  "info-keys.png",
+  "info-new.png",
+  "info-suggest.png",
+  "mobile.png"
+ ],
+ "error": ""
 }
