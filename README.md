@@ -48,11 +48,21 @@ The **Suggest a feature** page lets anyone give an idea a title, describe it and
 
 Requesters reply from the status list too. A request in `needs-info` or `build-failed` shows **Answer the question** or **Reply to retry**, with the builder's latest comment, and a bell in the top bar counts the signed-in user's requests waiting on them. For 7 days after a request ships (`FOLLOW_UP_DAYS`, in both `dist/suggest.mjs` and `automation/builder.py`), **Add a follow-up** posts a comment that makes the builder reopen the issue and build just that follow-up as a new version (up to 5 per request). Replies are ordinary issue comments, so commenting on GitHub works the same. The i dialog's **Suggest a feature** tab is the user manual.
 
+### Explicit version rollback
+
+Allowed accounts can file a new request, or reply/follow up on an existing request, with **Roll back the app to v0.65.0** (replace the target with a real released `vX.Y.Z`). The latest relevant clarification from the requester or another allowed owner wins; after a ship, only comments after the most recent authentic builder ship note can authorize another rollback. Quoted examples, attachments, hidden comments and other authors cannot authorize one. Missing, ambiguous or unknown targets receive `needs-info`, not a guessed rollback.
+
+This is a **forward-only new release**, never a history rewrite, force-push or automatic retry through Copilot. The trusted builder verifies the exact tag against this repository's remote, checks its commit is in main's history and its `APP_VERSION` matches, then restores compatible historical app sources, including added/deleted presentation files. The assigned version still exceeds all known versions, and the new dated changelog names the historical target. Current request UI, help, cost ledger, infrastructure, automation, permissions and secrets are not rolled back. There is no AI run for this operation, but its zero-credit record and pending costs still go through the normal accounting, validation and publishing path.
+
+Automatic compatibility is deliberately conservative: apart from Room presentation (`room.js` and CSS), all unprotected app modules and HTML must be identical to the current release, ignoring only cache-version stamps. This keeps the JSON v1 validator, localStorage keys, standards-library migrations, electrical calculations, warning rendering, imports/exports and mutation APIs unchanged. A target with different data/safety/non-presentation code or unsupported historical files is blocked with the specific filenames and `needs-info`; it needs an owner-reviewed migration, not a silent data downgrade. Historical Room code must not access localStorage or network/dynamic code directly. Current numerical, migration/round-trip and browser checks must pass; a failed restoration is never handed to the agent to bypass its checks. Export a project JSON backup before requesting a rollback. Do not request automation changes or removal of electrical warnings alongside it; those requests are declined.
+
+### Builder operation
+
 Only requests from the GitHub accounts in `ALLOWED_AUTHORS` (`J-Turansky` and `connorturansky-svg`) are built. To change the list, edit `ALLOWED_AUTHORS` in both `automation/builder.py` and `dist/suggest.mjs`. Requests from anyone else are labelled `declined` and closed with an explanation. Allowed requests are built with no approval step, by `automation/builder.py` on the build PC:
 
 1. Every 5 minutes (Task Scheduler), it takes the oldest open `[Feature]` issue and labels it `in-progress`.
 2. It resets its own worktree (`..\pixel-workbench-build`) to `origin/main` and downloads the issue's screenshots and attached text documents (`.md`, `.txt`, `.csv`, `.json` and similar files added with GitHub's "Attach files"), which the build agent can read but not copy into the app.
-3. It runs the Copilot CLI headlessly under [AGENTS.md](AGENTS.md). The agent gets only file and shell tools: no MCP servers, no web access, no git or gh, and no tokens. Request text is treated as untrusted.
+3. Normal feature requests run the Copilot CLI headlessly under [AGENTS.md](AGENTS.md). The agent gets only file and shell tools: no MCP servers, no web access, no git or gh, and no tokens. Request text is treated as untrusted. Explicit version rollbacks instead use the trusted restoration path described above, without invoking Copilot or downloading request attachments.
 4. It rejects changes outside `dist/` and `README.md` and any new network or `eval` code. Then it runs `stamp-version.mjs`, the verify scripts and `automation/smoke.py` (headless browser, every page and info tab). The agent gets two rounds to fix failures, continuing its own Copilot session (`--resume`) so it doesn't re-read the code.
    To keep AI credits low, the prompt includes a code map (`automation/codemap.py`), the agent runs one quiet `node check.mjs`, and the builder formats changed files with Prettier (`.prettierrc`) so lines stay short.
 5. It labels the issue `tested`, then appends the build's AI usage to `dist/build-costs.json`: credits, tokens, model and agent time, from the Copilot CLI usage summary. Usage from earlier attempts that didn't ship is included too. Cost is estimated at $0.01 per AI credit. It then commits, tags `vX.Y.0` and pushes to `main` as J-Turansky. It then waits for the Pages deploy, comments, labels `shipped` and closes the issue.
@@ -62,7 +72,8 @@ Other outcomes:
 - If the agent needs detail, it labels the issue `needs-info` and asks a question.
 - Out-of-scope or unsafe requests are labelled `declined` and closed.
 - Failures are rolled back and labelled `build-failed` with the reason.
-- When the requester replies, a `needs-info` or `build-failed` request is retried (up to 3 attempts). A requester comment on a request shipped in the last 7 days reopens it, removes `shipped` and builds the follow-up on top of the live version (`MAX_FOLLOW_UPS` = 5 per request). Each requester is limited to 100 builds a day.
+- If a release has already been pushed but Pages fails or cannot be verified live, the request remains open with `build-failed` and a precise deployment blocker. It is not falsely labelled shipped, and published history is never reset.
+- When the requester or an allowed owner replies, a `needs-info` or `build-failed` request is retried (up to 3 attempts). Such a comment on a request shipped in the last 7 days reopens it, removes `shipped` and builds the follow-up on top of the live version (`MAX_FOLLOW_UPS` = 5 per request). Each requester is limited to 100 builds a day.
 - Every build gets the whole issue thread in order: the original request, then each builder question or outcome, the requester's replies and notes from the project owner (other allowlisted accounts). Only "Building this now" status notes and comments from other accounts are left out. A follow-up build is told to build only what was asked after the latest "Shipped in" note. Very long threads drop their oldest comments first (`THREAD_CHARS`).
 - Across all requests and users, no new build starts once 5,000 AI credits (`DAILY_CREDIT_LIMIT`) have been used in the last 24 hours. A build already running always finishes, so the total can go slightly over. Requests stay queued until older builds drop out of the window. After each build the builder publishes the rolling spend to `usage.json` on the `feature-assets` branch, and the app reads it from there.
 
@@ -79,6 +90,8 @@ Logs, screenshots and state are in `%LOCALAPPDATA%\PixelWorkbenchBuilder`. To ru
 ## Checks
 
 Run `node check.mjs` to run every check quietly, or `node verify.mjs` and `node verify-installation.mjs` for numerical and validation checks. `python automation\smoke.py dist` loads every page and info tab in headless Chromium. The app also exposes read-plan and set-planning-brightness WebMCP tools where supported.
+
+Run `python -m unittest discover -s automation -p test_builder.py` for offline builder regressions. GitHub, issue mutations, Copilot and publishing are mocked; restoration filesystem tests use disposable repositories, never the installed builder or its shared worktree.
 
 The layout checks cover old-project migration, geometry bounds, state round-trips and rejected unsafe references. Projects remain compatible with the existing v1 JSON format through optional scene/props fields.
 

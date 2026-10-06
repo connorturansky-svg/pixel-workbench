@@ -96,7 +96,10 @@ def run(args, cwd=None, env=None, timeout=300, check=True):
 
 
 def git(*a, cwd=None, check=True, timeout=300):
-    return run(["git", *a], cwd=cwd, check=check, timeout=timeout).stdout.strip()
+    remote = bool(TOKEN) and a[0] in ("fetch", "ls-remote")
+    auth = ["-c", "credential.helper=", "-c", "credential.helper=!gh auth git-credential"] if remote else []
+    return run(["git", *auth, *a], cwd=cwd, env=gh_env() if remote else None,
+               check=check, timeout=timeout).stdout.strip()
 
 
 TOKEN = None
@@ -167,9 +170,10 @@ def ensure_labels(state):
 def requester_replied(issue):
     """The requester commented after the builder's latest comment (an answer to a question, or a retry)."""
     author = issue["author"]["login"]
-    last_bot = max((when(c["createdAt"]) for c in issue.get("comments") or [] if MARK in (c.get("body") or "")),
+    last_bot = max((when(c["createdAt"]) for c in issue.get("comments") or [] if builder_comment(c)),
                    default=None)
-    return bool(last_bot) and any(c["author"]["login"] == author and MARK not in (c.get("body") or "")
+    return bool(last_bot) and any((c.get("author") or {}).get("login", "").lower() in ALLOWED_AUTHORS
+                                  and not builder_comment(c)
                                   and when(c["createdAt"]) > last_bot for c in issue.get("comments") or [])
 
 
@@ -278,6 +282,175 @@ def next_version():
     return f"{ma}.{mi + 1}.0"
 
 
+# ---------------------------------------------------------------- trusted product restoration (never delegated to Copilot)
+
+class RequestDecision(Exception):
+    def __init__(self, kind, text):
+        super().__init__(text)
+        self.kind = kind
+
+
+def builder_comment(c):
+    return ((c.get("author") or {}).get("login", "").lower() == PUSH_USER.lower()
+            and MARK in (c.get("body") or ""))
+
+
+RESTORE_INTENT = re.compile(r"\b(?:roll\s*back|rollback|revert|restore|go back|return)\b", re.I)
+RESTORE_VERSION = re.compile(r"(?<![\w./-])v?(\d+\.\d+\.\d+)(?![\w/-]|\.\d)", re.I)
+AUTOMATION_INSTRUCTION = re.compile(
+    r"\b(?:ignore|override|bypass)\b.*\b(?:instructions?|rules?|checks?|safety|allowlist)\b|"
+    r"\b(?:automation|workflows?|secrets?|credentials?|tokens?|permissions?|force.push|"
+    r"git reset|ALLOWED_AUTHORS|AGENTS\.md|builder\.py)\b|"
+    r"\b(?:disable|remove|weaken|lower|hide)\b.*\b(?:warnings?|checks?|safety|margins?)\b", re.I)
+
+
+def direct_text(text):
+    """Quoted examples, hidden text, URLs and attachments cannot authorize a release."""
+    text = re.sub(r"<!--.*?-->|```.*?```|~~~.*?~~~", "", text or "", flags=re.S)
+    text = re.sub(r"https?://\S+", "", text).replace("`", "")
+    return "\n".join(line for line in text.splitlines() if not line.lstrip().startswith(">")).strip()
+
+
+def restore_request(issue):
+    """Latest relevant allowed clarification after the latest authentic ship wins."""
+    if issue["author"]["login"].lower() not in ALLOWED_AUTHORS:
+        raise RequestDecision("DECLINED", "Automatic builds are limited to approved GitHub accounts.")
+    comments = sorted(issue.get("comments") or [], key=lambda c: c["createdAt"])
+    ships = [c["createdAt"] for c in comments if builder_comment(c)
+             and re.search(r"Shipped in \*\*v\d+\.\d+\.\d+", c.get("body") or "")]
+    cutoff = max(ships, default="")
+    texts = [] if cutoff else [direct_text(issue["title"] + "\n" + (issue.get("body") or ""))]
+    texts += [direct_text(c.get("body") or "") for c in comments
+              if c["createdAt"] > cutoff and not builder_comment(c)
+              and (c.get("author") or {}).get("login", "").lower() in ALLOWED_AUTHORS]
+    target, active = None, False
+    for text in texts:
+        if re.search(r"\b(?:do not|don't|cancel|no longer|not)\s+(?:the\s+)?(?:roll\s*back|rollback|revert|restore)\b",
+                     text, re.I):
+            active, target = False, None
+            continue
+        intent = bool(RESTORE_INTENT.search(text))
+        versions = set(RESTORE_VERSION.findall(text))
+        clarification = active and bool(re.search(r"\b(?:target|version|instead|meant|use)\b", text, re.I)
+                                         or re.fullmatch(r"v?\d+\.\d+\.\d+(?:\s+please)?[.!]?", text, re.I))
+        if not intent and not clarification:
+            continue
+        if AUTOMATION_INSTRUCTION.search(text):
+            raise RequestDecision("DECLINED", "A product rollback cannot change automation, credentials, "
+                                  "permissions or safety rules. Request only an app release target.")
+        if re.search(r"\b(?:and|also|except|but)\s+(?:also\s+)?(?:add|change|keep|remove|make|fix|disable)\b",
+                     text, re.I):
+            raise RequestDecision("NEEDS-INFO", "Request a single version rollback on its own. "
+                                  "File any additional feature changes separately.")
+        # Other kinds of 'restore' (e.g. restoring a deleted prop) remain ordinary feature requests.
+        if not active and not versions and not re.search(r"\b(?:version|release|app|roll\s*back|rollback|revert)\b",
+                                                         text, re.I):
+            continue
+        active = True
+        target = next(iter(versions)) if len(versions) == 1 else None
+    if active and not target:
+        raise RequestDecision("NEEDS-INFO", "Which single released version should be restored? "
+                              "Reply, for example: Roll back the app to v0.65.0.")
+    return "v" + target if active else None
+
+
+def release_target(tag):
+    """Resolve only the exact tag advertised by this repository's origin, not local tags."""
+    remote = git("remote", "get-url", "origin")
+    if remote not in (f"https://github.com/{REPO}.git", f"https://github.com/{REPO}",
+                      f"git@github.com:{REPO}.git"):
+        raise RequestDecision("NEEDS-INFO", "Rollback blocked: origin is not the Pixel Workbench repository.")
+    ref = "refs/tags/" + tag
+    refs = dict(line.split()[::-1] for line in git("ls-remote", "--tags", "origin", ref, ref + "^{}").splitlines())
+    if ref not in refs:
+        raise RequestDecision("NEEDS-INFO", f"{tag} is not a released tag in {REPO}. Choose an existing vX.Y.Z.")
+    git("fetch", "--quiet", "--no-tags", "origin", ref)
+    commit = git("rev-parse", "FETCH_HEAD^{commit}")
+    if commit != refs.get(ref + "^{}", refs[ref]):
+        raise RequestDecision("NEEDS-INFO", f"Rollback blocked: {tag} changed while resolving it. Try again.")
+    if run(["git", "merge-base", "--is-ancestor", commit, "origin/main"], check=False).returncode:
+        raise RequestDecision("NEEDS-INFO", f"{tag} is not a release in main's history.")
+    source = git("show", f"{commit}:dist/version.mjs")
+    if not re.search(r"APP_VERSION\s*=\s*['\"]" + re.escape(tag[1:]) + r"['\"]", source):
+        raise RequestDecision("NEEDS-INFO", f"{tag} does not match its app version. Choose a verified release.")
+    return commit
+
+
+RESTORE_KEEP = {"dist/build-costs.json", "dist/suggest.mjs", "dist/suggest.css",
+                "dist/version.mjs", "dist/info.mjs", "dist/info.css"}
+RESTORE_PRESENTATION = {"dist/room.js", "dist/room.css", "dist/style.css", "dist/features.css"}
+
+
+def presentation_file(path):
+    return path in RESTORE_PRESENTATION or path.endswith(".css")
+
+
+def unstamp(text):
+    return re.sub(r"([\w./-]+\.(?:m?js|css))\?v=\d+\.\d+\.\d+", r"\1?v=VERSION", text)
+
+
+def app_tree(ref):
+    entries = {}
+    for line in git("ls-tree", "-r", ref, "--", "dist").splitlines():
+        meta, path = line.split("\t", 1)
+        mode, kind, _ = meta.split()
+        if mode not in ("100644", "100755") or kind != "blob" or not re.fullmatch(r"dist/[\w/-]+\.(?:m?js|css|html|json)", path):
+            raise RequestDecision("NEEDS-INFO", f"Rollback blocked: unsupported historical app file {path}.")
+        entries[path] = git("show", f"{ref}:{path}")
+    return entries
+
+
+def prepare_restore(tag, version, issue):
+    """Stage historical presentation with current data, safety, request and builder infrastructure."""
+    commit = release_target(tag)
+    current, old = app_tree("HEAD"), app_tree(commit)
+    paths = sorted((current.keys() | old.keys()) - RESTORE_KEEP)
+    incompatible = [p for p in paths if not presentation_file(p)
+                    and unstamp(current.get(p, "")) != unstamp(old.get(p, ""))]
+    if incompatible:
+        raise RequestDecision("NEEDS-INFO", f"Rollback to {tag} is blocked: data migrations, electrical warnings "
+                              "or non-presentation behaviour differ in " + ", ".join(incompatible)
+                              + ". Saved JSON/localStorage and safety checks cannot be downgraded automatically. "
+                              "Choose a compatible release or ask the owner for a reviewed migration.")
+    room = old.get("dist/room.js", "")
+    if re.search(r"\blocalStorage\b|\b(?:fetch|eval)\s*\(", room):
+        raise RequestDecision("NEEDS-INFO", f"Rollback to {tag} is blocked: historical room code accesses storage "
+                              "or the network directly.")
+    # git restore handles both additions and deletions, without checking out historical automation.
+    if paths:
+        git("restore", "--source=" + commit, "--worktree", "--", *paths)
+    data = run(["node", "--input-type=module", "-e",
+                "import * as v from './dist/version.mjs'; console.log(JSON.stringify(v));"]).stdout
+    exports = json.loads(data)
+    historical = git("show", f"{commit}:dist/version.mjs")
+    # Evaluate only the already verified version module in Node, never issue text.
+    historical_path = os.path.join(BUILD_DIR, "restore-version.mjs")
+    try:
+        with open(historical_path, "w", encoding="utf-8", newline="\n") as f:
+            f.write(historical)
+        previous = json.loads(run(["node", "--input-type=module", "-e",
+                                  "import * as v from './restore-version.mjs'; console.log(JSON.stringify(v));"]).stdout)
+    finally:
+        if os.path.exists(historical_path):
+            os.remove(historical_path)
+    for key in ("HOW_TO_USE", "ABOUT", "SHORTCUTS"):
+        if key in previous:
+            exports[key] = previous[key]
+    exports["ARCHITECTURE_NOTES"] = [n for n in previous.get("ARCHITECTURE_NOTES", [])
+                                    if not re.search(r"builder|suggest\.mjs|version\.mjs", n, re.I)]
+    exports["ARCHITECTURE_NOTES"] += [n for n in json.loads(data)["ARCHITECTURE_NOTES"]
+                                     if re.search(r"builder|suggest\.mjs|version\.mjs", n, re.I)]
+    exports["APP_VERSION"] = version
+    summary = f"Restored compatible app presentation from {tag}; saved plans, electrical checks and requests remain current."
+    exports["CHANGELOG"].insert(0, {"version": version, "date": datetime.now().strftime("%d/%m/%Y"),
+                                    "items": [summary + f" (suggested in #{issue['number']})"]})
+    with open(os.path.join(BUILD_DIR, "dist", "version.mjs"), "w", encoding="utf-8", newline="\n") as f:
+        for key, value in exports.items():
+            encoded = "'" + version + "'" if key == "APP_VERSION" else json.dumps(value, ensure_ascii=False)
+            f.write("export const " + key + " = " + encoded + ";\n")
+    return summary
+
+
 # ---------------------------------------------------------------- screenshots
 
 IMG_URL = re.compile(r"https://(?:github\.com/user-attachments/assets/[\w-]+|github\.com/[\w.-]+/[\w.-]+/assets/\d+/[\w-]+"
@@ -377,11 +550,11 @@ def thread_comments(issue):
         text = re.sub(r"<!--.*?-->", "", raw, flags=re.S).strip()
         if not text:
             continue
-        if MARK in raw:
+        if builder_comment(c):
             if text.startswith("Building this now"):
                 continue
             who = "Builder"
-        elif login == author:
+        elif login.lower() == author.lower():
             who = "Requester"
         elif login.lower() in ALLOWED_AUTHORS:
             who = "Project owner"
@@ -405,7 +578,7 @@ def request_text(issue):
     if ships and any(t[0] != "Builder" for t in thread[ships[-1] + 1:]):   # a follow-up to a shipped request
         ver = re.search(r"Shipped in \*\*v([\d.]+)", thread[ships[-1]][2])
         text = (f"FOLLOW-UP. This request was already built and is live{' in v' + ver.group(1) if ver else ''}: "
-                f"don't redo or undo it. Build only what the comments after the latest 'Shipped in' note ask for, "
+                f"build only what the comments after the latest 'Shipped in' note ask for, "
                 f"using the original request and the whole conversation for context. In the changelog, end the "
                 f"entry with (follow-up to #{issue['number']}).\n\n" + text)
     if entries:
@@ -747,10 +920,15 @@ def build(issue, state):
     USAGE.clear()
     pending = state.setdefault("costs_pending", [])
     try:
-        texts = [issue.get("body")] + [t for who, _, t, _ in thread_comments(issue) if who != "Builder"]
-        images = download_images(issue, texts)
-        docs = download_documents(issue, texts)
-        out = copilot(build_prompt(issue, version, images, docs), f"{n}-v{version}", images, docs=docs)
+        target = restore_request(issue)
+        docs = []
+        if target:
+            out = prepare_restore(target, version, issue)
+        else:
+            texts = [issue.get("body")] + [t for who, _, t, _ in thread_comments(issue) if who != "Builder"]
+            images = download_images(issue, texts)
+            docs = download_documents(issue, texts)
+            out = copilot(build_prompt(issue, version, images, docs), f"{n}-v{version}", images, docs=docs)
         session = USAGE[-1]["session"] if USAGE else None
         kind, text = answer(out)
         if kind != "BUILT" and not changed():
@@ -773,7 +951,7 @@ def build(issue, state):
             if not problem:
                 break
             if attempt == FIX_ROUNDS or problem.startswith("it changed files that are off limits") \
-                    or problem.startswith("it added network"):
+                    or problem.startswith("it added network") or target:
                 raise RuntimeError(problem)
             log(f"#{n} fix round {attempt + 1}: {problem.splitlines()[0][:200]}")
             copilot(fix_prompt(issue, version, problem), f"{n}-v{version}-fix{attempt + 1}", resume=session, docs=docs)
@@ -791,14 +969,30 @@ def build(issue, state):
         log(f"#{n} used {rec['credits']:.0f} AI credits, {rec['tokensIn'] + rec['tokensOut']:,} tokens ({rec['model'] or 'model unknown'})")
         log(f"#{n} pushed v{version} ({sha[:8]}); waiting for the live site")
         live = wait_live(sha, version)
-        note = f"\n\n_Note: {live}; it will appear after the next successful deploy._" if live else ""
+        if live:
+            reason = f"v{version} was pushed ({sha[:8]}), but {live}. The release is not verified live."
+            comment(n, reason + "\n\nThe owner must check the Pages deployment before this request can be "
+                    "marked shipped. No history was rewritten.")
+            label(n, add=["build-failed"], remove=["in-progress", "tested"])
+            log(f"#{n} deployment blocked: {reason}")
+            return dict(result, ok=False, outcome="deploy-failed", reason=reason)
         comment(n, f"Shipped in **v{version}**: {summary}\n\nIt's live at {SITE} (reload the page; the version "
-                   f"badge under the logo shows v{version}).{note}")
+                   f"badge under the logo shows v{version}).")
         label(n, add=["shipped"], remove=["in-progress", "tested"])
         gh("issue", "close", str(n), "-R", REPO, "--reason", "completed", check=False)
         log(f"#{n} shipped v{version}")
         sync_owner()
         return dict(result, ok=True, outcome="shipped")
+    except RequestDecision as e:
+        rollback()
+        comment(n, f"{e}\n\nReply on this issue with a single compatible release target to try again."
+                if e.kind == "NEEDS-INFO" else str(e))
+        label(n, add=[e.kind.lower()], remove=["in-progress", "tested"])
+        if e.kind == "DECLINED" and not DRY:
+            gh("issue", "close", str(n), "-R", REPO, "--reason", "not planned", check=False)
+        log(f"#{n} {e.kind.lower()}: {e}")
+        pending.append(spend(state, n, version, title, e.kind.lower()))
+        return dict(result, ok=None, outcome=e.kind.lower())
     except Retry as e:
         rollback()
         label(n, remove=["in-progress", "tested"])

@@ -6,7 +6,7 @@ import {
   SHORTCUTS,
   ARCHITECTURE_NOTES,
   SUGGEST_GUIDE
-} from './version.mjs?v=0.68.0';
+} from './version.mjs?v=0.69.0';
 
 const E = s =>
   String(s ?? '').replace(
@@ -40,7 +40,7 @@ ${box(300, 170, 220, 48, 'app.js', 'state, notifications & pages', 'core')}
 ${line(410, 144, 410, 168)}
 ${box(30, 250, 170, 48, 'model.mjs', 'pixels, power, wire drop', 'calc')}
 ${box(215, 250, 190, 48, 'wiring-graph.mjs', 'illustrated drag wiring', 'ui')}
-${box(420, 250, 190, 48, 'room.js · installation-room', 'semantic camera & edge routing', 'ui')}
+${box(420, 250, 190, 48, 'room.js · installation-room', 'room presentation & edge routing', 'ui')}
 ${box(625, 250, 170, 48, 'installation-ui.mjs', 'controller + button builders', 'ui')}
 ${box(30, 320, 170, 48, 'layout-model.mjs', 'scene & props', 'calc')}
 ${box(215, 320, 190, 48, 'installation-model.mjs', 'boxes, standards sync, routes', 'calc')}
@@ -53,7 +53,7 @@ ${box(410, 410, 180, 40, 'Project JSON', 'export / import backup', 'store')}
 ${box(610, 410, 180, 40, 'Guide · CSV · BOM', 'print & field sheets', 'store')}
 ${line(300, 376, 300, 408)}${line(500, 376, 500, 408)}${line(700, 376, 700, 408)}
 <rect class="arch-zone" x="10" y="474" width="800" height="76" rx="10"/><text class="z" x="24" y="494">FEATURE REQUESTS</text>
-${box(30, 500, 150, 42, 'GitHub issue', '#n title, replies', 'host')}${box(215, 500, 175, 42, 'builder.py (build PC)', '5 min, follow-ups, 5k/day', 'core')}${box(425, 500, 170, 42, 'Copilot CLI', 'sandboxed, AGENTS.md', 'calc')}${box(630, 500, 165, 42, 'Checks + push', 'tests, AI cost, tag, Pages', 'host')}
+${box(30, 500, 150, 42, 'GitHub issue', '#n title, replies', 'host')}${box(215, 500, 175, 42, 'builder.py (build PC)', 'allowed target / feature', 'core')}${box(425, 500, 170, 42, 'Restore / Copilot', 'verified tag / restricted AI', 'calc')}${box(630, 500, 165, 42, 'Checks + push', 'tests, cost, new tag, Pages', 'host')}
 ${line(180, 521, 213, 521)}${line(390, 521, 423, 521)}${line(595, 521, 628, 521)}
 </svg>`;
 }

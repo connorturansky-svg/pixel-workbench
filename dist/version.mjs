@@ -1,6 +1,13 @@
 // Every change: bump APP_VERSION, add a CHANGELOG entry at the top (date DD/MM/YYYY), and review HOW_TO_USE, ARCHITECTURE_NOTES / the info.mjs diagram and SHORTCUTS.
-export const APP_VERSION = '0.68.0';
+export const APP_VERSION = '0.69.0';
 export const CHANGELOG = [
+  {
+    version: '0.69.0',
+    date: '06/10/2026',
+    items: [
+      'Approved requesters can ask for an explicit released-version rollback. The trusted builder restores compatible historical presentation as a new release, keeps current saved-plan handling, electrical checks, requests and accounting, and asks for clarification when a target is missing or unsafe.'
+    ]
+  },
   {
     version: '0.68.0',
     date: '06/10/2026',
@@ -601,8 +608,12 @@ export const SUGGEST_GUIDE = [
     'If a shipped request missed something, you don’t need a new request. For 7 days after it ships, select Add a follow-up on it and describe what is still missing or wrong. The builder reopens the request, builds only your follow-up on top of what is already live and ships it as a new version. Its AI cost is added to the same request. Each request can have up to 5 follow-ups. After 7 days, or for a different idea, submit a new request instead.'
   ],
   [
+    'Restore an earlier app version',
+    'Approved accounts can submit “Roll back the app to v0.65.0”, replacing the number with one released version, or use Add a follow-up within 7 days of shipping. The latest target clarification from you or an approved owner wins. The builder verifies the release and publishes compatible historical presentation under a new, higher version number; it does not rewrite history. Export a JSON backup first. Saved-plan handling, electrical checks, request tools and costs stay current. If the old release needs different data migrations or safety code, the builder asks for a compatible target instead of risking your saved plans. Missing or ambiguous versions need a reply before anything is released.'
+  ],
+  [
     'Replying on GitHub',
-    'Replies and follow-ups can also be posted as comments on the issue on GitHub; they work the same way. Only comments from the person who raised the request count. Other people’s comments are ignored by the builder.'
+    'Replies and follow-ups can also be posted as comments on the issue on GitHub; they work the same way. Comments from the requester or another approved owner can clarify a request. Comments from other accounts are ignored by the builder.'
   ],
   [
     'Declined requests',
@@ -633,6 +644,7 @@ export const SHORTCUTS = [
   ['Delete', 'Remove the focused cable-route pivot']
 ];
 export const ARCHITECTURE_NOTES = [
+  'Explicit release rollback bypasses Copilot: the trusted builder resolves the latest allowed target against this repository’s remote tags, checks main ancestry and data/electrical compatibility, restores historical presentation files and applies a new monotonic version and dated target changelog. Current request UI, infrastructure and cost accounting are preserved. Incompatible or unclear targets need information; normal feature requests still use the restricted agent and the same release checks.',
   'A static, no-build web app: plain ES modules, HTML and CSS served from dist/. Pushing to main publishes dist/ to GitHub Pages through the Actions workflow.',
   'app.js holds the project state, re-renders the whole interface, links supported Baldrick controllers including BaldrickInput8 boards placed directly in boxes into the electrical plan, totals box resources in the global summary, and derives the global categorized notification strip from shared calculation and layout checks. Every view (wiring, room, box builders, standards, BOM, guide) reads the same project, so changes appear in every view. wiring-graph.mjs renders breadboard-style component faces, live drag wires and connected endpoint highlighting. room.js keeps one pointer-centred room camera transform for rendering and interaction, derives fit and deep-zoom limits from viewport and measured scene footprints, retains measured world-space geometry and routes, and derives hysteretic overview, equipment and detail presentation from each object’s projected screen size. Its screen-space policy bounds decorative strokes and hit areas, keeps stable individual ports and route anchors at every level, magnifies only the hovered or focused port for dense editing, and renders configured boxes from their real component snapshots and active interface ports with port-to-port drag wiring. It reports inactive generated interfaces rather than fabricating room ports. It also creates connected or visibly unconnected pixel strings, floods, presets and prop instances, draws recognisable field-device and flood-light plan symbols, stores selectable button colours, previews type-coloured box-port cables during drag-to-connect, and presents editing and confirmed object removal in a scrollable inspector. installation-ui.mjs separates controller and button-box builders and derives top-down component illustrations, connector states, component-coloured readable active edge ports, collapsible edge-port groups, a large scrollable and zoomable non-overlapping auto-layout schematic, and type-coloured edge-anchored wire paths that avoid component cards and text; installation-model.mjs supplies custom 1–5 button boxes with individually coloured and sized controls, exposed ports and colour-specific BOM rows, the named real-world connector catalog, per-box standards sync, inactive edge-port records for every component connector, scaled room port offsets, visible-symbol room route anchors for field devices and lights, and common component-size guides. Controller-box instances retain their optional subnames, exact ports, schematic positions, rotation and stacking layers. Enclosure sizes and physical component dimensions are reusable device-library standards.',
   'Calculation and data modules (model, layout-model, installation-model) are UI-free. installation-model also versions box schematic layouts, validates typed links across separate boxes and finds low-pivot live octilinear cable paths around room objects and visible labels while routes have no manual pivots. verify.mjs and verify-installation.mjs exercise them under Node.',

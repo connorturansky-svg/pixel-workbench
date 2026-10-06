@@ -8,7 +8,7 @@ import {
   routeIssues,
   deleteRoute,
   portTypeColour
-} from './installation-model.mjs?v=0.68.0';
+} from './installation-model.mjs?v=0.69.0';
 
 let api,
   selected = '',
