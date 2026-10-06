@@ -352,5 +352,30 @@
    "mobile.png"
   ],
   "error": ""
+ },
+ {
+  "version": "v0.19.0",
+  "date": "02/10/2026",
+  "commit": "4cac2297352179e4624ff19f4985aecb91fab101",
+  "issue": 7,
+  "changelog": "Feature request titles now start with their number, for example \u201c[Feature] #7 \u2026\u201d, on GitHub and in the Suggest a feature list.",
+  "status": "ok",
+  "shots": [
+   "01-workspace.png",
+   "02-hardware.png",
+   "03-presets.png",
+   "04-props.png",
+   "05-guide.png",
+   "06-boxes.png",
+   "07-standards.png",
+   "08-bom.png",
+   "09-suggest.png",
+   "info-arch.png",
+   "info-how.png",
+   "info-keys.png",
+   "info-new.png",
+   "mobile.png"
+  ],
+  "error": ""
  }
 ]
