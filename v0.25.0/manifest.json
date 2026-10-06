@@ -1,0 +1,25 @@
+{
+ "version": "v0.25.0",
+ "date": "02/10/2026",
+ "commit": "2d9628440875c40e9675f355c2b36988d071089d",
+ "issue": 14,
+ "changelog": "Box details can now be collapsed in the controller-box inspector and close automatically when a component is selected, keeping that component\u2019s controls in view. (suggested in #14)",
+ "status": "ok",
+ "shots": [
+  "01-workspace.png",
+  "02-hardware.png",
+  "03-presets.png",
+  "04-props.png",
+  "05-guide.png",
+  "06-boxes.png",
+  "07-standards.png",
+  "08-bom.png",
+  "09-suggest.png",
+  "info-arch.png",
+  "info-how.png",
+  "info-keys.png",
+  "info-new.png",
+  "mobile.png"
+ ],
+ "error": ""
+}
