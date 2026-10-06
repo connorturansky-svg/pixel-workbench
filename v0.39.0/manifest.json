@@ -1,0 +1,26 @@
+{
+ "version": "v0.39.0",
+ "date": "02/10/2026",
+ "commit": "93f893a659b25f83797a01f72ea69d9956d45f6b",
+ "issue": 24,
+ "changelog": "Controller-box schematics now hide the component wire for an inactive edge port until that port is activated. (suggested in #24)",
+ "status": "ok",
+ "shots": [
+  "01-workspace.png",
+  "02-hardware.png",
+  "03-presets.png",
+  "04-props.png",
+  "05-guide.png",
+  "06-boxes.png",
+  "07-standards.png",
+  "08-bom.png",
+  "09-suggest.png",
+  "info-arch.png",
+  "info-how.png",
+  "info-keys.png",
+  "info-new.png",
+  "info-suggest.png",
+  "mobile.png"
+ ],
+ "error": ""
+}
