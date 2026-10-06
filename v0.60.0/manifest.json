@@ -1,0 +1,26 @@
+{
+ "version": "v0.60.0",
+ "date": "02/10/2026",
+ "commit": "74115f4747ab8c514d155c1c51bfe6fe296a8286",
+ "issue": 39,
+ "changelog": "The Room layout inspector now scrolls and groups its controls into collapsed, toggleable sections. (suggested in #39)",
+ "status": "ok",
+ "shots": [
+  "01-workspace.png",
+  "02-hardware.png",
+  "03-presets.png",
+  "04-props.png",
+  "05-guide.png",
+  "06-boxes.png",
+  "07-standards.png",
+  "08-bom.png",
+  "09-suggest.png",
+  "info-arch.png",
+  "info-how.png",
+  "info-keys.png",
+  "info-new.png",
+  "info-suggest.png",
+  "mobile.png"
+ ],
+ "error": ""
+}
