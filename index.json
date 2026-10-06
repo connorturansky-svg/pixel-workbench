@@ -252,5 +252,30 @@
    "mobile.png"
   ],
   "error": ""
+ },
+ {
+  "version": "v0.15.0",
+  "date": "02/10/2026",
+  "commit": "fe63e2e557d5dd2258f012ae3803d44a4813801b",
+  "issue": null,
+  "changelog": "Requests and build status now tracks AI cost. Each shipped request shows its estimated tokens, AI credits and cost. Hover over it to see the model, the token breakdown and the agent time.",
+  "status": "ok",
+  "shots": [
+   "01-workspace.png",
+   "02-hardware.png",
+   "03-presets.png",
+   "04-props.png",
+   "05-guide.png",
+   "06-boxes.png",
+   "07-standards.png",
+   "08-bom.png",
+   "09-suggest.png",
+   "info-arch.png",
+   "info-how.png",
+   "info-keys.png",
+   "info-new.png",
+   "mobile.png"
+  ],
+  "error": ""
  }
 ]

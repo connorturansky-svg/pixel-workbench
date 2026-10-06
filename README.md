@@ -8,6 +8,16 @@ Every release is captured by the builder's release smoke test (`automation/smoke
 
 **Screenshots failed:** gh api -X failed: Post "https://api.github.com/repos/connorturansky-svg/pixel-workbench/git/blobs": read tcp 192.168.0.199:60374->20.26.156.210:443: wsarecv: An existing connection was forcibly closed
 
+## [v0.15.0](v0.15.0/)
+
+02/10/2026 · [commit fe63e2e](https://github.com/connorturansky-svg/pixel-workbench/commit/fe63e2e557d5dd2258f012ae3803d44a4813801b)
+
+> Requests and build status now tracks AI cost. Each shipped request shows its estimated tokens, AI credits and cost. Hover over it to see the model, the token breakdown and the agent time.
+
+<a href="v0.15.0/01-workspace.png"><img src="v0.15.0/01-workspace.png" width="420" alt="v0.15.0 workspace"></a> <a href="v0.15.0/mobile.png"><img src="v0.15.0/mobile.png" width="240" alt="v0.15.0 mobile"></a>
+
+All shots: [workspace](v0.15.0/01-workspace.png) · [hardware](v0.15.0/02-hardware.png) · [presets](v0.15.0/03-presets.png) · [props](v0.15.0/04-props.png) · [guide](v0.15.0/05-guide.png) · [boxes](v0.15.0/06-boxes.png) · [standards](v0.15.0/07-standards.png) · [bom](v0.15.0/08-bom.png) · [suggest](v0.15.0/09-suggest.png) · [info arch](v0.15.0/info-arch.png) · [info how](v0.15.0/info-how.png) · [info keys](v0.15.0/info-keys.png) · [info new](v0.15.0/info-new.png) · [mobile](v0.15.0/mobile.png)
+
 ## [v0.14.0](v0.14.0/)
 
 02/10/2026 · [commit d140d4a](https://github.com/connorturansky-svg/pixel-workbench/commit/d140d4aa4432cdc7d4cb271bd8d96a5232d21c28) · [issue #5](https://github.com/connorturansky-svg/pixel-workbench/issues/5)
