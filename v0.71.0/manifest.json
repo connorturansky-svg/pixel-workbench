@@ -1,0 +1,26 @@
+{
+ "version": "v0.71.0",
+ "date": "06/10/2026",
+ "commit": "7520aceed251d176e0bb42a58a32c95756630c82",
+ "issue": 44,
+ "changelog": "Restored the app from v0.61.0 (suggested in #44).",
+ "status": "ok",
+ "shots": [
+  "01-workspace.png",
+  "02-hardware.png",
+  "03-presets.png",
+  "04-props.png",
+  "05-guide.png",
+  "06-boxes.png",
+  "07-standards.png",
+  "08-bom.png",
+  "09-suggest.png",
+  "info-arch.png",
+  "info-how.png",
+  "info-keys.png",
+  "info-new.png",
+  "info-suggest.png",
+  "mobile.png"
+ ],
+ "error": ""
+}
