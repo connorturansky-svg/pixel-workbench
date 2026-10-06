@@ -8,6 +8,16 @@ Every release is captured by the builder's release smoke test (`automation/smoke
 
 **Screenshots failed:** gh api -X failed: Post "https://api.github.com/repos/connorturansky-svg/pixel-workbench/git/blobs": read tcp 192.168.0.199:60374->20.26.156.210:443: wsarecv: An existing connection was forcibly closed
 
+## [v0.30.0](v0.30.0/)
+
+02/10/2026 · [commit 7e33fa7](https://github.com/connorturansky-svg/pixel-workbench/commit/7e33fa734c666155e6d0017f7b423fdc917a76a9) · [issue #17](https://github.com/connorturansky-svg/pixel-workbench/issues/17)
+
+> Controller boxes can now define labelled ports on any enclosure edge, wire component connectors to them and choose which ports appear as route targets in Room layout. (suggested in #17)
+
+<a href="v0.30.0/01-workspace.png"><img src="v0.30.0/01-workspace.png" width="420" alt="v0.30.0 workspace"></a> <a href="v0.30.0/mobile.png"><img src="v0.30.0/mobile.png" width="240" alt="v0.30.0 mobile"></a>
+
+All shots: [workspace](v0.30.0/01-workspace.png) · [hardware](v0.30.0/02-hardware.png) · [presets](v0.30.0/03-presets.png) · [props](v0.30.0/04-props.png) · [guide](v0.30.0/05-guide.png) · [boxes](v0.30.0/06-boxes.png) · [standards](v0.30.0/07-standards.png) · [bom](v0.30.0/08-bom.png) · [suggest](v0.30.0/09-suggest.png) · [info arch](v0.30.0/info-arch.png) · [info how](v0.30.0/info-how.png) · [info keys](v0.30.0/info-keys.png) · [info new](v0.30.0/info-new.png) · [info suggest](v0.30.0/info-suggest.png) · [mobile](v0.30.0/mobile.png)
+
 ## [v0.29.0](v0.29.0/)
 
 02/10/2026 · [commit 93fb94b](https://github.com/connorturansky-svg/pixel-workbench/commit/93fb94b9edf228a9529046c121bcfcfcf7375d87) · [issue #15](https://github.com/connorturansky-svg/pixel-workbench/issues/15)

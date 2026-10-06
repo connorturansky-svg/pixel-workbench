@@ -630,5 +630,31 @@
    "mobile.png"
   ],
   "error": ""
+ },
+ {
+  "version": "v0.30.0",
+  "date": "02/10/2026",
+  "commit": "7e33fa734c666155e6d0017f7b423fdc917a76a9",
+  "issue": 17,
+  "changelog": "Controller boxes can now define labelled ports on any enclosure edge, wire component connectors to them and choose which ports appear as route targets in Room layout. (suggested in #17)",
+  "status": "ok",
+  "shots": [
+   "01-workspace.png",
+   "02-hardware.png",
+   "03-presets.png",
+   "04-props.png",
+   "05-guide.png",
+   "06-boxes.png",
+   "07-standards.png",
+   "08-bom.png",
+   "09-suggest.png",
+   "info-arch.png",
+   "info-how.png",
+   "info-keys.png",
+   "info-new.png",
+   "info-suggest.png",
+   "mobile.png"
+  ],
+  "error": ""
  }
 ]
