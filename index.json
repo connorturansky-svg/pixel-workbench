@@ -1514,5 +1514,31 @@
    "mobile.png"
   ],
   "error": ""
+ },
+ {
+  "version": "v0.65.0",
+  "date": "02/10/2026",
+  "commit": "c65098a2148a6c4fbca88fc2a132f6cbd6765c36",
+  "issue": 40,
+  "changelog": "Measured controller boxes now scale their outlines, internal controls, text and port labels together, keeping the drawing in proportion at every room zoom level. (follow-up to #40)",
+  "status": "ok",
+  "shots": [
+   "01-workspace.png",
+   "02-hardware.png",
+   "03-presets.png",
+   "04-props.png",
+   "05-guide.png",
+   "06-boxes.png",
+   "07-standards.png",
+   "08-bom.png",
+   "09-suggest.png",
+   "info-arch.png",
+   "info-how.png",
+   "info-keys.png",
+   "info-new.png",
+   "info-suggest.png",
+   "mobile.png"
+  ],
+  "error": ""
  }
 ]
