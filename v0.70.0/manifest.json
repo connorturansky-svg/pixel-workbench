@@ -1,0 +1,26 @@
+{
+ "version": "v0.70.0",
+ "date": "06/10/2026",
+ "commit": "ab4f54040a8db54deaf55825cda2426e843156d1",
+ "issue": 44,
+ "changelog": "Rollback requests are now honoured as asked, even when the target version has a different data model: the app is restored from the release tag as a new version. Shorthand such as \u201cversion 61\u201d, \u201cv61\u201d or \u201c0.61\u201d works when exactly one release matches. (suggested in #44)",
+ "status": "ok",
+ "shots": [
+  "01-workspace.png",
+  "02-hardware.png",
+  "03-presets.png",
+  "04-props.png",
+  "05-guide.png",
+  "06-boxes.png",
+  "07-standards.png",
+  "08-bom.png",
+  "09-suggest.png",
+  "info-arch.png",
+  "info-how.png",
+  "info-keys.png",
+  "info-new.png",
+  "info-suggest.png",
+  "mobile.png"
+ ],
+ "error": ""
+}
