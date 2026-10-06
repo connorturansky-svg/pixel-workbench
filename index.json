@@ -812,5 +812,31 @@
    "mobile.png"
   ],
   "error": ""
+ },
+ {
+  "version": "v0.37.0",
+  "date": "02/10/2026",
+  "commit": "c8d641bd0e05863b2d5384a38d4dc36ad0ec9ffe",
+  "issue": 22,
+  "changelog": "Controller-box schematic zoom now scales component illustrations while keeping the canvas visible, with auto-layout canvas sizing handled separately. (suggested in #22)",
+  "status": "ok",
+  "shots": [
+   "01-workspace.png",
+   "02-hardware.png",
+   "03-presets.png",
+   "04-props.png",
+   "05-guide.png",
+   "06-boxes.png",
+   "07-standards.png",
+   "08-bom.png",
+   "09-suggest.png",
+   "info-arch.png",
+   "info-how.png",
+   "info-keys.png",
+   "info-new.png",
+   "info-suggest.png",
+   "mobile.png"
+  ],
+  "error": ""
  }
 ]
