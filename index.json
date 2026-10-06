@@ -1690,5 +1690,31 @@
    "mobile.png"
   ],
   "error": ""
+ },
+ {
+  "version": "v0.73.0",
+  "date": "06/10/2026",
+  "commit": "ee81c15632de57532de90bb96959d21197543829",
+  "issue": null,
+  "changelog": "Every release\u2019s test screenshots (all pages, info tabs and mobile) are now kept per version on the screenshots branch of the GitHub repository, with an index README and links to the commit and request. Not deployed to the live site; the app itself is unchanged.",
+  "status": "ok",
+  "shots": [
+   "01-workspace.png",
+   "02-hardware.png",
+   "03-presets.png",
+   "04-props.png",
+   "05-guide.png",
+   "06-boxes.png",
+   "07-standards.png",
+   "08-bom.png",
+   "09-suggest.png",
+   "info-arch.png",
+   "info-how.png",
+   "info-keys.png",
+   "info-new.png",
+   "info-suggest.png",
+   "mobile.png"
+  ],
+  "error": ""
  }
 ]

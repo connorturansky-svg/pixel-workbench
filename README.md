@@ -2,6 +2,16 @@
 
 Every release is captured by the builder's release smoke test (`automation/smoke.py --shots`): every page, every info tab and a mobile view. This branch is never deployed by Pages. Newest first.
 
+## [v0.73.0](v0.73.0/)
+
+06/10/2026 · [commit ee81c15](https://github.com/connorturansky-svg/pixel-workbench/commit/ee81c15632de57532de90bb96959d21197543829)
+
+> Every release’s test screenshots (all pages, info tabs and mobile) are now kept per version on the screenshots branch of the GitHub repository, with an index README and links to the commit and request. Not deployed to the live site; the app itself is unchanged.
+
+<a href="v0.73.0/01-workspace.png"><img src="v0.73.0/01-workspace.png" width="420" alt="v0.73.0 workspace"></a> <a href="v0.73.0/mobile.png"><img src="v0.73.0/mobile.png" width="240" alt="v0.73.0 mobile"></a>
+
+All shots: [workspace](v0.73.0/01-workspace.png) · [hardware](v0.73.0/02-hardware.png) · [presets](v0.73.0/03-presets.png) · [props](v0.73.0/04-props.png) · [guide](v0.73.0/05-guide.png) · [boxes](v0.73.0/06-boxes.png) · [standards](v0.73.0/07-standards.png) · [bom](v0.73.0/08-bom.png) · [suggest](v0.73.0/09-suggest.png) · [info arch](v0.73.0/info-arch.png) · [info how](v0.73.0/info-how.png) · [info keys](v0.73.0/info-keys.png) · [info new](v0.73.0/info-new.png) · [info suggest](v0.73.0/info-suggest.png) · [mobile](v0.73.0/mobile.png)
+
 ## [v0.72.0](v0.72.0/)
 
 06/10/2026 · [commit adc5412](https://github.com/connorturansky-svg/pixel-workbench/commit/adc541201eb1848be81d7dba1d4e26ff42576dec) · [issue #45](https://github.com/connorturansky-svg/pixel-workbench/issues/45)
