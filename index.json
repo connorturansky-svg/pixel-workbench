@@ -427,5 +427,30 @@
    "mobile.png"
   ],
   "error": ""
+ },
+ {
+  "version": "v0.22.0",
+  "date": "02/10/2026",
+  "commit": "c371db7881c04ef5d21e875ed77546694e81be58",
+  "issue": 10,
+  "changelog": "BaldrickInput and BaldrickInput8 are now separate options for project hardware and controller-box plans, with one or eight assignable inputs respectively. (suggested in #10)",
+  "status": "ok",
+  "shots": [
+   "01-workspace.png",
+   "02-hardware.png",
+   "03-presets.png",
+   "04-props.png",
+   "05-guide.png",
+   "06-boxes.png",
+   "07-standards.png",
+   "08-bom.png",
+   "09-suggest.png",
+   "info-arch.png",
+   "info-how.png",
+   "info-keys.png",
+   "info-new.png",
+   "mobile.png"
+  ],
+  "error": ""
  }
 ]
