@@ -302,5 +302,30 @@
    "mobile.png"
   ],
   "error": ""
+ },
+ {
+  "version": "v0.17.0",
+  "date": "02/10/2026",
+  "commit": "bf8a6f9caf449d3854aa85c3415dcae3d66f30e3",
+  "issue": null,
+  "changelog": "Automatic builds now share a daily allowance of 5,000 AI credits across all requests and users, over a rolling 24 hours.",
+  "status": "ok",
+  "shots": [
+   "01-workspace.png",
+   "02-hardware.png",
+   "03-presets.png",
+   "04-props.png",
+   "05-guide.png",
+   "06-boxes.png",
+   "07-standards.png",
+   "08-bom.png",
+   "09-suggest.png",
+   "info-arch.png",
+   "info-how.png",
+   "info-keys.png",
+   "info-new.png",
+   "mobile.png"
+  ],
+  "error": ""
  }
 ]
