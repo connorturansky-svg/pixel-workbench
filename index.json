@@ -1462,5 +1462,31 @@
    "mobile.png"
   ],
   "error": ""
+ },
+ {
+  "version": "v0.63.0",
+  "date": "02/10/2026",
+  "commit": "a50ea41f0e3aab9db62183a522f25bd2a44590d6",
+  "issue": 41,
+  "changelog": "Placed network switches now update their schematic connectors when their Ethernet port count changes, and Room layout can cable compatible ports between separate boxes. (suggested in #41)",
+  "status": "ok",
+  "shots": [
+   "01-workspace.png",
+   "02-hardware.png",
+   "03-presets.png",
+   "04-props.png",
+   "05-guide.png",
+   "06-boxes.png",
+   "07-standards.png",
+   "08-bom.png",
+   "09-suggest.png",
+   "info-arch.png",
+   "info-how.png",
+   "info-keys.png",
+   "info-new.png",
+   "info-suggest.png",
+   "mobile.png"
+  ],
+  "error": ""
  }
 ]
