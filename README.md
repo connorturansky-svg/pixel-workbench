@@ -2,6 +2,16 @@
 
 Every release is captured by the builder's release smoke test (`automation/smoke.py --shots`): every page, every info tab and a mobile view. This branch is never deployed by Pages. Newest first.
 
+## [v0.62.0](v0.62.0/)
+
+02/10/2026 · [commit cb730ad](https://github.com/connorturansky-svg/pixel-workbench/commit/cb730ad12f6bcbb6bb99e86a1b904741253e7786) · [issue #40](https://github.com/connorturansky-svg/pixel-workbench/issues/40)
+
+> Room layout objects can now be removed from the inspector, and boxes and field devices start at measured or practical plan sizes. (suggested in #40)
+
+<a href="v0.62.0/01-workspace.png"><img src="v0.62.0/01-workspace.png" width="420" alt="v0.62.0 workspace"></a> <a href="v0.62.0/mobile.png"><img src="v0.62.0/mobile.png" width="240" alt="v0.62.0 mobile"></a>
+
+All shots: [workspace](v0.62.0/01-workspace.png) · [hardware](v0.62.0/02-hardware.png) · [presets](v0.62.0/03-presets.png) · [props](v0.62.0/04-props.png) · [guide](v0.62.0/05-guide.png) · [boxes](v0.62.0/06-boxes.png) · [standards](v0.62.0/07-standards.png) · [bom](v0.62.0/08-bom.png) · [suggest](v0.62.0/09-suggest.png) · [info arch](v0.62.0/info-arch.png) · [info how](v0.62.0/info-how.png) · [info keys](v0.62.0/info-keys.png) · [info new](v0.62.0/info-new.png) · [info suggest](v0.62.0/info-suggest.png) · [mobile](v0.62.0/mobile.png)
+
 ## [v0.61.0](v0.61.0/)
 
 

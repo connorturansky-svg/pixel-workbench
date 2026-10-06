@@ -1436,5 +1436,31 @@
    "mobile.png"
   ],
   "error": ""
+ },
+ {
+  "version": "v0.62.0",
+  "date": "02/10/2026",
+  "commit": "cb730ad12f6bcbb6bb99e86a1b904741253e7786",
+  "issue": 40,
+  "changelog": "Room layout objects can now be removed from the inspector, and boxes and field devices start at measured or practical plan sizes. (suggested in #40)",
+  "status": "ok",
+  "shots": [
+   "01-workspace.png",
+   "02-hardware.png",
+   "03-presets.png",
+   "04-props.png",
+   "05-guide.png",
+   "06-boxes.png",
+   "07-standards.png",
+   "08-bom.png",
+   "09-suggest.png",
+   "info-arch.png",
+   "info-how.png",
+   "info-keys.png",
+   "info-new.png",
+   "info-suggest.png",
+   "mobile.png"
+  ],
+  "error": ""
  }
 ]
