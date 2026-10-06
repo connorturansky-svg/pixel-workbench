@@ -1,0 +1,26 @@
+{
+ "version": "v0.32.0",
+ "date": "02/10/2026",
+ "commit": "f84e0bc32054fc472c73a8fca8464da280e649ab",
+ "issue": 16,
+ "changelog": "Controller-box hardware now includes all documented Baldrick boards with their named power, network, pixel, input, relay and DMX connectors. (suggested in #16)",
+ "status": "ok",
+ "shots": [
+  "01-workspace.png",
+  "02-hardware.png",
+  "03-presets.png",
+  "04-props.png",
+  "05-guide.png",
+  "06-boxes.png",
+  "07-standards.png",
+  "08-bom.png",
+  "09-suggest.png",
+  "info-arch.png",
+  "info-how.png",
+  "info-keys.png",
+  "info-new.png",
+  "info-suggest.png",
+  "mobile.png"
+ ],
+ "error": ""
+}
