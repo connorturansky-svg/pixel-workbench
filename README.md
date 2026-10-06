@@ -8,6 +8,16 @@ Every release is captured by the builder's release smoke test (`automation/smoke
 
 **Screenshots failed:** gh api -X failed: Post "https://api.github.com/repos/connorturansky-svg/pixel-workbench/git/blobs": read tcp 192.168.0.199:60374->20.26.156.210:443: wsarecv: An existing connection was forcibly closed
 
+## [v0.47.0](v0.47.0/)
+
+02/10/2026 · [commit fecc21c](https://github.com/connorturansky-svg/pixel-workbench/commit/fecc21cae611ce69532391fc7e2f0b6f756024b3) · [issue #26](https://github.com/connorturansky-svg/pixel-workbench/issues/26)
+
+> Distinct accent colours, stronger borders and softly tinted work areas now separate summaries, editors, inspectors and card groups across the planning tools. (follow-up to #26)
+
+<a href="v0.47.0/01-workspace.png"><img src="v0.47.0/01-workspace.png" width="420" alt="v0.47.0 workspace"></a> <a href="v0.47.0/mobile.png"><img src="v0.47.0/mobile.png" width="240" alt="v0.47.0 mobile"></a>
+
+All shots: [workspace](v0.47.0/01-workspace.png) · [hardware](v0.47.0/02-hardware.png) · [presets](v0.47.0/03-presets.png) · [props](v0.47.0/04-props.png) · [guide](v0.47.0/05-guide.png) · [boxes](v0.47.0/06-boxes.png) · [standards](v0.47.0/07-standards.png) · [bom](v0.47.0/08-bom.png) · [suggest](v0.47.0/09-suggest.png) · [info arch](v0.47.0/info-arch.png) · [info how](v0.47.0/info-how.png) · [info keys](v0.47.0/info-keys.png) · [info new](v0.47.0/info-new.png) · [info suggest](v0.47.0/info-suggest.png) · [mobile](v0.47.0/mobile.png)
+
 ## [v0.46.0](v0.46.0/)
 
 02/10/2026 · [commit f63b551](https://github.com/connorturansky-svg/pixel-workbench/commit/f63b55190bdbab16680647ef35085c495fdef306) · [issue #29](https://github.com/connorturansky-svg/pixel-workbench/issues/29)

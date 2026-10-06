@@ -1072,5 +1072,31 @@
    "mobile.png"
   ],
   "error": ""
+ },
+ {
+  "version": "v0.47.0",
+  "date": "02/10/2026",
+  "commit": "fecc21cae611ce69532391fc7e2f0b6f756024b3",
+  "issue": 26,
+  "changelog": "Distinct accent colours, stronger borders and softly tinted work areas now separate summaries, editors, inspectors and card groups across the planning tools. (follow-up to #26)",
+  "status": "ok",
+  "shots": [
+   "01-workspace.png",
+   "02-hardware.png",
+   "03-presets.png",
+   "04-props.png",
+   "05-guide.png",
+   "06-boxes.png",
+   "07-standards.png",
+   "08-bom.png",
+   "09-suggest.png",
+   "info-arch.png",
+   "info-how.png",
+   "info-keys.png",
+   "info-new.png",
+   "info-suggest.png",
+   "mobile.png"
+  ],
+  "error": ""
  }
 ]
