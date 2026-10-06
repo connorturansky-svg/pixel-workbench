@@ -8,6 +8,16 @@ Every release is captured by the builder's release smoke test (`automation/smoke
 
 **Screenshots failed:** gh api -X failed: Post "https://api.github.com/repos/connorturansky-svg/pixel-workbench/git/blobs": read tcp 192.168.0.199:60374->20.26.156.210:443: wsarecv: An existing connection was forcibly closed
 
+## [v0.11.0](v0.11.0/)
+
+02/10/2026 · [commit 0118d51](https://github.com/connorturansky-svg/pixel-workbench/commit/0118d5100c80a9a4c3eb2f1322a2bc2526325028) · [issue #3](https://github.com/connorturansky-svg/pixel-workbench/issues/3)
+
+> The sidebar is shorter and easier to scan now that project actions appear only in the top bar and the promotional tagline has been removed. (suggested in #3)
+
+<a href="v0.11.0/01-workspace.png"><img src="v0.11.0/01-workspace.png" width="420" alt="v0.11.0 workspace"></a> <a href="v0.11.0/mobile.png"><img src="v0.11.0/mobile.png" width="240" alt="v0.11.0 mobile"></a>
+
+All shots: [workspace](v0.11.0/01-workspace.png) · [hardware](v0.11.0/02-hardware.png) · [presets](v0.11.0/03-presets.png) · [props](v0.11.0/04-props.png) · [guide](v0.11.0/05-guide.png) · [boxes](v0.11.0/06-boxes.png) · [standards](v0.11.0/07-standards.png) · [bom](v0.11.0/08-bom.png) · [suggest](v0.11.0/09-suggest.png) · [info arch](v0.11.0/info-arch.png) · [info how](v0.11.0/info-how.png) · [info keys](v0.11.0/info-keys.png) · [info new](v0.11.0/info-new.png) · [mobile](v0.11.0/mobile.png)
+
 ## [v0.10.0](v0.10.0/)
 
 02/10/2026 · [commit f3ad0e4](https://github.com/connorturansky-svg/pixel-workbench/commit/f3ad0e41d39fcb5e7ea445c48ae95b1f3756d490)

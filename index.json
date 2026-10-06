@@ -152,5 +152,30 @@
    "mobile.png"
   ],
   "error": ""
+ },
+ {
+  "version": "v0.11.0",
+  "date": "02/10/2026",
+  "commit": "0118d5100c80a9a4c3eb2f1322a2bc2526325028",
+  "issue": 3,
+  "changelog": "The sidebar is shorter and easier to scan now that project actions appear only in the top bar and the promotional tagline has been removed. (suggested in #3)",
+  "status": "ok",
+  "shots": [
+   "01-workspace.png",
+   "02-hardware.png",
+   "03-presets.png",
+   "04-props.png",
+   "05-guide.png",
+   "06-boxes.png",
+   "07-standards.png",
+   "08-bom.png",
+   "09-suggest.png",
+   "info-arch.png",
+   "info-how.png",
+   "info-keys.png",
+   "info-new.png",
+   "mobile.png"
+  ],
+  "error": ""
  }
 ]
