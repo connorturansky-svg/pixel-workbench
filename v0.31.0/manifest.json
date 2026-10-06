@@ -1,0 +1,26 @@
+{
+ "version": "v0.31.0",
+ "date": "02/10/2026",
+ "commit": "f1ab684df813861ba4975d9a05f4c362374f2c24",
+ "issue": 18,
+ "changelog": "A global notification strip now groups electrical checks, room-route faults and controller-box component issues at the top of every page, with links to the relevant workspace. (suggested in #18)",
+ "status": "ok",
+ "shots": [
+  "01-workspace.png",
+  "02-hardware.png",
+  "03-presets.png",
+  "04-props.png",
+  "05-guide.png",
+  "06-boxes.png",
+  "07-standards.png",
+  "08-bom.png",
+  "09-suggest.png",
+  "info-arch.png",
+  "info-how.png",
+  "info-keys.png",
+  "info-new.png",
+  "info-suggest.png",
+  "mobile.png"
+ ],
+ "error": ""
+}
