@@ -10,16 +10,6 @@
   "error": "gh api -X failed: Post \"https://api.github.com/repos/connorturansky-svg/pixel-workbench/git/blobs\": read tcp 192.168.0.199:60374->20.26.156.210:443: wsarecv: An existing connection was forcibly closed"
  },
  {
-  "version": "v0.6.1",
-  "date": "02/10/2026",
-  "commit": "cb0c2719c29796e0999cba0ba7330bcb10159379",
-  "issue": null,
-  "changelog": "Fixed the page failing to load after an update when the browser still held cached copies of older files. Every script and stylesheet is now versioned, so each release loads as one consistent set.",
-  "status": "failed",
-  "shots": [],
-  "error": "smoke test failed before any screenshot: ython312\\Lib\\site-packages\\playwright\\_impl\\_connection.py\", line 559, in wrap_api_call\n    raise rewrite_error(error, f\"{parsed_st['apiName']}: {error}\") from None\nplaywright._impl._errors.TimeoutError: Page.text_content: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator(\".brand-version\")"
- },
- {
   "version": "v0.6.2",
   "date": "02/10/2026",
   "commit": "e83ff3da20ec2d50d9cd774f501a07c45b110e14",
@@ -1713,6 +1703,16 @@
   "commit": "38cf66b0d2a49f779111c9f7a49af52e0170fa80",
   "issue": null,
   "changelog": "Info / Help moves from the sidebar into a single i button (top bar) that opens a fixed-size dialog with How to use, What\u2019s new, Architecture and Shortcuts tabs.",
+  "status": "failed",
+  "shots": [],
+  "error": "smoke test failed before any screenshot: ython312\\Lib\\site-packages\\playwright\\_impl\\_connection.py\", line 559, in wrap_api_call\n    raise rewrite_error(error, f\"{parsed_st['apiName']}: {error}\") from None\nplaywright._impl._errors.TimeoutError: Page.text_content: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator(\".brand-version\")"
+ },
+ {
+  "version": "v0.6.1",
+  "date": "02/10/2026",
+  "commit": "cb0c2719c29796e0999cba0ba7330bcb10159379",
+  "issue": null,
+  "changelog": "Fixed the page failing to load after an update when the browser still held cached copies of older files. Every script and stylesheet is now versioned, so each release loads as one consistent set.",
   "status": "failed",
   "shots": [],
   "error": "smoke test failed before any screenshot: ython312\\Lib\\site-packages\\playwright\\_impl\\_connection.py\", line 559, in wrap_api_call\n    raise rewrite_error(error, f\"{parsed_st['apiName']}: {error}\") from None\nplaywright._impl._errors.TimeoutError: Page.text_content: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator(\".brand-version\")"
