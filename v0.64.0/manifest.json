@@ -1,0 +1,26 @@
+{
+ "version": "v0.64.0",
+ "date": "02/10/2026",
+ "commit": "abd9985f4cf7e141f1b5260111c25f4c6d0da05f",
+ "issue": 36,
+ "changelog": "Saved controller boxes now receive the current non-overlapping schematic layout, not only boxes created after the routing update. (follow-up to #36)",
+ "status": "ok",
+ "shots": [
+  "01-workspace.png",
+  "02-hardware.png",
+  "03-presets.png",
+  "04-props.png",
+  "05-guide.png",
+  "06-boxes.png",
+  "07-standards.png",
+  "08-bom.png",
+  "09-suggest.png",
+  "info-arch.png",
+  "info-how.png",
+  "info-keys.png",
+  "info-new.png",
+  "info-suggest.png",
+  "mobile.png"
+ ],
+ "error": ""
+}

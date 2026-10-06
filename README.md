@@ -2,6 +2,16 @@
 
 Every release is captured by the builder's release smoke test (`automation/smoke.py --shots`): every page, every info tab and a mobile view. This branch is never deployed by Pages. Newest first.
 
+## [v0.64.0](v0.64.0/)
+
+02/10/2026 · [commit abd9985](https://github.com/connorturansky-svg/pixel-workbench/commit/abd9985f4cf7e141f1b5260111c25f4c6d0da05f) · [issue #36](https://github.com/connorturansky-svg/pixel-workbench/issues/36)
+
+> Saved controller boxes now receive the current non-overlapping schematic layout, not only boxes created after the routing update. (follow-up to #36)
+
+<a href="v0.64.0/01-workspace.png"><img src="v0.64.0/01-workspace.png" width="420" alt="v0.64.0 workspace"></a> <a href="v0.64.0/mobile.png"><img src="v0.64.0/mobile.png" width="240" alt="v0.64.0 mobile"></a>
+
+All shots: [workspace](v0.64.0/01-workspace.png) · [hardware](v0.64.0/02-hardware.png) · [presets](v0.64.0/03-presets.png) · [props](v0.64.0/04-props.png) · [guide](v0.64.0/05-guide.png) · [boxes](v0.64.0/06-boxes.png) · [standards](v0.64.0/07-standards.png) · [bom](v0.64.0/08-bom.png) · [suggest](v0.64.0/09-suggest.png) · [info arch](v0.64.0/info-arch.png) · [info how](v0.64.0/info-how.png) · [info keys](v0.64.0/info-keys.png) · [info new](v0.64.0/info-new.png) · [info suggest](v0.64.0/info-suggest.png) · [mobile](v0.64.0/mobile.png)
+
 ## [v0.63.0](v0.63.0/)
 
 02/10/2026 · [commit a50ea41](https://github.com/connorturansky-svg/pixel-workbench/commit/a50ea41f0e3aab9db62183a522f25bd2a44590d6) · [issue #41](https://github.com/connorturansky-svg/pixel-workbench/issues/41)
