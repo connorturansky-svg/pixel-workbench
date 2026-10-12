@@ -2,6 +2,16 @@
 
 Every release is captured by the builder's release smoke test (`automation/smoke.py --shots`): every page, every info tab and a mobile view. This branch is never deployed by Pages. Newest first.
 
+## [v0.77.0](v0.77.0/)
+
+12/10/2026 · [commit 2af088b](https://github.com/connorturansky-svg/pixel-workbench/commit/2af088bc4e6e17334c361b0bf922defe5d980800) · [issue #47](https://github.com/connorturansky-svg/pixel-workbench/issues/47)
+
+> Fixed negative initial pixel-room coordinates after hardware moves into boxes, which blocked edge-port activation, component placement and internal wiring through shared project validation. Existing negative pixel rows in the current scene are repaired without moving valid placements (suggested in #
+
+<a href="v0.77.0/01-workspace.png"><img src="v0.77.0/01-workspace.png" width="420" alt="v0.77.0 workspace"></a> <a href="v0.77.0/mobile.png"><img src="v0.77.0/mobile.png" width="240" alt="v0.77.0 mobile"></a>
+
+All shots: [workspace](v0.77.0/01-workspace.png) · [hardware](v0.77.0/02-hardware.png) · [presets](v0.77.0/03-presets.png) · [props](v0.77.0/04-props.png) · [guide](v0.77.0/05-guide.png) · [boxes](v0.77.0/06-boxes.png) · [standards](v0.77.0/07-standards.png) · [bom](v0.77.0/08-bom.png) · [suggest](v0.77.0/09-suggest.png) · [info arch](v0.77.0/info-arch.png) · [info how](v0.77.0/info-how.png) · [info keys](v0.77.0/info-keys.png) · [info new](v0.77.0/info-new.png) · [info suggest](v0.77.0/info-suggest.png) · [mobile](v0.77.0/mobile.png)
+
 ## [v0.73.0](v0.73.0/)
 
 06/10/2026 · [commit ee81c15](https://github.com/connorturansky-svg/pixel-workbench/commit/ee81c15632de57532de90bb96959d21197543829)

@@ -1764,5 +1764,31 @@
    "mobile.png"
   ],
   "error": ""
+ },
+ {
+  "version": "v0.77.0",
+  "date": "12/10/2026",
+  "commit": "2af088bc4e6e17334c361b0bf922defe5d980800",
+  "issue": 47,
+  "changelog": "Fixed negative initial pixel-room coordinates after hardware moves into boxes, which blocked edge-port activation, component placement and internal wiring through shared project validation. Existing negative pixel rows in the current scene are repaired without moving valid placements (suggested in #",
+  "status": "ok",
+  "shots": [
+   "01-workspace.png",
+   "02-hardware.png",
+   "03-presets.png",
+   "04-props.png",
+   "05-guide.png",
+   "06-boxes.png",
+   "07-standards.png",
+   "08-bom.png",
+   "09-suggest.png",
+   "info-arch.png",
+   "info-how.png",
+   "info-keys.png",
+   "info-new.png",
+   "info-suggest.png",
+   "mobile.png"
+  ],
+  "error": ""
  }
 ]
