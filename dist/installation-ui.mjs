@@ -1,8 +1,12 @@
 import {
   PORT_TYPES,
+  SCHEMATIC_LAYOUT_VERSION,
+  BUTTON_COLOURS,
   RESOURCE_LABELS,
   ensureInstallation,
   makeBox,
+  makeButtonBox,
+  resizeButtonBox,
   makeInstance,
   syncInterfacePorts,
   syncBoxStandards,
@@ -16,8 +20,9 @@ import {
   componentPlacement,
   componentSearch,
   componentSizeGuides,
-  deleteRoute
-} from './installation-model.mjs?v=0.74.0';
+  deleteRoute,
+  portTypeColour
+} from './installation-model.mjs?v=0.75.0';
 
 const SCHEMATIC_MIN_WIDTH = 1400,
   SCHEMATIC_MIN_HEIGHT = 700;
@@ -30,11 +35,14 @@ let api,
   bomScope = '',
   boxMode = 'schematic',
   openInterfaceGroups = new Set(),
+  normalizedSchematicBoxes = new Set(),
   schematicZoom = 1,
   schematicCanvasWidth = 1,
   schematicCanvasHeight = SCHEMATIC_MIN_HEIGHT,
+  connectionFrame = 0,
   showTickets = false,
-  boxDetailsOpen = false;
+  boxDetailsOpen = false,
+  builderMode = 'controller';
 const E = s =>
   String(s ?? '').replace(
     /[&<>"']/g,
@@ -72,7 +80,10 @@ const sources = p => [
 ];
 function current(p) {
   ensureInstallation(p);
-  if (!p.installation.boxes.some(x => x.id === boxId)) boxId = p.installation.boxes[0]?.id || '';
+  const boxes = p.installation.boxes.filter(box =>
+    builderMode === 'button' ? box.kind === 'button' : box.kind !== 'button'
+  );
+  if (!boxes.some(x => x.id === boxId)) boxId = boxes[0]?.id || '';
   const box = p.installation.boxes.find(x => x.id === boxId);
   if (!box?.components.some(x => x.id === partId)) partId = box?.components[0]?.id || '';
   return box;
@@ -159,6 +170,30 @@ const hardwareDetail = kind =>
       : kind === 'module'
         ? '<i class="hardware-coil"></i><i class="hardware-chip"></i>'
         : '<i class="hardware-chip"></i><i class="hardware-capacitor"></i>';
+const setEthernetPortCount = (part, count) => {
+  const ports = part.snapshot.ports,
+    ethernet = ports.filter(port => port.type === 'ethernet'),
+    desired = Math.max(1, Math.floor(count));
+  if (desired < ethernet.length) {
+    const remove = new Set(ethernet.slice(desired).map(port => port.id));
+    part.snapshot.ports = ports.filter(port => !remove.has(port.id));
+  } else {
+    const used = new Set(ports.map(port => port.id));
+    let number = 1;
+    while (part.snapshot.ports.filter(port => port.type === 'ethernet').length < desired) {
+      while (used.has('eth' + number)) number++;
+      const id = 'eth' + number;
+      used.add(id);
+      part.snapshot.ports.push({
+        id,
+        label: 'Ethernet ' + number,
+        type: 'ethernet',
+        direction: 'out'
+      });
+    }
+  }
+  part.snapshot.resources.ethernetPorts = desired;
+};
 const schematicPart = (c, linkedPorts) => {
   const kind = visualKind(c);
   return `<div class="box-part ${kind} ${c.id === partId ? 'selected' : ''}" data-box-part="${E(c.id)}" style="left:${c.x}%;top:${c.y}%;--part-color:${E(c.snapshot.color || '#4b8a76')}"><div class="part-title"><span>${E(c.snapshot.icon)}</span><strong>${E(c.snapshot.name)}</strong></div><div class="hardware-face"><i class="mount-hole top-left"></i><i class="mount-hole top-right"></i><i class="mount-hole bottom-left"></i><i class="mount-hole bottom-right"></i><div class="hardware-silk"><strong>${E(c.snapshot.name)}</strong><small>${E(c.snapshot.model || c.snapshot.category)}</small></div><div class="hardware-detail" aria-hidden="true">${hardwareDetail(kind)}</div><div class="part-ports">${c.snapshot.ports
@@ -255,8 +290,51 @@ function connectEndpoints(box, from, to) {
     })
   );
 }
-export function boxesView(p, lib) {
+export function boxBuilderView(p, lib) {
+  return `<div class="box-builder-tabs box-view-tabs" role="group" aria-label="Box builder type">${B('Controller boxes', 'builder-mode:controller', builderMode === 'controller' ? 'active' : '')}${B('Button boxes', 'builder-mode:button', builderMode === 'button' ? 'active' : '')}</div>${
+    builderMode === 'button' ? buttonBoxesView(p) : boxesView(p, lib)
+  }`;
+}
+function buttonBoxesView(p) {
+  ensureInstallation(p);
+  const boxes = p.installation.boxes.filter(box => box.kind === 'button');
+  return `<div class="install-intro">Build a custom enclosure with 1–5 buttons. Each button has its own colour, size and exposed digital-input port for room routing.</div><div class="section-heading"><h2>Button boxes <span>${boxes.length}</span></h2>${B('+ New button box', 'new-button-box', 'btn primary')}</div><div class="standards-grid button-box-grid">${
+    boxes
+      .map(
+        box =>
+          `<section class="panel standard-card button-box-card"><div class="card-heading"><h3>${E(box.name)}</h3>${B('Delete', 'delete-button-box:' + box.id, 'text-btn danger')}</div>${F('Box name', box.name, 'buttonbox:' + box.id + ':name')}${S(
+            'Number of buttons',
+            box.components.length,
+            'buttoncount:' + box.id,
+            [1, 2, 3, 4, 5].map(number => [number, String(number)])
+          )}<div class="button-box-controls">${box.components
+            .map(
+              (button, index) =>
+                `<div class="button-box-control"><span class="button-size-preview ${E(button.buttonSize || 'medium')}" style="background:${E(button.snapshot.color)}" aria-hidden="true"></span><div>${F('Button label', button.subname || `Button ${index + 1}`, 'button:' + box.id + ':' + button.id + ':label')}${S(
+                  'Button colour',
+                  button.buttonColour || 'Amber',
+                  'button:' + box.id + ':' + button.id + ':colour',
+                  BUTTON_COLOURS.map(([name]) => [name, name])
+                )}${S(
+                  'Button size',
+                  button.buttonSize || 'medium',
+                  'button:' + box.id + ':' + button.id + ':size',
+                  [
+                    ['small', 'Small'],
+                    ['medium', 'Medium'],
+                    ['large', 'Large']
+                  ]
+                )}<small>Port: ${E(button.snapshot.ports[0].label)}</small></div></div>`
+            )
+            .join('')}</div></section>`
+      )
+      .join('') ||
+    '<div class="panel install-empty">Create a button box, then choose its button count and sizes.</div>'
+  }</div>`;
+}
+function boxesView(p, lib) {
   const box = current(p),
+    controllerBoxes = p.installation.boxes.filter(item => item.kind !== 'button'),
     cap = projectCapacity(p),
     template = lib.boxTemplates.find(t => t.id === box?.templateRef?.id),
     part = box?.components.find(c => c.id === partId),
@@ -280,7 +358,7 @@ export function boxesView(p, lib) {
     'Open box',
     boxId,
     'box-select',
-    p.installation.boxes.map(b => [b.id, b.name])
+    controllerBoxes.map(b => [b.id, b.name])
   )}${lib.boxTemplates.length ? '<label>Find template<input type="search" data-template-search placeholder="Search box templates"></label>' : ''}${lib.boxTemplates.length ? S('Reusable template', '', 'template-select', [['', 'Choose template'], ...lib.boxTemplates.map(t => [t.id, t.name + ' · v' + t.version])]) : ''}${B('Add template box', 'add-template')}${B('Save as template', 'save-template')}${template && template.version > box.templateRef.version ? B(`Update to template v${template.version}`, 'update-template') : ''}${B(`🔔 ${tickets.length}`, 'tickets', 'notification-btn ' + (tickets.length ? 'has-tickets' : ''))}</div>${showTickets ? `<section class="panel measurement-tickets"><h3>Measurement tickets</h3><div class="install-scroll-list">${tickets.map(x => `<button type="button" data-install="select-part:${E(x.part.id)}">${E(x.text)}</button>`).join('') || '<p class="micro">Every placed component has a confirmed footprint.</p>'}</div></section>` : ''}<details class="install-global panel install-disclosure" open><summary>Project resource capacity</summary><div class="install-disclosure-body">${resources(cap)}</div></details>${
     !box
       ? '<div class="panel install-empty">Create a box to place controllers, power supplies, buttons, relays and other parts.</div>'
@@ -313,9 +391,10 @@ export function boxesView(p, lib) {
             .join('') || '<p class="micro">No internal connections yet.</p>'
         }</div></details><details class="box-text-section" open><summary>Box capacity</summary><div class="install-disclosure-body">${resources(boxCapacity(p, box))}</div></details></section><aside class="panel part-inspector"><details class="box-details" ${boxDetailsOpen || !part ? 'open' : ''}><summary>Box details</summary><div class="box-details-body">${F('Box label', box.name, 'box.name')}${F('Description', box.description, 'box.description')}${S('Enclosure size', lib.boxSizes.find(s => s.widthCm * 10 === (box.physicalWidthMm || 400) && s.depthCm * 10 === (box.physicalDepthMm || 250))?.id || '', 'box-size-select', [['', 'Custom size'], ...lib.boxSizes.map(s => [s.id, `${s.name} · ${s.widthCm} × ${s.depthCm} cm`])])}${F('Enclosure width (cm)', (box.physicalWidthMm || 400) / 10, 'box.physicalWidthCm', 'number', 'min="2" max="1000" step="0.1"')}${F('Enclosure depth (cm)', (box.physicalDepthMm || 250) / 10, 'box.physicalDepthCm', 'number', 'min="2" max="1000" step="0.1"')}<p class="micro">Reusable sizes are managed in Standards.</p>${F('Room footprint width (m)', box.width, 'box.width', 'number', 'min="0.1" max="50" step="any"')}${F('Room footprint depth (m)', box.height, 'box.height', 'number', 'min="0.1" max="50" step="any"')}</div></details>${
           part
-            ? `<div class="component-details"><h3>${E(part.snapshot.name)}</h3>${F('Component subname', part.subname || '', 'part.subname', 'text', 'maxlength="200" placeholder="For example, 12 V feed"')}${S('Linked project hardware', part.sourceKey, 'part.sourceKey', sources(p))}${sizeGuides.length ? S('Common size guide', sizeGuides.find(guide => guide.manufacturer === part.snapshot.manufacturer && guide.model === part.snapshot.model)?.id || '', 'size-guide', [['', 'Choose a model'], ...sizeGuides.map(guide => [guide.id, `${guide.manufacturer} ${guide.model} · ${guide.physical.widthMm} × ${guide.physical.depthMm}${guide.physical.heightMm ? ` × ${guide.physical.heightMm}` : ''} mm`])]) + '<p class="micro">Applies reference dimensions to this part. Confirm the exact variant and allow for cases, connectors and airflow.</p>' : ''}${F('Position X (%)', part.x, 'part.x', 'number', 'min="0" max="100" step="any"')}${F('Position Y (%)', part.y, 'part.y', 'number', 'min="0" max="100" step="any"')}${F('Width (mm)', part.snapshot.physical?.widthMm ?? '', 'physical.widthMm', 'number', 'min="1" max="5000" step="1"')}${F('Depth (mm)', part.snapshot.physical?.depthMm ?? '', 'physical.depthMm', 'number', 'min="1" max="5000" step="1"')}${F('Height (mm)', part.snapshot.physical?.heightMm ?? '', 'physical.heightMm', 'number', 'min="1" max="5000" step="1"')}${B('Save measurements globally', 'save-size', 'text-btn')}${B(`Rotate 90° (${part.rotation || 0}°)`, 'rotate-part', 'text-btn')}${F('Stacking layer', part.stackLevel || 0, 'part.stackLevel', 'number', 'min="0" max="20" step="1"')}<h4>Operating limits</h4><p class="micro">Set below the reference rating when you want headroom.</p>${Object.entries(
+            ? `<div class="component-details"><h3>${E(part.snapshot.name)}</h3>${F('Component subname', part.subname || '', 'part.subname', 'text', 'maxlength="200" placeholder="For example, 12 V feed"')}${S('Linked project hardware', part.sourceKey, 'part.sourceKey', sources(p))}${sizeGuides.length ? S('Common size guide', sizeGuides.find(guide => guide.manufacturer === part.snapshot.manufacturer && guide.model === part.snapshot.model)?.id || '', 'size-guide', [['', 'Choose a model'], ...sizeGuides.map(guide => [guide.id, `${guide.manufacturer} ${guide.model} · ${guide.physical.widthMm} × ${guide.physical.depthMm}${guide.physical.heightMm ? ` × ${guide.physical.heightMm}` : ''} mm`])]) + '<p class="micro">Applies reference dimensions to this part. Confirm the exact variant and allow for cases, connectors and airflow.</p>' : ''}${F('Position X (%)', part.x, 'part.x', 'number', 'min="0" max="100" step="any"')}${F('Position Y (%)', part.y, 'part.y', 'number', 'min="0" max="100" step="any"')}${F('Width (mm)', part.snapshot.physical?.widthMm ?? '', 'physical.widthMm', 'number', 'min="1" max="5000" step="1"')}${F('Depth (mm)', part.snapshot.physical?.depthMm ?? '', 'physical.depthMm', 'number', 'min="1" max="5000" step="1"')}${F('Height (mm)', part.snapshot.physical?.heightMm ?? '', 'physical.heightMm', 'number', 'min="1" max="5000" step="1"')}${B('Save measurements globally', 'save-size', 'text-btn')}${B(`Rotate 90° (${part.rotation || 0}°)`, 'rotate-part', 'text-btn')}${F('Stacking layer', part.stackLevel || 0, 'part.stackLevel', 'number', 'min="0" max="20" step="1"')}${part.snapshot.category === 'Network' && part.snapshot.resources?.ethernetPorts ? `<h4>Connectors</h4>${F('Ethernet ports', part.snapshot.ports.filter(port => port.type === 'ethernet').length, 'portcount.ethernet', 'number', 'min="1" max="128" step="1"')}<p class="micro">Changes the connectors shown on this placed component and its matching box edge ports.</p>` : ''}<h4>Operating limits</h4><p class="micro">Set below the reference rating when you want headroom.</p>${Object.entries(
                 part.snapshot.resources || {}
               )
+                .filter(([k]) => !(part.snapshot.category === 'Network' && k === 'ethernetPorts'))
                 .map(([k, n]) =>
                   F(
                     RESOURCE_LABELS[k] || k,
@@ -395,6 +474,7 @@ export function bomView(p) {
   return `<div class="install-toolbar">${S('Scope', bomScope, 'bom-filter', [['', 'Whole project'], ...boxes.map(b => [b.id, b.name])])}${B('↓ Export BOM CSV', 'bom-csv')}${B('Print', 'bom-print')}</div><section class="panel"><h2>Bill of materials</h2><p class="micro">Quantities reflect planned components, pixel groups and assigned physical cables. Check mounting, fuses, connectors and spare stock before ordering.</p><div class="table-panel"><table><thead><tr><th>Category</th><th>Item</th><th>Quantity</th><th>Unit</th></tr></thead><tbody>${rows.map(r => `<tr><td>${E(r.category)}</td><td>${E(r.name)}</td><td>${r.quantity}</td><td>${E(r.unit)}</td></tr>`).join('')}</tbody></table></div></section>`;
 }
 export function openBox(id) {
+  builderMode = 'controller';
   boxId = id;
   partId = '';
   boxDetailsOpen = false;
@@ -420,7 +500,7 @@ function setSchematicZoom(next, clientX, clientY) {
   scroll.scrollTop = (scroll.scrollTop + y) * ratio - y;
   const readout = document.querySelector('.box-zoom-readout');
   if (readout) readout.textContent = Math.round(schematicZoom * 100) + '%';
-  requestAnimationFrame(drawBoxConnections);
+  scheduleBoxConnections();
 }
 function autoLayout(box, project) {
   const ids = new Set(box.components.map(c => c.id)),
@@ -502,7 +582,7 @@ function autoLayout(box, project) {
       const width = stage.clientWidth,
         height = stage.clientHeight,
         margin = 24;
-      api.transact(() =>
+      api.transact(() => {
         groups.forEach((group, column) => {
           const heights = group.map(c => elements.get(c.id)?.offsetHeight || 180),
             total = heights.reduce((sum, value) => sum + value, 0) + Math.max(0, group.length - 1) * 32;
@@ -517,8 +597,9 @@ function autoLayout(box, project) {
             c.y = +((y / height) * 100).toFixed(1);
             y += heights[row] + 32;
           });
-        })
-      );
+        });
+        box.schematicLayoutVersion = SCHEMATIC_LAYOUT_VERSION;
+      });
     });
   });
 }
@@ -526,30 +607,179 @@ const segmentHits = (a, b, r) =>
   a.x === b.x
     ? a.x >= r.left && a.x <= r.right && Math.max(a.y, b.y) >= r.top && Math.min(a.y, b.y) <= r.bottom
     : a.y >= r.top && a.y <= r.bottom && Math.max(a.x, b.x) >= r.left && Math.min(a.x, b.x) <= r.right;
-const routePath = (a, b, obstacles) => {
+const routePath = (a, b, obstacles, bounds) => {
   const direction = b.x >= a.x ? 1 : -1,
-    start = { x: a.x + 14 * direction, y: a.y },
-    finish = { x: b.x - 14 * direction, y: b.y },
-    middle = (start.x + finish.x) / 2,
-    direct = [a, start, { x: middle, y: start.y }, { x: middle, y: finish.y }, finish, b],
-    clear = points =>
-      points.slice(1).every((point, i) => !obstacles.some(rect => segmentHits(points[i], point, rect)));
-  let points = direct;
-  if (!clear(points) && obstacles.length) {
-    const top = Math.max(8, Math.min(...obstacles.map(r => r.top)) - 14),
-      bottom = Math.min(
-        document.querySelector('#box-stage')?.clientHeight - 8 || 442,
-        Math.max(...obstacles.map(r => r.bottom)) + 14
+    start = { x: a.x + 14 * (a.direction || direction), y: a.y },
+    finish = { x: b.x + 14 * (b.direction || -direction), y: b.y },
+    blocked = point =>
+      obstacles.some(
+        rect => point.x > rect.left && point.x < rect.right && point.y > rect.top && point.y < rect.bottom
       ),
-      candidates = [
-        [a, start, { x: start.x, y: top }, { x: finish.x, y: top }, finish, b],
-        [a, start, { x: start.x, y: bottom }, { x: finish.x, y: bottom }, finish, b]
-      ];
-    points =
-      candidates.find(clear) || candidates.sort((x, y) => Math.abs(x[2].y - a.y) - Math.abs(y[2].y - a.y))[0];
+    clear = (u, v) => !obstacles.some(rect => segmentHits(u, v, rect)),
+    xs = [
+      8,
+      bounds.width - 8,
+      start.x,
+      finish.x,
+      ...obstacles.flatMap(rect => [rect.left - 10, rect.right + 10])
+    ]
+      .filter(x => x >= 8 && x <= bounds.width - 8)
+      .sort((x, y) => x - y)
+      .filter((x, i, values) => !i || Math.abs(x - values[i - 1]) > 1),
+    ys = [
+      8,
+      bounds.height - 8,
+      start.y,
+      finish.y,
+      ...obstacles.flatMap(rect => [rect.top - 10, rect.bottom + 10])
+    ]
+      .filter(y => y >= 8 && y <= bounds.height - 8)
+      .sort((x, y) => x - y)
+      .filter((y, i, values) => !i || Math.abs(y - values[i - 1]) > 1),
+    nodes = xs.flatMap(x => ys.map(y => ({ x, y }))).filter(point => !blocked(point)),
+    nodeKey = point => `${point.x},${point.y}`,
+    byKey = new Map(nodes.map(point => [nodeKey(point), point])),
+    rows = new Map(ys.map(y => [y, nodes.filter(point => point.y === y).sort((u, v) => u.x - v.x)])),
+    columns = new Map(xs.map(x => [x, nodes.filter(point => point.x === x).sort((u, v) => u.y - v.y)])),
+    startNode = byKey.get(nodeKey(start)),
+    finishNode = byKey.get(nodeKey(finish)),
+    open = [],
+    distance = new Map(startNode ? [[nodeKey(startNode), 0]] : []),
+    previous = new Map(),
+    push = item => {
+      open.push(item);
+      for (let i = open.length - 1; i;) {
+        const parent = Math.floor((i - 1) / 2);
+        if (open[parent].score <= open[i].score) break;
+        [open[parent], open[i]] = [open[i], open[parent]];
+        i = parent;
+      }
+    },
+    pop = () => {
+      const first = open[0],
+        last = open.pop();
+      if (open.length && last) {
+        open[0] = last;
+        for (let i = 0; ;) {
+          const left = i * 2 + 1,
+            right = left + 1;
+          let smallest = i;
+          if (left < open.length && open[left].score < open[smallest].score) smallest = left;
+          if (right < open.length && open[right].score < open[smallest].score) smallest = right;
+          if (smallest === i) break;
+          [open[smallest], open[i]] = [open[i], open[smallest]];
+          i = smallest;
+        }
+      }
+      return first;
+    };
+  if (startNode && finishNode) push({ point: startNode, travelled: 0, score: 0 });
+  while (open.length) {
+    const item = pop(),
+      current = item.point,
+      currentKey = nodeKey(current);
+    if (item.travelled !== distance.get(currentKey)) continue;
+    if (current === finishNode) break;
+    const row = rows.get(current.y),
+      column = columns.get(current.x),
+      rowIndex = row.indexOf(current),
+      columnIndex = column.indexOf(current),
+      neighbours = [
+        row[rowIndex - 1],
+        row[rowIndex + 1],
+        column[columnIndex - 1],
+        column[columnIndex + 1]
+      ].filter(point => point && clear(current, point));
+    for (const next of neighbours) {
+      const key = nodeKey(next),
+        score = item.travelled + Math.abs(next.x - current.x) + Math.abs(next.y - current.y);
+      if (score >= (distance.get(key) ?? Infinity)) continue;
+      distance.set(key, score);
+      previous.set(key, current);
+      push({
+        point: next,
+        travelled: score,
+        score: score + Math.abs(finish.x - next.x) + Math.abs(finish.y - next.y)
+      });
+    }
   }
+  const middle = [];
+  if (finishNode && distance.has(nodeKey(finishNode)))
+    for (let point = finishNode; point !== startNode; point = previous.get(nodeKey(point)))
+      middle.unshift(point);
+  const raw = [a, start, ...middle.slice(0, -1), finish, b],
+    points = raw.filter(
+      (point, i, values) =>
+        !i ||
+        i === values.length - 1 ||
+        (values[i - 1].x !== values[i + 1].x && values[i - 1].y !== values[i + 1].y)
+    );
   return points.map((point, i) => `${i ? 'L' : 'M'}${point.x} ${point.y}`).join(' ');
 };
+function scheduleBoxConnections() {
+  if (connectionFrame) return;
+  connectionFrame = requestAnimationFrame(() => {
+    connectionFrame = 0;
+    drawBoxConnections();
+  });
+}
+function separateSchematicParts(stage, parts, box) {
+  if (boxMode !== 'schematic' || parts.length < 2 || !box || normalizedSchematicBoxes.has(box.id))
+    return false;
+  normalizedSchematicBoxes.add(box.id);
+  if (box.schematicLayoutVersion !== SCHEMATIC_LAYOUT_VERSION) {
+    autoLayout(box, api.getProject());
+    return true;
+  }
+  const stageRect = stage.getBoundingClientRect(),
+    placed = [],
+    moved = [];
+  for (const part of parts) {
+    let rect = part.getBoundingClientRect();
+    const original = { left: part.style.left, top: part.style.top };
+    const overlaps = () =>
+      placed.some(
+        other =>
+          rect.left < other.right + 12 &&
+          rect.right + 12 > other.left &&
+          rect.top < other.bottom + 12 &&
+          rect.bottom + 12 > other.top
+      );
+    if (overlaps()) {
+      const maxX = Math.max(0, 100 - (rect.width / stageRect.width) * 100),
+        maxY = Math.max(0, 100 - (rect.height / stageRect.height) * 100);
+      let found = false;
+      for (let y = 2; y <= maxY && !found; y += 3)
+        for (let x = 2; x <= maxX; x += 2) {
+          part.style.left = x.toFixed(1) + '%';
+          part.style.top = y.toFixed(1) + '%';
+          rect = part.getBoundingClientRect();
+          if (!overlaps()) {
+            moved.push([part.dataset.boxPart, x, y]);
+            found = true;
+            break;
+          }
+        }
+      if (!found) {
+        part.style.left = original.left;
+        part.style.top = original.top;
+        rect = part.getBoundingClientRect();
+      }
+    }
+    placed.push(rect);
+  }
+  if (!moved.length) return false;
+  api.transact(() =>
+    moved.forEach(([id, x, y]) => {
+      const component = box.components.find(item => item.id === id);
+      if (component) {
+        component.x = +x.toFixed(1);
+        component.y = +y.toFixed(1);
+      }
+    })
+  );
+  return true;
+}
 export function drawBoxConnections() {
   const stage = document.querySelector('#box-stage'),
     svg = document.querySelector('#box-wires');
@@ -572,6 +802,21 @@ export function drawBoxConnections() {
       return { x: r.left + r.width / 2 - rs.left, y: r.top + r.height / 2 - rs.top };
     },
     parts = [...stage.querySelectorAll('.box-part')];
+  if (separateSchematicParts(stage, parts, box)) return;
+  const anchor = (port, other) => {
+      const part = port.closest('.box-part');
+      if (!part) return center(port);
+      const portRect = port.getBoundingClientRect(),
+        partRect = part.getBoundingClientRect(),
+        output = port.classList.contains('out'),
+        x = (output ? partRect.right : partRect.left) - rs.left,
+        y = portRect.top + portRect.height / 2 - rs.top;
+      return { x, y, direction: output ? 1 : -1, other };
+    },
+    portType = (componentId, portId) =>
+      box?.components
+        .find(component => component.id === componentId)
+        ?.snapshot.ports.find(port => port.id === portId)?.type || '';
   const records = [
     ...(p.installation.connections || []).filter(x => x.boxId === box?.id),
     ...(box?.interfacePorts || [])
@@ -588,10 +833,21 @@ export function drawBoxConnections() {
       const a = stage.querySelector(`[data-box-port="${CSS.escape(x.fromComponent + ':' + x.fromPort)}"]`),
         b = stage.querySelector(`[data-box-port="${CSS.escape(x.toComponent + ':' + x.toPort)}"]`);
       if (!a || !b) return '';
-      const endpoints = [a.closest('.box-part'), b.closest('.box-part')],
-        obstacles = parts.filter(part => !endpoints.includes(part)).map(rectFor);
-      const warning = x.boxId && connectionWarnings(p, x).length;
-      return `<path class="box-wire" data-wire-from="${E(x.fromComponent + ':' + x.fromPort)}" data-wire-to="${E(x.toComponent + ':' + x.toPort)}" d="${routePath(center(a), center(b), obstacles)}" stroke="${warning ? '#d17944' : '#4b8a76'}"/>`;
+      const obstacles = [
+          ...parts.map(rectFor),
+          ...[...stage.querySelectorAll('.interface-port')]
+            .filter(port => port !== a && port !== b)
+            .map(rectFor)
+        ],
+        aCenter = center(a),
+        bCenter = center(b),
+        from = anchor(a, bCenter),
+        to = anchor(b, aCenter),
+        warning = x.boxId && connectionWarnings(p, x).length,
+        colour = portTypeColour(
+          portType(x.fromComponent, x.fromPort) || portType(x.toComponent, x.toPort) || 'generic'
+        );
+      return `<path class="box-wire ${warning ? 'warning' : ''}" data-wire-from="${E(x.fromComponent + ':' + x.fromPort)}" data-wire-to="${E(x.toComponent + ':' + x.toPort)}" d="${routePath(from, to, obstacles, { width: stage.clientWidth, height: stage.clientHeight })}" stroke="${colour}"/><circle class="box-wire-node" cx="${from.x}" cy="${from.y}" r="5" fill="${colour}"/><circle class="box-wire-node" cx="${to.x}" cy="${to.y}" r="5" fill="${colour}"/>`;
     })
     .join('');
   let preview = '';
@@ -599,8 +855,10 @@ export function drawBoxConnections() {
     const a = stage.querySelector(`[data-box-port="${CSS.escape(wireFrom.component + ':' + wireFrom.id)}"]`);
     if (a) {
       const sourcePart = a.closest('.box-part'),
-        obstacles = parts.filter(part => part !== sourcePart).map(rectFor);
-      preview = `<path class="box-wire preview" d="${routePath(center(a), wirePoint, obstacles)}"/>`;
+        obstacles = parts.filter(part => part !== sourcePart).map(rectFor),
+        from = anchor(a, wirePoint),
+        colour = portTypeColour(portType(wireFrom.component, wireFrom.id) || 'generic');
+      preview = `<path class="box-wire preview" d="${routePath(from, wirePoint, obstacles, { width: stage.clientWidth, height: stage.clientHeight })}" stroke="${colour}"/>`;
     }
   }
   svg.innerHTML = paths + preview;
@@ -700,7 +958,12 @@ export function installInstallation(a) {
       p = api.getProject(),
       lib = api.getLibrary(),
       box = current(p);
-    if (action === 'box-mode') {
+    if (action === 'builder-mode') {
+      builderMode = id;
+      boxId = '';
+      partId = '';
+      api.render();
+    } else if (action === 'box-mode') {
       boxMode = id;
       api.render();
     } else if (action === 'box-zoom') {
@@ -746,15 +1009,37 @@ export function installInstallation(a) {
       );
     } else if (action === 'new-box')
       api.transact(() => {
-        const b = makeBox('Controller box ' + (p.installation.boxes.length + 1));
+        const count = p.installation.boxes.filter(box => box.kind !== 'button').length;
+        const b = makeBox('Controller box ' + (count + 1));
         p.installation.boxes.push(b);
         boxId = b.id;
         boxDetailsOpen = true;
       });
-    else if (action === 'delete-box' && box)
+    else if (action === 'new-button-box')
+      api.transact(() => {
+        const count = p.installation.boxes.filter(box => box.kind === 'button').length;
+        const buttonBox = makeButtonBox('Button box ' + (count + 1));
+        p.installation.boxes.push(buttonBox);
+        boxId = buttonBox.id;
+      });
+    else if (action === 'delete-button-box') {
+      const buttonBox = p.installation.boxes.find(box => box.id === id && box.kind === 'button');
+      if (buttonBox)
+        api.confirmAction('Delete button box?', `Remove ${buttonBox.name} and its buttons?`, () => {
+          p.installation.boxes = p.installation.boxes.filter(box => box.id !== id);
+          for (const link of p.installation.connections.filter(
+            link => link.boxId === id || link.fromKey === 'box:' + id || link.toKey === 'box:' + id
+          ))
+            deleteRoute(p, 'custom:' + link.id);
+          delete p.scene?.placements?.['box:' + id];
+          boxId = '';
+        });
+    } else if (action === 'delete-box' && box)
       api.confirmAction('Delete box?', `Remove ${box.name} and its internal components?`, () => {
         p.installation.boxes = p.installation.boxes.filter(b => b.id !== box.id);
-        for (const link of p.installation.connections.filter(x => x.boxId === box.id))
+        for (const link of p.installation.connections.filter(
+          x => x.boxId === box.id || x.fromKey === 'box:' + box.id || x.toKey === 'box:' + box.id
+        ))
           deleteRoute(p, 'custom:' + link.id);
         delete p.scene?.placements?.['box:' + box.id];
         p.installation.infrastructureMigrated = false;
@@ -764,6 +1049,7 @@ export function installInstallation(a) {
       const def = lib.components.find(d => d.id === id);
       if (def)
         api.transact(() => {
+          normalizedSchematicBoxes.delete(box.id);
           const c = makeInstance(def);
           c.x = 10 + (box.components.length % 4) * 20;
           c.y = 10 + Math.floor(box.components.length / 4) * 25;
@@ -774,6 +1060,7 @@ export function installInstallation(a) {
         });
     } else if (action === 'duplicate-part' && box) {
       api.transact(() => {
+        normalizedSchematicBoxes.delete(box.id);
         const original = box.components.find(x => x.id === partId);
         if (!original) return;
         const copy = structuredClone(original);
@@ -842,7 +1129,9 @@ export function installInstallation(a) {
           'Update this box?',
           `Replace its current components with ${t.name} v${t.version}? Existing links and positions in this box will be removed.`,
           () => {
-            for (const link of p.installation.connections.filter(x => x.boxId === box.id))
+            for (const link of p.installation.connections.filter(
+              x => x.boxId === box.id || x.fromKey === 'box:' + box.id || x.toKey === 'box:' + box.id
+            ))
               deleteRoute(p, 'custom:' + link.id);
             updateBoxFromTemplate(box, t);
             partId = '';
@@ -1008,7 +1297,44 @@ export function installInstallation(a) {
       p = api.getProject(),
       lib = api.getLibrary(),
       box = current(p);
-    if (key.startsWith('box.'))
+    if (kind === 'buttonbox')
+      api.transact(() => {
+        const buttonBox = p.installation.boxes.find(box => box.id === id && box.kind === 'button');
+        if (buttonBox) buttonBox[field] = t.value;
+      });
+    else if (kind === 'buttoncount')
+      api.transact(() => {
+        const buttonBox = p.installation.boxes.find(box => box.id === id && box.kind === 'button');
+        if (!buttonBox) return;
+        const removed = new Set(buttonBox.components.slice(+t.value).map(button => button.id));
+        for (const link of p.installation.connections.filter(
+          link => link.boxId === id && (removed.has(link.fromComponent) || removed.has(link.toComponent))
+        ))
+          deleteRoute(p, 'custom:' + link.id);
+        resizeButtonBox(buttonBox, +t.value);
+      });
+    else if (kind === 'button')
+      api.transact(() => {
+        const buttonBox = p.installation.boxes.find(box => box.id === id && box.kind === 'button'),
+          button = buttonBox?.components.find(button => button.id === field);
+        if (!button) return;
+        if (sub === 'colour') {
+          const colour = BUTTON_COLOURS.find(([name]) => name === t.value);
+          if (!colour) return;
+          [button.buttonColour, button.snapshot.color] = colour;
+        } else if (sub === 'size') {
+          const mm = { small: 30, medium: 45, large: 60 }[t.value];
+          button.buttonSize = t.value;
+          button.snapshot.physical.widthMm = mm;
+          button.snapshot.physical.depthMm = mm;
+        } else {
+          button.subname = t.value;
+          button.snapshot.ports[0].label = t.value;
+          const interfacePort = buttonBox.interfacePorts.find(port => port.componentId === button.id);
+          if (interfacePort) interfacePort.label = t.value;
+        }
+      });
+    else if (key.startsWith('box.'))
       api.transact(() => {
         const field = key.slice(4);
         if (field === 'physicalWidthCm') box.physicalWidthMm = +t.value * 10;
@@ -1017,6 +1343,7 @@ export function installInstallation(a) {
       });
     else if (key.startsWith('part.'))
       api.transact(() => {
+        normalizedSchematicBoxes.delete(box.id);
         const c = box.components.find(x => x.id === partId);
         c[key.slice(5)] = t.type === 'number' ? +t.value : t.value;
       });
@@ -1030,6 +1357,12 @@ export function installInstallation(a) {
       api.transact(() => {
         const c = box.components.find(x => x.id === partId);
         c.operatingLimits[key.slice(6)] = +t.value;
+      });
+    else if (key === 'portcount.ethernet')
+      api.transact(() => {
+        const c = box.components.find(x => x.id === partId);
+        setEthernetPortCount(c, +t.value);
+        syncInterfacePorts(box);
       });
     else if (kind === 'interface')
       api.transact(() => {
@@ -1072,7 +1405,7 @@ export function installInstallation(a) {
         rect = stage?.getBoundingClientRect();
       wirePoint = rect ? { x: e.clientX - rect.left, y: e.clientY - rect.top } : null;
       e.dataTransfer.setData('application/x-pixel-port', port.dataset.boxPort);
-      requestAnimationFrame(drawBoxConnections);
+      scheduleBoxConnections();
     }
   });
   document.addEventListener('dragover', e => {
@@ -1082,7 +1415,7 @@ export function installInstallation(a) {
         rect = stage?.getBoundingClientRect();
       if (wireFrom && rect) {
         wirePoint = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-        drawBoxConnections();
+        scheduleBoxConnections();
       }
     }
   });
@@ -1127,7 +1460,7 @@ export function installInstallation(a) {
     if (!e.target.closest('[data-box-port]')) return;
     wireFrom = null;
     wirePoint = null;
-    drawBoxConnections();
+    scheduleBoxConnections();
   });
   const highlightConnection = (target, on) => {
     const keys = target.matches('[data-box-port]')
@@ -1175,7 +1508,7 @@ export function installInstallation(a) {
           x: Math.max(0, Math.min(rect.width, e.clientX - rect.left)),
           y: Math.max(0, Math.min(rect.height, e.clientY - rect.top))
         };
-        drawBoxConnections();
+        scheduleBoxConnections();
       }
       return;
     }
@@ -1185,9 +1518,27 @@ export function installInstallation(a) {
       maxY = 100 - (partRect.height / rect.height) * 100,
       x = Math.min(maxX, Math.max(0, ((e.clientX - rect.left) / rect.width) * 100)),
       y = Math.min(maxY, Math.max(0, ((e.clientY - rect.top) / rect.height) * 100));
+    const previous = { left: drag.part.style.left, top: drag.part.style.top };
     drag.part.style.left = x.toFixed(1) + '%';
     drag.part.style.top = y.toFixed(1) + '%';
-    drawBoxConnections();
+    const nextRect = drag.part.getBoundingClientRect(),
+      overlaps =
+        boxMode === 'schematic' &&
+        [...drag.stage.querySelectorAll('.box-part')].some(other => {
+          if (other === drag.part) return false;
+          const otherRect = other.getBoundingClientRect();
+          return (
+            nextRect.left < otherRect.right + 12 &&
+            nextRect.right + 12 > otherRect.left &&
+            nextRect.top < otherRect.bottom + 12 &&
+            nextRect.bottom + 12 > otherRect.top
+          );
+        });
+    if (overlaps) {
+      drag.part.style.left = previous.left;
+      drag.part.style.top = previous.top;
+    }
+    scheduleBoxConnections();
   });
   document.addEventListener('pointerup', e => {
     if (!drag || drag.pointer !== e.pointerId) return;

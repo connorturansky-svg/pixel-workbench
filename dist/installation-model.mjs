@@ -1,5 +1,6 @@
 // Physical installation planning. Definitions live in the device-local library;
 // projects retain snapshots so later library edits never rewrite old plans.
+export const SCHEMATIC_LAYOUT_VERSION = 1;
 export const PORT_TYPES = [
   'pixel_data',
   'pixel_output',
@@ -15,6 +16,14 @@ export const PORT_TYPES = [
   'mains_power',
   'gpio',
   'generic'
+];
+export const BUTTON_COLOURS = [
+  ['Red', '#dc654f'],
+  ['Amber', '#f1c75b'],
+  ['Green', '#55a66f'],
+  ['Blue', '#4d8fd1'],
+  ['White', '#e8eeeb'],
+  ['Black', '#29322f']
 ];
 export function portTypeColour(type) {
   if (type === 'pixel_output' || type === 'pixel_data') return '#55c978';
@@ -517,10 +526,25 @@ export function ensureInstallation(p) {
   for (const device of a.fieldDevices) {
     if (device.snapshot.name.toLowerCase().includes('button')) {
       device.buttonColour ??= device.snapshot.name.includes('Illuminated') ? 'Amber' : 'Red';
-      device.buttonColor ??= device.buttonColour === 'Amber' ? '#f1c75b' : '#dc654f';
+      device.buttonColor ??= BUTTON_COLOURS.find(([name]) => name === device.buttonColour)?.[1] || '#dc654f';
     }
   }
-  for (const box of a.boxes) syncInterfacePorts(box);
+  for (const box of a.boxes) {
+    if (box.width === 4 && box.height === 2.5) {
+      box.width = Math.max(0.1, (box.physicalWidthMm || 400) / 1000);
+      box.height = Math.max(0.1, (box.physicalDepthMm || 250) / 1000);
+    } else if (box.kind === 'button' && box.width === 1.5 && box.height === 0.75) {
+      box.width = Math.max(0.1, (box.physicalWidthMm || 200) / 1000);
+      box.height = Math.max(0.1, (box.physicalDepthMm || 100) / 1000);
+    }
+    if (box.kind === 'button')
+      for (const button of box.components) {
+        button.buttonColour ??= 'Amber';
+        button.snapshot.color =
+          BUTTON_COLOURS.find(([name]) => name === button.buttonColour)?.[1] || '#f1c75b';
+      }
+    syncInterfacePorts(box);
+  }
   return p;
 }
 export function addFieldDevice(p, def, name = def.name) {
@@ -533,7 +557,9 @@ export function addFieldDevice(p, def, name = def.name) {
     definitionId: def.id,
     definitionVersion: def.version,
     snapshot: copy(def),
-    ...(isButton ? { buttonColour, buttonColor: buttonColour === 'Amber' ? '#f1c75b' : '#dc654f' } : {})
+    ...(isButton
+      ? { buttonColour, buttonColor: BUTTON_COLOURS.find(([name]) => name === buttonColour)[1] }
+      : {})
   };
   p.installation.fieldDevices.push(device);
   return device;
@@ -544,13 +570,73 @@ export function makeBox(name = 'Controller box') {
     name,
     description: '',
     templateRef: null,
+    schematicLayoutVersion: SCHEMATIC_LAYOUT_VERSION,
     components: [],
     interfacePorts: [],
-    width: 4,
-    height: 2.5,
+    width: 0.4,
+    height: 0.25,
     physicalWidthMm: 400,
     physicalDepthMm: 250
   };
+}
+const BUTTON_SIZES = {
+  small: { label: 'Small', mm: 30 },
+  medium: { label: 'Medium', mm: 45 },
+  large: { label: 'Large', mm: 60 }
+};
+const makeButtonInstance = number => {
+  const size = BUTTON_SIZES.medium;
+  return {
+    id: 'part-' + id(),
+    definitionId: 'button-box-button',
+    definitionVersion: 1,
+    snapshot: {
+      id: 'button-box-button',
+      version: 1,
+      name: 'Push button',
+      category: 'Sensor',
+      icon: '○',
+      color: '#f1c75b',
+      manufacturer: '',
+      model: '',
+      notes: 'Custom button-box control.',
+      ports: [port('signal', 'Button ' + number, 'digital_input', 'out')],
+      resources: {},
+      operatingLimits: {},
+      physical: { widthMm: size.mm, depthMm: size.mm, heightMm: null }
+    },
+    sourceKey: '',
+    subname: 'Button ' + number,
+    buttonSize: 'medium',
+    buttonColour: 'Amber',
+    x: 10 + ((number - 1) % 3) * 30,
+    y: 15 + Math.floor((number - 1) / 3) * 45,
+    rotation: 0,
+    stackLevel: 0,
+    operatingLimits: {}
+  };
+};
+export function resizeButtonBox(box, count) {
+  count = Math.max(1, Math.min(5, Math.round(count)));
+  while (box.components.length < count) box.components.push(makeButtonInstance(box.components.length + 1));
+  if (box.components.length > count) box.components.splice(count);
+  syncInterfacePorts(box);
+  for (const interfacePort of box.interfacePorts) {
+    interfacePort.visible = true;
+    const component = box.components.find(item => item.id === interfacePort.componentId);
+    if (component) interfacePort.label = component.snapshot.ports[0].label;
+  }
+  return box;
+}
+export function makeButtonBox(name = 'Button box', count = 1) {
+  const box = makeBox(name);
+  box.kind = 'button';
+  box.description = 'Custom button box';
+  box.width = 0.2;
+  box.height = 0.1;
+  box.physicalWidthMm = 200;
+  box.physicalDepthMm = 100;
+  return resizeButtonBox(box, count);
 }
 export function makeInstance(def, sourceKey = '') {
   return {
@@ -724,7 +810,9 @@ export function exposedPorts(box) {
       .map(x => {
         const component = box.components.find(c => c.id === x.componentId),
           source = component?.snapshot.ports.find(port => port.id === x.portId),
-          same = box.interfacePorts.filter(port => port.edge === x.edge),
+          same = box.interfacePorts.filter(
+            port => port.visible && port.componentId && port.portId && port.edge === x.edge
+          ),
           i = same.indexOf(x);
         return component && source
           ? {
@@ -748,11 +836,20 @@ export function exposedPorts(box) {
     list.map((entry, i) => ({ ...entry, edge, t: (i + 1) / (list.length + 1) }))
   );
 }
+export function boxVisualScale(width, height) {
+  return Math.max(0.01, Math.min(1, width / 1, height / 0.7));
+}
 export function perimeterAnchor(p, boxId, componentId, portId) {
   const box = p.installation?.boxes.find(b => b.id === boxId),
     v = p.scene?.placements?.['box:' + boxId],
     explicit = box?.interfacePorts?.find(port => port.componentId === componentId && port.portId === portId),
-    same = explicit && box.interfacePorts.filter(port => port.edge === explicit.edge),
+    same =
+      explicit &&
+      box.interfacePorts.filter(
+        port =>
+          port.edge === explicit.edge &&
+          (!explicit.visible || (port.visible && port.componentId && port.portId))
+      ),
     source = box?.components
       .find(component => component.id === componentId)
       ?.snapshot.ports.find(port => port.id === portId),
@@ -768,11 +865,12 @@ export function perimeterAnchor(p, boxId, componentId, portId) {
   const { edge, t } = node,
     labelled = p.installation?.showLabels !== false,
     label = node.port?.label || source?.label || '',
+    scale = boxVisualScale(v.width, v.height),
     gap = labelled
       ? edge === 'left' || edge === 'right'
-        ? Math.max(0.2, label.length * 0.05 + 0.16)
-        : 0.2
-      : 0.06;
+        ? Math.max(0.18, label.length * 0.045 + 0.14) * scale
+        : 0.2 * scale
+      : 0.06 * scale;
   return {
     x:
       v.x +
@@ -869,14 +967,15 @@ export function routeSpecs(p) {
     });
   for (const ch of p.chains)
     ch.segments.forEach((s, i) => {
-      routes.push({
-        id: `data:${s.id}`,
-        from: i ? `segment:${ch.segments[i - 1].id}` : `controller:${ch.controller}`,
-        to: `segment:${s.id}`,
-        kind: 'data',
-        name: `${ch.name} · data ${i + 1}`,
-        port: i ? null : `P${ch.port}`
-      });
+      if (i || ch.controller)
+        routes.push({
+          id: `data:${s.id}`,
+          from: i ? `segment:${ch.segments[i - 1].id}` : `controller:${ch.controller}`,
+          to: `segment:${s.id}`,
+          kind: 'data',
+          name: `${ch.name} · data ${i + 1}`,
+          port: i ? null : `P${ch.port}`
+        });
       if (s.inject)
         routes.push({
           id: `inject:${s.id}`,
@@ -923,7 +1022,11 @@ export function routeSpecs(p) {
             spec.fromPort = 'dc' + terminal;
           }
         } else if (spec.id.startsWith('supply:')) spec.toPort = 'in1';
-        else if (spec.id.startsWith('bank:')) spec.toPort = 'bank' + (+spec.id.split(':').at(-1) + 1);
+        else if (spec.id.startsWith('bank:'))
+          spec.toPort =
+            part.snapshot.name === 'BaldrickInput8'
+              ? 'pixel-power'
+              : 'bank' + (+spec.id.split(':').at(-1) + 1);
       }
       return spec;
     })
@@ -1034,6 +1137,19 @@ export function routeAnchor(p, spec, end) {
   }
   return { x, y };
 }
+function placementLabel(p, key) {
+  const [type, id] = key.split(':');
+  if (type === 'field') return p.installation?.fieldDevices.find(item => item.id === id)?.snapshot.name || '';
+  if (type === 'segment') {
+    for (const chain of p.chains)
+      for (const segment of chain.segments)
+        if (segment.id === id)
+          return (segment.propId && p.props?.find(prop => prop.id === segment.propId)?.name) || chain.name;
+    return '';
+  }
+  const collection = { controller: p.controllers, psu: p.psus, distro: p.distros, aux: p.aux }[type];
+  return collection?.find(item => item.id === id)?.name || '';
+}
 function automaticRoute(p, spec, a, b) {
   const width = p.scene?.width || 10,
     depth = p.scene?.depth || 10,
@@ -1043,14 +1159,50 @@ function automaticRoute(p, spec, a, b) {
     from = spec.from,
     to = spec.to,
     hidden = key => /^(controller|psu|distro|aux):/.test(key) && boxForSource(p, key),
+    labels = p.installation?.showLabels !== false,
     obstacles = Object.entries(p.scene?.placements || {})
-      .filter(([key]) => key !== from && key !== to && !hidden(key))
-      .map(([, v]) => ({
-        l: v.x - v.width / 2 - 0.12,
-        r: v.x + v.width / 2 + 0.12,
-        t: v.y - v.height / 2 - 0.12,
-        b: v.y + v.height / 2 + 0.12
-      })),
+      .filter(([key]) => !hidden(key))
+      .flatMap(([placementKey, v]) => {
+        const endpoint = placementKey === from || placementKey === to;
+        if (endpoint && !placementKey.startsWith('box:')) return [];
+        const result = [
+          {
+            l: v.x - v.width / 2 - 0.12,
+            r: v.x + v.width / 2 + 0.12,
+            t: v.y - v.height / 2 - 0.12,
+            b: v.y + v.height / 2 + 0.12
+          }
+        ];
+        if (!labels || endpoint) return result;
+        if (placementKey.startsWith('box:')) {
+          const box = p.installation.boxes.find(item => 'box:' + item.id === placementKey);
+          for (const { component, port, edge } of box ? exposedPorts(box) : []) {
+            const point = perimeterAnchor(p, box.id, component.id, port.id);
+            if (!point) continue;
+            const halfW =
+                edge === 'top' || edge === 'bottom' ? Math.max(0.12, port.label.length * 0.0225 + 0.07) : 0,
+              halfH = edge === 'left' || edge === 'right' ? 0.06 : 0,
+              innerX = edge === 'left' ? v.x - v.width / 2 : edge === 'right' ? v.x + v.width / 2 : point.x,
+              innerY = edge === 'top' ? v.y - v.height / 2 : edge === 'bottom' ? v.y + v.height / 2 : point.y;
+            result.push({
+              l: Math.min(point.x, innerX) - halfW - 0.06,
+              r: Math.max(point.x, innerX) + halfW + 0.06,
+              t: Math.min(point.y, innerY) - halfH - 0.06,
+              b: Math.max(point.y, innerY) + halfH + 0.06
+            });
+          }
+        } else {
+          const nameLength = Math.min(30, placementLabel(p, placementKey).length),
+            detail = placementKey.startsWith('field:') || placementKey.startsWith('segment:');
+          result.push({
+            l: v.x - nameLength * 0.038 - 0.06,
+            r: v.x + nameLength * 0.038 + 0.06,
+            t: v.y + v.height / 2 + 0.02,
+            b: v.y + v.height / 2 + (detail ? 0.36 : 0.22)
+          });
+        }
+        return result;
+      }),
     blocked = (x, y) => obstacles.some(o => x > o.l && x < o.r && y > o.t && y < o.b),
     cell = q => ({
       x: Math.max(0, Math.min(cols - 1, Math.round(q.x / step))),
@@ -1099,7 +1251,7 @@ function automaticRoute(p, spec, a, b) {
       )
         continue;
       const prev = came.get(ck),
-        turn = prev && (Math.sign(cur.x - prev.x) !== dx || Math.sign(cur.y - prev.y) !== dy) ? 0.02 : 0,
+        turn = prev && (Math.sign(cur.x - prev.x) !== dx || Math.sign(cur.y - prev.y) !== dy) ? 0.75 : 0,
         nk = key(next),
         nextCost = cost.get(ck) + Math.hypot(dx, dy) + turn;
       if (nextCost >= (cost.get(nk) ?? Infinity)) continue;
@@ -1167,9 +1319,14 @@ export function assignCable(p, routeId, standard) {
   r.cableSnapshot = standard ? copy(standard) : null;
 }
 export function connectionWarnings(p, x) {
-  const box = p.installation.boxes.find(b => b.id === x.boxId),
-    a = box?.components.find(c => c.id === x.fromComponent),
-    b = box?.components.find(c => c.id === x.toComponent),
+  const fromBox = p.installation.boxes.find(
+      b => b.id === (x.fromKey?.startsWith('box:') ? x.fromKey.slice(4) : x.boxId)
+    ),
+    toBox = p.installation.boxes.find(
+      b => b.id === (x.toKey?.startsWith('box:') ? x.toKey.slice(4) : x.boxId)
+    ),
+    a = fromBox?.components.find(c => c.id === x.fromComponent),
+    b = toBox?.components.find(c => c.id === x.toComponent),
     ap = a?.snapshot.ports.find(v => v.id === x.fromPort),
     bp = b?.snapshot.ports.find(v => v.id === x.toPort);
   const result = [];
@@ -1185,7 +1342,7 @@ export function connectionWarnings(p, x) {
       );
     return result;
   }
-  if (x.toKey) {
+  if (x.toKey && !x.toKey.startsWith('box:')) {
     if (!ap) return ['Source port no longer exists'];
     if (ap.direction === 'in') result.push('External route starts at an input port');
     if (x.toKey.startsWith('field:')) {
@@ -1204,7 +1361,7 @@ export function connectionWarnings(p, x) {
     return result;
   }
   if (!ap || !bp) return ['Port no longer exists'];
-  if (ap.direction !== 'out' || bp.direction !== 'in')
+  if (!['out', 'bidirectional'].includes(ap.direction) || !['in', 'bidirectional'].includes(bp.direction))
     result.push(`Expected output → input; got ${ap.direction} → ${bp.direction}`);
   if (ap.type !== bp.type && ap.type !== 'generic' && bp.type !== 'generic')
     result.push(`Expected ${bp.type.replaceAll('_', ' ')}; connected to ${ap.type.replaceAll('_', ' ')}`);
@@ -1331,9 +1488,15 @@ export function boxCapacity(p, box) {
     addResource(counts, resource, 1);
     generic.set(item.id, counts);
   };
-  for (const link of p.installation.connections.filter(v => v.boxId === box.id)) {
-    const from = box.components.find(c => c.id === link.fromComponent),
-      to = box.components.find(c => c.id === link.toComponent);
+  for (const link of p.installation.connections.filter(
+    v => v.boxId === box.id || v.fromKey === 'box:' + box.id || v.toKey === 'box:' + box.id
+  )) {
+    const from =
+        (!link.fromKey || link.fromKey === 'box:' + box.id) &&
+        box.components.find(c => c.id === link.fromComponent),
+      to =
+        (!link.toKey || link.toKey === 'box:' + box.id) &&
+        box.components.find(c => c.id === link.toComponent);
     const fromPort = from?.snapshot.ports.find(v => v.id === link.fromPort),
       toPort = to?.snapshot.ports.find(v => v.id === link.toPort);
     if (fromPort?.direction === 'out' || fromPort?.direction === 'bidirectional') track(from, fromPort);
@@ -1412,9 +1575,14 @@ export function billOfMaterials(p, boxId = null) {
   const boxes = boxId ? p.installation.boxes.filter(b => b.id === boxId) : p.installation.boxes,
     linked = new Set();
   for (const b of boxes) {
-    add('Controller boxes', b.name);
+    add(b.kind === 'button' ? 'Button boxes' : 'Controller boxes', b.name);
     for (const c of b.components) {
-      add('Hardware', c.snapshot.name);
+      add(
+        'Hardware',
+        b.kind === 'button'
+          ? `${c.buttonColour || 'Amber'} ${BUTTON_SIZES[c.buttonSize]?.label || 'Medium'} ${c.snapshot.name.toLowerCase()}`
+          : c.snapshot.name
+      );
       if (c.sourceKey) linked.add(c.sourceKey);
     }
   }

@@ -349,7 +349,7 @@ main {
 }
 .summary {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   border: 1px solid var(--line);
   background: #fff;
   border-radius: 9px;

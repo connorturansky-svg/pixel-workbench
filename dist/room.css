@@ -62,7 +62,7 @@
 .room-scroll > svg {
   display: block;
   aspect-ratio: auto;
-  min-height: 320px;
+  height: auto;
   touch-action: none;
 }
 .room-camera {
@@ -88,6 +88,11 @@
   color: var(--ink);
   font-size: 18px;
   font-weight: 700;
+}
+.room-camera .room-fit {
+  width: auto;
+  padding: 0 8px;
+  font-size: 11px;
 }
 .room-camera button:hover,
 .room-camera button:focus-visible {
@@ -115,6 +120,8 @@
 .room-inspector {
   position: sticky;
   top: 15px;
+  max-height: calc(100vh - 30px);
+  overflow-y: auto;
   border-top: 4px solid #d4a65b;
   background: #fffbf4;
 }
@@ -127,6 +134,32 @@
 }
 .room-inspector .inspector-body > label {
   margin-top: 15px;
+}
+.room-inspector-section {
+  border-top: 1px solid var(--line);
+}
+.room-inspector-section:first-child {
+  border-top: 0;
+}
+.room-inspector-section summary {
+  padding: 13px 18px;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.room-inspector-section summary:hover,
+.room-inspector-section summary:focus-visible {
+  background: #f6eddc;
+}
+.room-inspector-section summary:focus-visible {
+  outline: 2px solid #287159;
+  outline-offset: -2px;
+}
+.room-inspector-section-body {
+  padding: 4px 18px 18px;
 }
 .room-type {
   font-size: 11px;
@@ -291,41 +324,166 @@
   margin-bottom: 20px;
 }
 .room-object-label {
-  font-size: 14px;
+  font-size: calc(13px * var(--room-unit, 1));
   font-weight: 700;
   fill: #284f47;
   paint-order: stroke;
   stroke: #f9fbfa;
-  stroke-width: 4;
+  stroke-width: calc(2px * var(--room-unit, 1));
 }
 .room-object-detail {
-  font-size: 11px;
+  font-size: calc(12px * var(--room-unit, 1));
   font-weight: 600;
   fill: #597a70;
   paint-order: stroke;
   stroke: #f9fbfa;
-  stroke-width: 3;
+  stroke-width: calc(2px * var(--room-unit, 1));
+}
+.room-unconnected circle {
+  fill: var(--orange);
+  stroke: white;
+  stroke-width: 2;
+}
+.room-unconnected text {
+  fill: #2c2417;
+  font-size: 16px;
+  font-weight: 800;
 }
 .room-port-label {
-  font-size: 8px;
+  font-size: clamp(calc(9px * var(--room-unit, 1)), 8px, calc(16px * var(--room-unit, 1)));
   font-weight: 700;
   fill: #234d43;
   paint-order: stroke;
   stroke: #f9fbfa;
-  stroke-width: 2.5;
+  stroke-width: calc(2px * var(--room-unit, 1));
   pointer-events: none;
+}
+.room-boundary,
+.room-box-shell,
+.room-port-symbol,
+.selection-ring {
+  vector-effect: non-scaling-stroke;
+}
+.room-boundary {
+  stroke-width: 2;
+}
+.room-box-shell {
+  stroke-width: 2;
+}
+.selection-ring {
+  stroke-width: 2;
+}
+.room-port-symbol {
+  stroke-width: 2;
+}
+.room-port-hit {
+  fill: transparent;
+  stroke: transparent;
+  stroke-width: 4;
+  vector-effect: non-scaling-stroke;
+  pointer-events: stroke;
+}
+.room-overview-marker {
+  display: none;
+  r: calc(4px * var(--room-unit, 1));
+  fill: #f1bd64;
+  stroke: white;
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+.room-box-name {
+  font-size: calc(12px * var(--room-unit, 1));
+}
+.room-box-configuration {
+  font-size: calc(8px * var(--room-unit, 1));
+  font-weight: 700;
+}
+.room-component-label {
+  font-size: calc(10px * var(--room-unit, 1));
+  font-weight: 700;
+  paint-order: stroke;
+  stroke: #153d36;
+  stroke-width: calc(1px * var(--room-unit, 1));
+}
+.room-component-subname {
+  font-size: calc(8px * var(--room-unit, 1));
+}
+.room-component-icon {
+  font-size: calc(15px * var(--room-unit, 1));
+  paint-order: stroke;
+  stroke: #153d36;
+  stroke-width: calc(1px * var(--room-unit, 1));
+}
+.room-component-card rect {
+  vector-effect: non-scaling-stroke;
+}
+.room-object[data-room-detail='equipment'] .room-component-subname,
+.room-object[data-room-detail='equipment'] .room-component-label tspan:nth-child(n + 2) {
+  display: none;
+}
+.room-object[data-room-detail='detail'] .room-box-name {
+  font-size: calc(16px * var(--room-unit, 1));
+}
+.room-object[data-room-detail='detail'] .room-box-configuration {
+  font-size: calc(10px * var(--room-unit, 1));
+}
+.room-object[data-room-detail='detail'] .room-component-label {
+  font-size: calc(13px * var(--room-unit, 1));
+}
+.room-object[data-room-detail='detail'] .room-component-subname {
+  font-size: calc(10px * var(--room-unit, 1));
+}
+.room-object[data-room-detail='detail'] .room-component-icon {
+  font-size: calc(20px * var(--room-unit, 1));
+}
+.room-overview-label {
+  display: none;
+}
+.room-overview-label path {
+  fill: none;
+  stroke: #688a80;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+.room-overview-label text {
+  font-size: calc(12px * var(--room-unit, 1));
+  font-weight: 700;
+  fill: #284f47;
+  paint-order: stroke;
+  stroke: #f9fbfa;
+  stroke-width: calc(2px * var(--room-unit, 1));
+}
+.room-object[data-room-detail='overview'] .room-box-internals {
+  opacity: 0;
+  pointer-events: none;
+}
+.room-object[data-room-detail='overview'] .room-overview-marker {
+  display: block;
+}
+.room-object[data-room-detail='overview'] .room-overview-label {
+  display: block;
+}
+.room-object[data-room-detail='overview'] .room-port-label {
+  display: none;
+}
+.room-object[data-room-detail='equipment'] .room-port-label {
+  display: none;
+}
+.room-object[data-room-detail='equipment']:is(.chosen, :hover) .room-port-label {
+  display: block;
 }
 #room-wire-preview {
   fill: none;
   stroke: #d9982d;
-  stroke-width: 3;
+  stroke-width: 2;
   stroke-linecap: round;
   stroke-dasharray: 9 6;
   pointer-events: none;
+  vector-effect: non-scaling-stroke;
 }
 .room-object.wire-target .selection-ring {
   stroke: #d9982d;
-  stroke-width: 5;
+  stroke-width: 3;
   filter: drop-shadow(0 0 6px #f1bd64);
 }
 @media (max-width: 1250px) {
@@ -334,6 +492,7 @@
   }
   .room-inspector {
     position: static;
+    max-height: 720px;
   }
   .room-inspector .inspector-body {
     display: block;
@@ -420,6 +579,7 @@
   stroke: #3d91bd;
   opacity: 0.72;
   stroke-dasharray: 6 4;
+  vector-effect: non-scaling-stroke;
 }
 .room-link.power {
   stroke: #dc8f3d;
@@ -463,6 +623,7 @@
   stroke-linejoin: round;
   stroke-linecap: round;
   pointer-events: stroke;
+  vector-effect: non-scaling-stroke;
 }
 .physical-route.inject .route-line {
   stroke-dasharray: 8 5;
@@ -473,6 +634,7 @@
   stroke-width: 15;
   pointer-events: stroke;
   cursor: crosshair;
+  vector-effect: non-scaling-stroke;
 }
 .physical-route.selected .route-line {
   stroke-width: 3.7;
@@ -484,6 +646,7 @@
   cursor: grab;
   pointer-events: all;
   touch-action: none;
+  vector-effect: non-scaling-stroke;
 }
 .route-handle:active {
   cursor: grabbing;
@@ -590,10 +753,20 @@
 .room-external-node {
   cursor: crosshair;
   pointer-events: all;
+  transform-box: fill-box;
+  transform-origin: center;
+  scale: var(--room-port-scale, 1);
+  transition:
+    transform 120ms ease,
+    filter 120ms ease;
 }
-.room-external-node:hover {
-  stroke: #173c32;
-  stroke-width: 3;
+.room-external-node:is(:hover, :focus-visible) {
+  filter: drop-shadow(0 0 3px #f9fbfa) drop-shadow(0 0 2px #173c32);
+  outline: none;
+  transform: scale(1.65);
+}
+.room-external-node:is(:hover, :focus-visible) .room-port-label {
+  display: block;
 }
 .physical-route.has-issues .route-line {
   filter: drop-shadow(0 0 2px #c04c35);
