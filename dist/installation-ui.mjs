@@ -4,6 +4,7 @@ import {
   BUTTON_COLOURS,
   RESOURCE_LABELS,
   ensureInstallation,
+  validateLibrary,
   makeBox,
   makeButtonBox,
   resizeButtonBox,
@@ -13,6 +14,10 @@ import {
   addBoxFromTemplate,
   saveBoxTemplate,
   updateBoxFromTemplate,
+  templateConnectionChanges,
+  affectedConnections,
+  connectionProblem,
+  externalConnectionProblem,
   connectionWarnings,
   boxCapacity,
   projectCapacity,
@@ -22,7 +27,7 @@ import {
   componentSizeGuides,
   deleteRoute,
   portTypeColour
-} from './installation-model.mjs?v=0.75.0';
+} from './installation-model.mjs?v=0.76.0';
 
 const SCHEMATIC_MIN_WIDTH = 1400,
   SCHEMATIC_MIN_HEIGHT = 700;
@@ -31,11 +36,13 @@ let api,
   partId = '',
   wireFrom = null,
   wirePoint = null,
+  wireGesture = null,
+  suppressClickUntil = 0,
   drag = null,
   bomScope = '',
   boxMode = 'schematic',
   openInterfaceGroups = new Set(),
-  normalizedSchematicBoxes = new Set(),
+  normalizedSchematicBoxes = new Map(),
   schematicZoom = 1,
   schematicCanvasWidth = 1,
   schematicCanvasHeight = SCHEMATIC_MIN_HEIGHT,
@@ -50,8 +57,14 @@ const E = s =>
   );
 const B = (label, action, cls = 'btn') =>
   `<button type="button" class="${cls}" data-install="${action}">${label}</button>`;
-const F = (label, value, key, type = 'text', extra = '') =>
-  `<label>${E(label)}<input data-install-field="${key}" type="${type}" value="${E(value ?? '')}" ${extra}></label>`;
+const F = (label, value, key, type = 'text', extra = '') => {
+  if (boxMode === 'schematic' && (key === 'part.x' || key === 'part.y')) {
+    const part = current(api.getProject())?.components.find(c => c.id === partId);
+    value = part?.schematic?.[key.slice(5)] ?? value;
+    label = 'Schematic ' + label;
+  }
+  return `<label>${E(label)}<input data-install-field="${key}" type="${type}" value="${E(value ?? '')}" ${extra}></label>`;
+};
 const S = (label, value, key, opts) =>
   `<label>${E(label)}<select data-install-field="${key}">${opts.map(([v, t]) => `<option value="${E(v)}" ${String(v) === String(value) ? 'selected' : ''}>${E(t)}</option>`).join('')}</select></label>`;
 const catalogBar = (scope, items) =>
@@ -87,6 +100,52 @@ function current(p) {
   const box = p.installation.boxes.find(x => x.id === boxId);
   if (!box?.components.some(x => x.id === partId)) partId = box?.components[0]?.id || '';
   return box;
+}
+function updateFootprint(box, project, axis, value) {
+  box[axis] = value;
+  const placement = project.scene?.placements['box:' + box.id];
+  if (placement && !placement.customFootprint) placement[axis] = value;
+}
+function preservingEdit(box, edit, title, template) {
+  const project = api.getProject(),
+    draft = structuredClone(box);
+  edit(draft);
+  const affected = affectedConnections(project, box, draft);
+  const preview = structuredClone(project);
+  Object.assign(
+    preview.installation.boxes.find(b => b.id === box.id),
+    draft
+  );
+  preview.installation.connections = preview.installation.connections.filter(
+    link => !affected.some(x => x.id === link.id)
+  );
+  const changes = template
+    ? templateConnectionChanges(preview, draft, template)
+    : { additions: [], conflicts: [] };
+  const apply = () => {
+    for (const link of affected) deleteRoute(project, 'custom:' + link.id);
+    Object.assign(box, draft);
+    project.installation.connections.push(...changes.additions);
+    normalizedSchematicBoxes.delete(box.id);
+    partId = '';
+  };
+  if (affected.length || changes.conflicts.length)
+    api.confirmAction(
+      title,
+      [
+        affected.length
+          ? `This removes ${affected.length} connected link(s): ${affected.map(link => link.name || `${link.fromPort} → ${link.toPort}`).join('; ')}.`
+          : '',
+        changes.conflicts.length
+          ? `These template links conflict with existing wiring/overrides and will not be added: ${changes.conflicts.join('; ')}.`
+          : '',
+        'Remaining identities, wiring overrides and placements are preserved. Apply these changes?'
+      ]
+        .filter(Boolean)
+        .join(' '),
+      apply
+    );
+  else api.transact(apply);
 }
 const physicalSize = c => {
   const q = c.snapshot.physical || {},
@@ -193,10 +252,11 @@ const setEthernetPortCount = (part, count) => {
     }
   }
   part.snapshot.resources.ethernetPorts = desired;
+  part.portOverrides = structuredClone(part.snapshot.ports);
 };
 const schematicPart = (c, linkedPorts) => {
   const kind = visualKind(c);
-  return `<div class="box-part ${kind} ${c.id === partId ? 'selected' : ''}" data-box-part="${E(c.id)}" style="left:${c.x}%;top:${c.y}%;--part-color:${E(c.snapshot.color || '#4b8a76')}"><div class="part-title"><span>${E(c.snapshot.icon)}</span><strong>${E(c.snapshot.name)}</strong></div><div class="hardware-face"><i class="mount-hole top-left"></i><i class="mount-hole top-right"></i><i class="mount-hole bottom-left"></i><i class="mount-hole bottom-right"></i><div class="hardware-silk"><strong>${E(c.snapshot.name)}</strong><small>${E(c.snapshot.model || c.snapshot.category)}</small></div><div class="hardware-detail" aria-hidden="true">${hardwareDetail(kind)}</div><div class="part-ports">${c.snapshot.ports
+  return `<div class="box-part ${kind} ${c.id === partId ? 'selected' : ''}" data-box-part="${E(c.id)}" style="left:${c.schematic?.x ?? c.x}%;top:${c.schematic?.y ?? c.y}%;--part-color:${E(c.snapshot.color || '#4b8a76')}"><div class="part-title"><span>${E(c.snapshot.icon)}</span><strong>${E(c.snapshot.name)}</strong></div><div class="hardware-face"><i class="mount-hole top-left"></i><i class="mount-hole top-right"></i><i class="mount-hole bottom-left"></i><i class="mount-hole bottom-right"></i><div class="hardware-silk"><strong>${E(c.snapshot.name)}</strong><small>${E(c.snapshot.model || c.snapshot.category)}</small></div><div class="hardware-detail" aria-hidden="true">${hardwareDetail(kind)}</div><div class="part-ports">${c.snapshot.ports
     .map(
       port =>
         `<button type="button" class="part-port ${port.direction} ${portKind(port.type)} ${linkedPorts.has(c.id + ':' + port.id) ? 'linked' : ''}" draggable="true" data-box-port="${E(c.id)}:${E(port.id)}" title="${E(port.label)} · ${E(port.type)} · ${E(port.direction)}" aria-label="${E(port.label)}, ${E(port.type)}, ${E(port.direction)}${linkedPorts.has(c.id + ':' + port.id) ? ', connected' : ''}"><i><b></b></i><span>${E(port.label)}<small>${E(port.type.replaceAll('_', ' '))}</small></span></button>`
@@ -278,6 +338,20 @@ function connectEndpoints(box, from, to) {
     });
     return;
   }
+  const problem = connectionProblem(
+    api.getProject(),
+    { boxId: box.id, componentId: from.component, portId: from.id },
+    { boxId: box.id, componentId: to.component, portId: to.id }
+  );
+  if (problem) {
+    api.toast(problem);
+    api.render();
+    return;
+  }
+  const source = box.components
+    .find(c => c.id === from.component)
+    ?.snapshot.ports.find(p => p.id === from.id);
+  if (source?.direction === 'in') [from, to] = [to, from];
   api.transact(() =>
     api.getProject().installation.connections.push({
       id: 'link-' + Math.random().toString(36).slice(2, 10),
@@ -302,7 +376,7 @@ function buttonBoxesView(p) {
     boxes
       .map(
         box =>
-          `<section class="panel standard-card button-box-card"><div class="card-heading"><h3>${E(box.name)}</h3>${B('Delete', 'delete-button-box:' + box.id, 'text-btn danger')}</div>${F('Box name', box.name, 'buttonbox:' + box.id + ':name')}${S(
+          `<section class="panel standard-card button-box-card"><div class="card-heading"><h3>${E(box.name)}</h3>${B('Delete', 'delete-button-box:' + box.id, 'text-btn danger')}</div>${B('Save for reuse', 'save-button-template:' + box.id)}${B('Update from template', 'update-button-template:' + box.id)}${F('Box name', box.name, 'buttonbox:' + box.id + ':name')}${S(
             'Number of buttons',
             box.components.length,
             'buttoncount:' + box.id,
@@ -310,7 +384,15 @@ function buttonBoxesView(p) {
           )}<div class="button-box-controls">${box.components
             .map(
               (button, index) =>
-                `<div class="button-box-control"><span class="button-size-preview ${E(button.buttonSize || 'medium')}" style="background:${E(button.snapshot.color)}" aria-hidden="true"></span><div>${F('Button label', button.subname || `Button ${index + 1}`, 'button:' + box.id + ':' + button.id + ':label')}${S(
+                `<div class="button-box-control"><span class="button-size-preview ${E(button.buttonSize || 'medium')} ${E(button.buttonType || 'push')}" style="background:${E(button.snapshot.color)}" aria-hidden="true"></span><div>${F('Button label', button.subname || `Button ${index + 1}`, 'button:' + box.id + ':' + button.id + ':label')}${S(
+                  'Button type',
+                  button.buttonType || 'push',
+                  'button:' + box.id + ':' + button.id + ':type',
+                  [
+                    ['push', 'Push button'],
+                    ['illuminated', 'Illuminated button']
+                  ]
+                )}${S(
                   'Button colour',
                   button.buttonColour || 'Amber',
                   'button:' + box.id + ':' + button.id + ':colour',
@@ -330,9 +412,16 @@ function buttonBoxesView(p) {
       )
       .join('') ||
     '<div class="panel install-empty">Create a button box, then choose its button count and sizes.</div>'
-  }</div>`;
+  }</div><div class="install-toolbar">${S('Reusable button template', '', 'template-select', [
+    ['', 'Choose template'],
+    ...api
+      .getLibrary()
+      .boxTemplates.filter(t => t.kind === 'button')
+      .map(t => [t.id, t.name + ' · v' + t.version])
+  ])}${B('Add template box', 'add-template')}</div><p class="micro">Illuminated is a planning type only; lamp control and lamp loads are not calculated.</p>`;
 }
 function boxesView(p, lib) {
+  if (boxMode === 'schematic') requestAnimationFrame(() => setSchematicZoom(schematicZoom));
   const box = current(p),
     controllerBoxes = p.installation.boxes.filter(item => item.kind !== 'button'),
     cap = projectCapacity(p),
@@ -412,6 +501,12 @@ function boxesView(p, lib) {
   }`;
 }
 export function standardsView(lib) {
+  return (
+    `<div class="install-toolbar">${B('Back up library', 'export-library')}${B('Restore library', 'import-library')}<p class="micro">Project JSON includes used snapshots. This separate backup includes unused standards and reusable box templates too.</p></div>` +
+    standardsContent(lib)
+  );
+}
+function standardsContent(lib) {
   return `<div class="install-intro">These standards are saved on this device and available to all projects. A cable, enclosure size or part already used in a project keeps its own measurements until explicitly updated.</div><div class="section-heading"><h2>Enclosure sizes</h2>${B('+ New size', 'new-box-size')}</div><p class="micro">Define reusable box dimensions in centimetres, then apply them from Box details.</p><div class="standards-grid">${lib.boxSizes.map(s => `<section class="panel standard-card"><div class="card-heading"><h3>${E(s.name)}</h3>${B('Delete', 'delete-box-size:' + s.id, 'text-btn danger')}</div>${F('Name', s.name, 'boxsize:' + s.id + ':name')}<div class="two">${F('Width (cm)', s.widthCm, 'boxsize:' + s.id + ':widthCm', 'number', 'min="2" max="1000" step="0.1"')}${F('Depth (cm)', s.depthCm, 'boxsize:' + s.id + ':depthCm', 'number', 'min="2" max="1000" step="0.1"')}</div></section>`).join('')}</div><div class="section-heading"><h2>Physical cable standards</h2>${B('+ New cable', 'new-cable')}</div><div class="standards-grid">${lib.cables
     .map(
       c =>
@@ -474,7 +569,8 @@ export function bomView(p) {
   return `<div class="install-toolbar">${S('Scope', bomScope, 'bom-filter', [['', 'Whole project'], ...boxes.map(b => [b.id, b.name])])}${B('↓ Export BOM CSV', 'bom-csv')}${B('Print', 'bom-print')}</div><section class="panel"><h2>Bill of materials</h2><p class="micro">Quantities reflect planned components, pixel groups and assigned physical cables. Check mounting, fuses, connectors and spare stock before ordering.</p><div class="table-panel"><table><thead><tr><th>Category</th><th>Item</th><th>Quantity</th><th>Unit</th></tr></thead><tbody>${rows.map(r => `<tr><td>${E(r.category)}</td><td>${E(r.name)}</td><td>${r.quantity}</td><td>${E(r.unit)}</td></tr>`).join('')}</tbody></table></div></section>`;
 }
 export function openBox(id) {
-  builderMode = 'controller';
+  builderMode =
+    api?.getProject().installation.boxes.find(b => b.id === id)?.kind === 'button' ? 'button' : 'controller';
   boxId = id;
   partId = '';
   boxDetailsOpen = false;
@@ -492,9 +588,11 @@ function setSchematicZoom(next, clientX, clientY) {
     y = clientY == null ? scroll.clientHeight / 2 : clientY - rect.top,
     ratio = next / schematicZoom;
   schematicZoom = next;
-  stage.style.width = Math.max(1, schematicCanvasWidth * schematicZoom) * 100 + '%';
+  stage.style.width = schematicCanvasWidth * schematicZoom * 100 + '%';
+  const extent = current(api.getProject())?.schematicExtent;
+  if (extent) stage.style.width = extent.width * schematicZoom + 'px';
   stage.style.minWidth = SCHEMATIC_MIN_WIDTH * schematicZoom + 'px';
-  stage.style.minHeight = Math.max(SCHEMATIC_MIN_HEIGHT, schematicCanvasHeight * schematicZoom) + 'px';
+  stage.style.minHeight = (extent?.height || schematicCanvasHeight) * schematicZoom + 'px';
   stage.style.setProperty('--schematic-zoom', schematicZoom);
   scroll.scrollLeft = (scroll.scrollLeft + x) * ratio - x;
   scroll.scrollTop = (scroll.scrollTop + y) * ratio - y;
@@ -559,6 +657,10 @@ function autoLayout(box, project) {
   schematicZoom = 1;
   schematicCanvasWidth = Math.max(1, SCHEMATIC_MIN_WIDTH / baseWidth, (groups.length * 280 + 48) / baseWidth);
   schematicCanvasHeight = Math.max(SCHEMATIC_MIN_HEIGHT, maxRows * 210 + 48);
+  box.schematicExtent = {
+    width: Math.ceil(Math.max(SCHEMATIC_MIN_WIDTH, schematicCanvasWidth * baseWidth)),
+    height: schematicCanvasHeight
+  };
   api.render();
   requestAnimationFrame(() => {
     const stage = document.querySelector('#box-stage');
@@ -576,6 +678,7 @@ function autoLayout(box, project) {
       );
     if (tallest + 48 > schematicCanvasHeight) {
       schematicCanvasHeight = tallest + 48;
+      box.schematicExtent.height = schematicCanvasHeight;
       stage.style.minHeight = schematicCanvasHeight + 'px';
     }
     requestAnimationFrame(() => {
@@ -593,8 +696,10 @@ function autoLayout(box, project) {
                 groups.length === 1
                   ? (width - partWidth) / 2
                   : margin + (column * (width - partWidth - margin * 2)) / (groups.length - 1);
-            c.x = +((Math.max(0, x) / width) * 100).toFixed(1);
-            c.y = +((y / height) * 100).toFixed(1);
+            c.schematic = {
+              x: +((Math.max(0, x) / width) * 100).toFixed(1),
+              y: +((y / height) * 100).toFixed(1)
+            };
             y += heights[row] + 32;
           });
         });
@@ -707,6 +812,7 @@ const routePath = (a, b, obstacles, bounds) => {
   if (finishNode && distance.has(nodeKey(finishNode)))
     for (let point = finishNode; point !== startNode; point = previous.get(nodeKey(point)))
       middle.unshift(point);
+  if (!middle.length && startNode !== finishNode && !clear(start, finish)) return '';
   const raw = [a, start, ...middle.slice(0, -1), finish, b],
     points = raw.filter(
       (point, i, values) =>
@@ -724,9 +830,14 @@ function scheduleBoxConnections() {
   });
 }
 function separateSchematicParts(stage, parts, box) {
-  if (boxMode !== 'schematic' || parts.length < 2 || !box || normalizedSchematicBoxes.has(box.id))
-    return false;
-  normalizedSchematicBoxes.add(box.id);
+  if (boxMode !== 'schematic' || parts.length < 2 || !box || drag) return false;
+  const signature = JSON.stringify([
+    box.schematicExtent,
+    box.components.map(c => [c.id, c.schematic, c.snapshot.ports.length]),
+    parts.map(part => [part.offsetWidth, part.offsetHeight])
+  ]);
+  if (normalizedSchematicBoxes.get(box.id) === signature) return false;
+  normalizedSchematicBoxes.set(box.id, signature);
   if (box.schematicLayoutVersion !== SCHEMATIC_LAYOUT_VERSION) {
     autoLayout(box, api.getProject());
     return true;
@@ -745,7 +856,7 @@ function separateSchematicParts(stage, parts, box) {
           rect.top < other.bottom + 12 &&
           rect.bottom + 12 > other.top
       );
-    if (overlaps()) {
+    if (overlaps() || rect.right > stageRect.right || rect.bottom > stageRect.bottom) {
       const maxX = Math.max(0, 100 - (rect.width / stageRect.width) * 100),
         maxY = Math.max(0, 100 - (rect.height / stageRect.height) * 100);
       let found = false;
@@ -763,7 +874,8 @@ function separateSchematicParts(stage, parts, box) {
       if (!found) {
         part.style.left = original.left;
         part.style.top = original.top;
-        rect = part.getBoundingClientRect();
+        autoLayout(box, api.getProject());
+        return true;
       }
     }
     placed.push(rect);
@@ -773,8 +885,7 @@ function separateSchematicParts(stage, parts, box) {
     moved.forEach(([id, x, y]) => {
       const component = box.components.find(item => item.id === id);
       if (component) {
-        component.x = +x.toFixed(1);
-        component.y = +y.toFixed(1);
+        component.schematic = { x: +x.toFixed(1), y: +y.toFixed(1) };
       }
     })
   );
@@ -805,7 +916,13 @@ export function drawBoxConnections() {
   if (separateSchematicParts(stage, parts, box)) return;
   const anchor = (port, other) => {
       const part = port.closest('.box-part');
-      if (!part) return center(port);
+      if (!part) {
+        const r = port.getBoundingClientRect(),
+          point = center(port);
+        if (port.classList.contains('left')) return { x: r.right - rs.left, y: point.y, direction: 1 };
+        if (port.classList.contains('right')) return { x: r.left - rs.left, y: point.y, direction: -1 };
+        return { x: point.x, y: (port.classList.contains('top') ? r.bottom : r.top) - rs.top };
+      }
       const portRect = port.getBoundingClientRect(),
         partRect = part.getBoundingClientRect(),
         output = port.classList.contains('out'),
@@ -828,6 +945,7 @@ export function drawBoxConnections() {
         toPort: x.id
       }))
   ];
+  const blockedRoutes = [];
   const paths = records
     .map(x => {
       const a = stage.querySelector(`[data-box-port="${CSS.escape(x.fromComponent + ':' + x.fromPort)}"]`),
@@ -847,7 +965,12 @@ export function drawBoxConnections() {
         colour = portTypeColour(
           portType(x.fromComponent, x.fromPort) || portType(x.toComponent, x.toPort) || 'generic'
         );
-      return `<path class="box-wire ${warning ? 'warning' : ''}" data-wire-from="${E(x.fromComponent + ':' + x.fromPort)}" data-wire-to="${E(x.toComponent + ':' + x.toPort)}" d="${routePath(from, to, obstacles, { width: stage.clientWidth, height: stage.clientHeight })}" stroke="${colour}"/><circle class="box-wire-node" cx="${from.x}" cy="${from.y}" r="5" fill="${colour}"/><circle class="box-wire-node" cx="${to.x}" cy="${to.y}" r="5" fill="${colour}"/>`;
+      const d = routePath(from, to, obstacles, { width: stage.clientWidth, height: stage.clientHeight });
+      if (!d) {
+        blockedRoutes.push(`${x.fromPort} → ${x.toPort}`);
+        return `<title>No clear route: ${E(x.fromPort)} to ${E(x.toPort)}. Move components or use Auto layout.</title>`;
+      }
+      return `<path class="box-wire ${warning ? 'warning' : ''}" data-wire-from="${E(x.fromComponent + ':' + x.fromPort)}" data-wire-to="${E(x.toComponent + ':' + x.toPort)}" d="${d}" stroke="${colour}"/><circle class="box-wire-node" cx="${from.x}" cy="${from.y}" r="5" fill="${colour}"/><circle class="box-wire-node" cx="${to.x}" cy="${to.y}" r="5" fill="${colour}"/>`;
     })
     .join('');
   let preview = '';
@@ -858,16 +981,40 @@ export function drawBoxConnections() {
         obstacles = parts.filter(part => part !== sourcePart).map(rectFor),
         from = anchor(a, wirePoint),
         colour = portTypeColour(portType(wireFrom.component, wireFrom.id) || 'generic');
-      preview = `<path class="box-wire preview" d="${routePath(from, wirePoint, obstacles, { width: stage.clientWidth, height: stage.clientHeight })}" stroke="${colour}"/>`;
+      const path = routePath(from, wirePoint, obstacles, {
+        width: stage.clientWidth,
+        height: stage.clientHeight
+      });
+      if (path) preview = `<path class="box-wire preview" d="${path}" stroke="${colour}"/>`;
     }
   }
   svg.innerHTML = paths + preview;
+  let status = stage.parentElement.parentElement.querySelector('.box-route-status');
+  if (!status) {
+    status = document.createElement('p');
+    status.className = 'box-route-status layout-warning';
+    status.setAttribute('role', 'status');
+    stage.parentElement.insertAdjacentElement('afterend', status);
+  }
+  status.hidden = !blockedRoutes.length;
+  status.textContent = blockedRoutes.length
+    ? `No clear schematic path for ${blockedRoutes.join('; ')}. Move components or use Auto layout.`
+    : '';
 }
 function addExternal(box, from, toKey) {
   const p = api.getProject(),
     part = box.components.find(c => c.id === from.component),
     port = part?.snapshot.ports.find(v => v.id === from.id);
   if (!port) return;
+  const problem = externalConnectionProblem(
+    p,
+    { boxId: box.id, componentId: from.component, portId: from.id },
+    toKey
+  );
+  if (problem) {
+    api.toast(problem);
+    return;
+  }
   const kind = port.type.includes('power')
     ? 'power'
     : port.type === 'pixel_output' || port.type === 'pixel_data'
@@ -894,7 +1041,35 @@ function addExternal(box, from, toKey) {
 }
 export function installInstallation(a) {
   api = a;
+  const libraryFile = document.createElement('input');
+  libraryFile.type = 'file';
+  libraryFile.accept = '.json,application/json';
+  libraryFile.id = 'library-import-file';
+  libraryFile.hidden = true;
+  document.body.append(libraryFile);
+  libraryFile.addEventListener('change', async () => {
+    const file = libraryFile.files[0];
+    libraryFile.value = '';
+    if (!file) return;
+    try {
+      const imported = JSON.parse(await file.text());
+      validateLibrary(imported);
+      api.confirmAction(
+        'Restore device library?',
+        'Replace the global standards and reusable templates with this backup? Existing project instances keep their snapshots until explicit Sync/Update.',
+        () =>
+          api.libraryTransact(() => {
+            const library = api.getLibrary();
+            for (const key of Object.keys(library)) delete library[key];
+            Object.assign(library, imported);
+          })
+      );
+    } catch (error) {
+      api.toast('Library was not restored: ' + error.message);
+    }
+  });
   document.addEventListener('click', e => {
+    if (performance.now() < suppressClickUntil) return;
     const details = e.target.closest('.box-details>summary');
     if (details) {
       boxDetailsOpen = !details.parentElement.open;
@@ -958,6 +1133,14 @@ export function installInstallation(a) {
       p = api.getProject(),
       lib = api.getLibrary(),
       box = current(p);
+    if (action === 'export-library') {
+      api.download('pixel-workbench-library.json', JSON.stringify(lib, null, 2), 'application/json');
+      return;
+    }
+    if (action === 'import-library') {
+      libraryFile.click();
+      return;
+    }
     if (action === 'builder-mode') {
       builderMode = id;
       boxId = '';
@@ -998,15 +1181,7 @@ export function installInstallation(a) {
       });
       api.toast('Measurements saved to the device library.');
     } else if (action === 'sync-standards' && box) {
-      let updated = 0;
-      api.transact(() => {
-        updated = syncBoxStandards(box, lib);
-      });
-      api.toast(
-        updated
-          ? `${updated} component standard${updated === 1 ? '' : 's'} synced.`
-          : 'This box already uses the latest standards.'
-      );
+      preservingEdit(box, draft => syncBoxStandards(draft, lib), 'Sync standards');
     } else if (action === 'new-box')
       api.transact(() => {
         const count = p.installation.boxes.filter(box => box.kind !== 'button').length;
@@ -1074,16 +1249,15 @@ export function installInstallation(a) {
         boxDetailsOpen = false;
       });
     } else if (action === 'delete-part' && box) {
-      api.transact(() => {
-        box.components = box.components.filter(c => c.id !== partId);
-        syncInterfacePorts(box);
-        for (const link of p.installation.connections.filter(
-          x => x.fromComponent === partId || x.toComponent === partId
-        ))
-          deleteRoute(p, 'custom:' + link.id);
-        p.installation.infrastructureMigrated = false;
-        partId = '';
-      });
+      const removedId = partId;
+      preservingEdit(
+        box,
+        draft => {
+          draft.components = draft.components.filter(c => c.id !== removedId);
+          syncInterfacePorts(draft);
+        },
+        'Remove component and its connected links?'
+      );
     } else if (action === 'add-interface-port' && box)
       api.transact(() => {
         box.interfacePorts ??= [];
@@ -1108,8 +1282,10 @@ export function installInstallation(a) {
         return;
       }
       addExternal(box, { component: partId, id: fromPort }, toKey);
-    } else if (action === 'save-template' && box) {
-      api.libraryTransact(() => saveBoxTemplate(lib, box));
+    } else if ((action === 'save-template' && box) || action === 'save-button-template') {
+      const selectedBox =
+        action === 'save-button-template' ? p.installation.boxes.find(b => b.id === id) : box;
+      api.libraryTransact(() => saveBoxTemplate(lib, selectedBox, p));
       api.transact(() => {});
       api.toast('Box template saved to the device library.');
     } else if (action === 'add-template') {
@@ -1122,21 +1298,12 @@ export function installInstallation(a) {
           boxDetailsOpen = false;
         });
       else api.toast('Choose a template first.');
-    } else if (action === 'update-template' && box) {
-      const t = lib.boxTemplates.find(t => t.id === box.templateRef?.id);
-      if (t)
-        api.confirmAction(
-          'Update this box?',
-          `Replace its current components with ${t.name} v${t.version}? Existing links and positions in this box will be removed.`,
-          () => {
-            for (const link of p.installation.connections.filter(
-              x => x.boxId === box.id || x.fromKey === 'box:' + box.id || x.toKey === 'box:' + box.id
-            ))
-              deleteRoute(p, 'custom:' + link.id);
-            updateBoxFromTemplate(box, t);
-            partId = '';
-          }
-        );
+    } else if ((action === 'update-template' && box) || action === 'update-button-template') {
+      const selectedBox =
+        action === 'update-button-template' ? p.installation.boxes.find(b => b.id === id) : box;
+      const t = lib.boxTemplates.find(t => t.id === selectedBox?.templateRef?.id);
+      if (t) preservingEdit(selectedBox, draft => updateBoxFromTemplate(draft, t), 'Update from template', t);
+      else api.toast('Save this box for reuse first.');
     } else if (action === 'ack')
       api.transact(() => {
         const x = p.installation.connections.find(x => x.id === id);
@@ -1151,11 +1318,15 @@ export function installInstallation(a) {
       const c = box.components.find(x => x.id === partId),
         d = lib.components.find(x => x.id === c?.definitionId);
       if (d)
-        api.transact(() => {
-          c.snapshot = structuredClone(d);
-          c.definitionVersion = d.version;
-          syncInterfacePorts(box);
-        });
+        preservingEdit(
+          box,
+          draft => {
+            const component = draft.components.find(item => item.id === c.id);
+            component.definitionVersion = -1;
+            syncBoxStandards(draft, lib);
+          },
+          'Update component standard'
+        );
     } else if (action === 'new-box-size')
       api.libraryTransact(() =>
         lib.boxSizes.push({
@@ -1262,6 +1433,8 @@ export function installInstallation(a) {
         api.transact(() => {
           box.physicalWidthMm = size.widthCm * 10;
           box.physicalDepthMm = size.depthCm * 10;
+          updateFootprint(box, api.getProject(), 'width', box.physicalWidthMm / 1000);
+          updateFootprint(box, api.getProject(), 'height', box.physicalDepthMm / 1000);
         });
       return;
     }
@@ -1302,23 +1475,32 @@ export function installInstallation(a) {
         const buttonBox = p.installation.boxes.find(box => box.id === id && box.kind === 'button');
         if (buttonBox) buttonBox[field] = t.value;
       });
-    else if (kind === 'buttoncount')
-      api.transact(() => {
-        const buttonBox = p.installation.boxes.find(box => box.id === id && box.kind === 'button');
-        if (!buttonBox) return;
-        const removed = new Set(buttonBox.components.slice(+t.value).map(button => button.id));
-        for (const link of p.installation.connections.filter(
-          link => link.boxId === id && (removed.has(link.fromComponent) || removed.has(link.toComponent))
-        ))
-          deleteRoute(p, 'custom:' + link.id);
-        resizeButtonBox(buttonBox, +t.value);
-      });
-    else if (kind === 'button')
+    else if (kind === 'buttoncount') {
+      const buttonBox = p.installation.boxes.find(box => box.id === id && box.kind === 'button');
+      if (buttonBox)
+        preservingEdit(
+          buttonBox,
+          draft => {
+            const oldCount = draft.components.length;
+            resizeButtonBox(draft, +t.value);
+            const added = new Set(draft.components.slice(oldCount).map(c => c.id));
+            draft.interfacePorts
+              .filter(port => added.has(port.componentId))
+              .forEach(port => (port.visible = true));
+          },
+          'Change button count'
+        );
+    } else if (kind === 'button')
       api.transact(() => {
         const buttonBox = p.installation.boxes.find(box => box.id === id && box.kind === 'button'),
           button = buttonBox?.components.find(button => button.id === field);
         if (!button) return;
-        if (sub === 'colour') {
+        button.buttonOverrides ??= {};
+        button.buttonOverrides[sub] = true;
+        if (sub === 'type') {
+          button.buttonType = t.value;
+          button.snapshot.name = t.value === 'illuminated' ? 'Illuminated button' : 'Push button';
+        } else if (sub === 'colour') {
           const colour = BUTTON_COLOURS.find(([name]) => name === t.value);
           if (!colour) return;
           [button.buttonColour, button.snapshot.color] = colour;
@@ -1337,21 +1519,28 @@ export function installInstallation(a) {
     else if (key.startsWith('box.'))
       api.transact(() => {
         const field = key.slice(4);
-        if (field === 'physicalWidthCm') box.physicalWidthMm = +t.value * 10;
-        else if (field === 'physicalDepthCm') box.physicalDepthMm = +t.value * 10;
-        else box[field] = t.type === 'number' ? +t.value : t.value;
+        if (field === 'physicalWidthCm') {
+          box.physicalWidthMm = +t.value * 10;
+          updateFootprint(box, p, 'width', box.physicalWidthMm / 1000);
+        } else if (field === 'physicalDepthCm') {
+          box.physicalDepthMm = +t.value * 10;
+          updateFootprint(box, p, 'height', box.physicalDepthMm / 1000);
+        } else box[field] = t.type === 'number' ? +t.value : t.value;
       });
     else if (key.startsWith('part.'))
       api.transact(() => {
         normalizedSchematicBoxes.delete(box.id);
         const c = box.components.find(x => x.id === partId);
-        c[key.slice(5)] = t.type === 'number' ? +t.value : t.value;
+        const field = key.slice(5);
+        if (['x', 'y'].includes(field) && boxMode === 'schematic') c.schematic[field] = +t.value;
+        else c[field] = t.type === 'number' ? +t.value : t.value;
       });
     else if (key.startsWith('physical.'))
       api.transact(() => {
         const c = box.components.find(x => x.id === partId);
         c.snapshot.physical ??= { widthMm: null, depthMm: null, heightMm: null };
         c.snapshot.physical[key.slice(9)] = +t.value;
+        c.measurementOverride = true;
       });
     else if (key.startsWith('limit.'))
       api.transact(() => {
@@ -1359,15 +1548,20 @@ export function installInstallation(a) {
         c.operatingLimits[key.slice(6)] = +t.value;
       });
     else if (key === 'portcount.ethernet')
-      api.transact(() => {
-        const c = box.components.find(x => x.id === partId);
-        setEthernetPortCount(c, +t.value);
-        syncInterfacePorts(box);
-      });
+      preservingEdit(
+        box,
+        draft => {
+          const c = draft.components.find(x => x.id === partId);
+          setEthernetPortCount(c, +t.value);
+          syncInterfacePorts(draft);
+        },
+        'Change Ethernet connectors'
+      );
     else if (kind === 'interface')
       api.transact(() => {
         const port = box.interfacePorts.find(x => x.id === id);
         port[field] = field === 'visible' ? t.checked : t.value;
+        if (field === 'label') port.customLabel = true;
       });
     else if (
       kind === 'cable' ||
@@ -1490,6 +1684,16 @@ export function installInstallation(a) {
     if (target && !target.contains(e.relatedTarget)) highlightConnection(target, false);
   });
   document.addEventListener('pointerdown', e => {
+    const port = e.target.closest('[data-box-port]');
+    if (port && e.button === 0) {
+      if (wireFrom) return;
+      const [component, id] = port.dataset.boxPort.split(':');
+      wireFrom = { component, id };
+      wireGesture = { pointer: e.pointerId, x: e.clientX, y: e.clientY };
+      port.setPointerCapture(e.pointerId);
+      e.preventDefault();
+      return;
+    }
     const el = e.target.closest('.box-part .part-title,.physical-part');
     if (!el || e.button !== 0) return;
     const part = el.closest('[data-box-part]'),
@@ -1541,15 +1745,51 @@ export function installInstallation(a) {
     scheduleBoxConnections();
   });
   document.addEventListener('pointerup', e => {
+    if (wireGesture?.pointer === e.pointerId) {
+      const gesture = wireGesture,
+        from = wireFrom,
+        target = document.elementFromPoint(e.clientX, e.clientY)?.closest('[data-box-port]'),
+        external = document.elementFromPoint(e.clientX, e.clientY)?.closest('[data-box-target]');
+      wireGesture = null;
+      wireFrom = null;
+      wirePoint = null;
+      if (Math.hypot(e.clientX - gesture.x, e.clientY - gesture.y) <= 4) return;
+      suppressClickUntil = performance.now() + 80;
+      const box = current(api.getProject());
+      if (target) {
+        const [component, id] = target.dataset.boxPort.split(':');
+        if (component !== from.component || id !== from.id) connectEndpoints(box, from, { component, id });
+      } else if (external) addExternal(box, from, external.dataset.boxTarget);
+      else api.toast('Wiring cancelled. Finish on an exact port or room target.');
+      scheduleBoxConnections();
+      return;
+    }
     if (!drag || drag.pointer !== e.pointerId) return;
     const d = drag;
     drag = null;
     const c = current(api.getProject())?.components.find(x => x.id === partId);
     if (c)
       api.transact(() => {
-        c.x = +parseFloat(d.part.style.left).toFixed(1);
-        c.y = +parseFloat(d.part.style.top).toFixed(1);
+        const position = {
+          x: +parseFloat(d.part.style.left).toFixed(1),
+          y: +parseFloat(d.part.style.top).toFixed(1)
+        };
+        if (boxMode === 'schematic') c.schematic = position;
+        else Object.assign(c, position);
       });
+    document.addEventListener('pointercancel', () => {
+      wireGesture = null;
+      wireFrom = null;
+      wirePoint = null;
+      scheduleBoxConnections();
+    });
+    document.addEventListener('keydown', e => {
+      if (e.key !== 'Escape') return;
+      wireGesture = null;
+      wireFrom = null;
+      wirePoint = null;
+      scheduleBoxConnections();
+    });
   });
   document.addEventListener(
     'wheel',

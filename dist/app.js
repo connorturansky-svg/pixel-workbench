@@ -1,6 +1,6 @@
-import { ensureScene } from './layout-model.mjs?v=0.75.0';
-import { roomView, propsView, installRoom } from './room.js?v=0.75.0';
-import { wiringGraph, installGraph, drawGraph } from './wiring-graph.mjs?v=0.75.0';
+import { ensureScene } from './layout-model.mjs?v=0.76.0';
+import { roomView, propsView, installRoom } from './room.js?v=0.76.0';
+import { wiringGraph, installGraph, drawGraph } from './wiring-graph.mjs?v=0.76.0';
 import {
   defaultLibrary,
   ensureLibrary,
@@ -13,8 +13,10 @@ import {
   routeSpecs,
   routeGeometry,
   routeIssues,
-  projectCapacity
-} from './installation-model.mjs?v=0.75.0';
+  projectCapacity,
+  connectionProblem,
+  externalConnectionProblem
+} from './installation-model.mjs?v=0.76.0';
 import {
   boxBuilderView,
   standardsView,
@@ -23,11 +25,11 @@ import {
   drawBoxConnections,
   openBox,
   physicalIssues
-} from './installation-ui.mjs?v=0.75.0';
-import { APP_VERSION } from './version.mjs?v=0.75.0';
-import { installInfo } from './info.mjs?v=0.75.0';
-import { suggestView, installSuggest, afterSuggestRender, bellHtml } from './suggest.mjs?v=0.75.0';
-import { createDemoProject } from './demo-project.mjs?v=0.75.0';
+} from './installation-ui.mjs?v=0.76.0';
+import { APP_VERSION } from './version.mjs?v=0.76.0';
+import { installInfo } from './info.mjs?v=0.76.0';
+import { suggestView, installSuggest, afterSuggestRender, bellHtml } from './suggest.mjs?v=0.76.0';
+import { createDemoProject } from './demo-project.mjs?v=0.76.0';
 import {
   tailoredInitial,
   calculate,
@@ -38,7 +40,7 @@ import {
   PSU_MODELS,
   newSegment,
   uid
-} from './model.mjs?v=0.75.0';
+} from './model.mjs?v=0.76.0';
 const testing = new URLSearchParams(location.search).has('test');
 let project = tailoredInitial(),
   view = 'room',
@@ -164,6 +166,12 @@ function notifications(r) {
   }</section>`;
 }
 function render() {
+  const roomSections = new Map(
+    [...document.querySelectorAll('.room-inspector-section')].map(section => [
+      section.querySelector('summary').textContent.trim(),
+      section.open
+    ])
+  );
   const migrated = migrateInfrastructure(project, library);
   const linkedControllers = linkBoxControllers();
   ensureScene(project);
@@ -186,7 +194,11 @@ function render() {
   ];
   if (!pages.some(x => x[0] === page)) page = 'workspace';
   $('#app').innerHTML =
-    `<aside class="sidebar"><a class="brand" href="#" data-action="page:workspace"><span class="brandmark">▦</span><span>pixel<span class="light">workbench</span></span></a><button type="button" class="brand-version" data-info="new" title="What's new in v${APP_VERSION}">v${APP_VERSION}</button><div class="workspace-label">YOUR WORKSPACE</div><div class="project-card"><span class="project-icon">P</span><div><strong>${esc(project.name)}</strong><small>${demo ? 'DEMO MODE' : '12 V pixel system'}</small></div></div><nav aria-label="Main navigation">${pages.map(([id, ic, label]) => btn(`<span class="nav-icon">${ic}</span>${label}`, 'page:' + id, 'nav ' + (id === page ? 'active' : ''), id === page ? 'aria-current="page"' : '')).join('')}</nav></aside><main><header class="topbar"><div class="crumb">Projects <span>/</span> ${esc(project.name)}</div><div class="top-actions"><span class="local-label">${storageOK ? 'Saved on this device' : 'Save a JSON backup'}</span>${btn('↓ Save project', 'export', 'btn')}${btn('↑ Open', 'import', 'btn')}${btn('↗ Wiring guide', 'page:guide', 'btn')}${demo ? btn('Exit demo', 'exit-demo', 'btn') : btn('Open demo', 'open-demo', 'btn')}${btn('Blank project', 'blank-project', 'btn danger')}${bellHtml()}<button type="button" class="info-btn" data-info="how" title="Info: how to use, what's new, architecture, shortcuts" aria-label="Info">i</button></div></header>${notifications(r)}<section class="page-head"><div><div class="eyebrow">PLAN • WIRE • DEPLOY</div><h1>${pages.find(x => x[0] === page)[2]}</h1><p>${{ workspace: 'Every connection, with the power to back it up.', hardware: 'Give every circuit a source.', presets: 'Your repeatable building blocks.', props: 'Pixel shapes, built for your space.', guide: 'A build sheet for the workbench and the field.', boxes: 'Build controller enclosures and custom button boxes in separate tools.', standards: 'Reusable cables and hardware for every project.', bom: 'A practical packing and ordering list.', suggest: 'Describe an idea. Every request is built, tested and published automatically.' }[page]}</p></div>${page === 'hardware' ? btn('+ Add controller', 'add-controller', 'btn primary') : page === 'suggest' || page === 'boxes' ? '' : btn('+ Controller box', 'new-box-main', 'btn primary')}</section>${page === 'suggest' ? '' : `<div class="summary"><div><span>ADDRESSABLE DEVICES</span><strong>${r.pixels.toLocaleString()} <small>of ${(capacity.capacity.pixels || 0).toLocaleString()} capacity</small></strong></div><div><span>ESTIMATED LOAD</span><strong>${fmt(r.watts)} <small>W at ${project.brightness}%</small></strong></div><div><span>PSU DESIGN BUDGET</span><strong>${fmt(((capacity.capacity.psuWatts || 0) * project.headroom) / 100, 0)} <small>W total</small></strong></div><div><span>INPUT / AUDIO PORTS</span><strong>${inputPorts} <small>inputs · ${capacity.capacity.audioOutputs || 0} audio</small></strong></div><div><span>PLAN CHECKS</span><strong class="amber">${r.warnings.filter(w => w.level !== 'info').length} <small>+ ${r.warnings.filter(w => w.level === 'info').length} assumptions</small></strong></div></div>`}<section id="content">${{ workspace: () => workspace(r), hardware: () => hardware(r), presets: () => presets(), props: () => propsView(project), guide: () => guide(r), boxes: () => boxBuilderView(project, library), standards: () => standardsView(library), bom: () => bomView(project), suggest: () => suggestView() }[page]()}</section><footer><span><i class="status-dot"></i> Changes sync across views</span><span>DC planning estimates • Verify against your actual hardware</span></footer></main><dialog id="modal"></dialog>`;
+    `<aside class="sidebar"><a class="brand" href="#" data-action="page:workspace"><span class="brandmark">▦</span><span>pixel<span class="light">workbench</span></span></a><button type="button" class="brand-version" data-info="new" title="What's new in v${APP_VERSION}">v${APP_VERSION}</button><div class="workspace-label">YOUR WORKSPACE</div><div class="project-card"><span class="project-icon">P</span><div><strong>${esc(project.name)}</strong><small>${demo ? 'DEMO MODE' : '12 V pixel system'}</small></div></div><nav aria-label="Main navigation">${pages.map(([id, ic, label]) => btn(`<span class="nav-icon">${ic}</span>${label}`, 'page:' + id, 'nav ' + (id === page ? 'active' : ''), id === page ? 'aria-current="page"' : '')).join('')}</nav></aside><main><header class="topbar"><div class="crumb">Projects <span>/</span> ${esc(project.name)}</div><div class="top-actions"><span class="local-label">${storageOK ? 'Saved on this device' : 'Save a JSON backup'}</span>${btn('↓ Save project', 'export', 'btn')}${btn('↑ Open', 'import', 'btn')}${btn('↗ Wiring guide', 'page:guide', 'btn')}${demo ? btn('Exit demo', 'exit-demo', 'btn') : btn('Open demo', 'open-demo', 'btn')}${btn('Blank project', 'blank-project', 'btn danger')}${bellHtml()}<button type="button" class="info-btn" data-info="how" title="Info: how to use, what's new, architecture, shortcuts" aria-label="Info">i</button></div></header>${notifications(r)}<section class="page-head"><div><div class="eyebrow">PLAN • WIRE • DEPLOY</div><h1>${pages.find(x => x[0] === page)[2]}</h1><p>${{ workspace: 'Every connection, with the power to back it up.', hardware: 'Give every circuit a source.', presets: 'Your repeatable building blocks.', props: 'Pixel shapes, built for your space.', guide: 'A build sheet for the workbench and the field.', boxes: 'Build controller enclosures and custom button boxes in separate tools.', standards: 'Reusable cables and hardware for every project.', bom: 'A practical packing and ordering list.', suggest: 'Request a focused change. Check the shipped behaviour before closing its issue.' }[page]}</p></div>${page === 'hardware' ? btn('+ Add controller', 'add-controller', 'btn primary') : page === 'suggest' || page === 'boxes' ? '' : btn('+ Controller box', 'new-box-main', 'btn primary')}</section>${page === 'suggest' ? '' : `<div class="summary"><div><span>ADDRESSABLE DEVICES</span><strong>${r.pixels.toLocaleString()} <small>of ${(capacity.capacity.pixels || 0).toLocaleString()} capacity</small></strong></div><div><span>ESTIMATED LOAD</span><strong>${fmt(r.watts)} <small>W at ${project.brightness}%</small></strong></div><div><span>PSU DESIGN BUDGET</span><strong>${fmt(((capacity.capacity.psuWatts || 0) * project.headroom) / 100, 0)} <small>W total</small></strong></div><div><span>INPUT / AUDIO PORTS</span><strong>${inputPorts} <small>inputs · ${capacity.capacity.audioOutputs || 0} audio</small></strong></div><div><span>PLAN CHECKS</span><strong class="amber">${r.warnings.filter(w => w.level !== 'info').length} <small>+ ${r.warnings.filter(w => w.level === 'info').length} assumptions</small></strong></div></div>`}<section id="content">${{ workspace: () => workspace(r), hardware: () => hardware(r), presets: () => presets(), props: () => propsView(project), guide: () => guide(r), boxes: () => boxBuilderView(project, library), standards: () => standardsView(library), bom: () => bomView(project), suggest: () => suggestView() }[page]()}</section><footer><span><i class="status-dot"></i> Changes sync across views</span><span>DC planning estimates • Verify against your actual hardware</span></footer></main><dialog id="modal"></dialog>`;
+  for (const section of document.querySelectorAll('.room-inspector-section')) {
+    const key = section.querySelector('summary').textContent.trim();
+    if (roomSections.has(key)) section.open = roomSections.get(key);
+  }
   if (view === 'visual' && page === 'workspace') requestAnimationFrame(drawGraph);
   if (page === 'boxes') requestAnimationFrame(drawBoxConnections);
   if (page === 'suggest') afterSuggestRender();
@@ -194,6 +206,12 @@ function render() {
 }
 function checks(r) {
   return `<details class="checks panel" open><summary class="checks-title"><h3>Plan checks <span>${r.warnings.length}</span></h3><small>Includes 100% white checks</small></summary><div class="scroll-list">${r.warnings.map(w => `<div class="check"><span class="check-icon ${w.level}">${w.level === 'info' ? 'i' : '!'}</span><div><strong>${esc(w.title)}</strong><p>${esc(w.detail)}</p></div>${w.chain ? btn('View', 'select:' + w.chain, 'text-btn') : ''}</div>`).join('') || '<p class="empty">No calculated limits exceeded. Verify the assumptions before building.</p>'}</div></details>`;
+}
+function refreshRoomSummary() {
+  const r = calculate(project);
+  document.querySelector('.notification-center').outerHTML = notifications(r);
+  document.querySelector('.summary > div:last-child strong').innerHTML =
+    `${r.warnings.filter(w => w.level !== 'info').length} <small>+ ${r.warnings.filter(w => w.level === 'info').length} assumptions</small>`;
 }
 function powerCards(r) {
   return `<div class="power-strip">${project.psus
@@ -408,8 +426,8 @@ function transact(fn, redraw = true) {
   try {
     fn();
     validateProject(project);
-    save();
     if (redraw) render();
+    save();
     return true;
   } catch (e) {
     project = backup;
@@ -1171,6 +1189,11 @@ installRoom({
         targetCanReceive = targetPort.direction !== 'out',
         targetCanSend = targetPort.direction !== 'in',
         sourceCanReceive = port.direction !== 'out';
+      const problem = connectionProblem(project, source, target);
+      if (problem) {
+        toast(problem);
+        return;
+      }
       if ((!sourceCanSend || !targetCanReceive) && targetCanSend && sourceCanReceive) {
         [box, targetBox] = [targetBox, box];
         [part, targetPart] = [targetPart, part];
@@ -1205,6 +1228,11 @@ installRoom({
       return;
     }
     const key = target;
+    const problem = externalConnectionProblem(project, source, key);
+    if (problem) {
+      toast(problem);
+      return;
+    }
     transact(() => {
       const chain = key.startsWith('segment:')
           ? project.chains.find(ch => ch.segments.some(s => 'segment:' + s.id === key))
@@ -1259,6 +1287,7 @@ installRoom({
   getProject: () => project,
   render,
   save,
+  refreshRoomSummary,
   toast,
   transact,
   modal,
@@ -1332,8 +1361,8 @@ function libraryTransact(fn) {
   const before = structuredClone(library);
   try {
     fn();
-    if (!demo) localStorage.setItem('pixel-workbench-library-v1', JSON.stringify(library));
     render();
+    if (!demo) localStorage.setItem('pixel-workbench-library-v1', JSON.stringify(library));
     return true;
   } catch (e) {
     library = before;

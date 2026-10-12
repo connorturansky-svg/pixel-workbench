@@ -821,6 +821,7 @@ footer {
   padding: 40px;
 }
 #toast {
+  pointer-events: none;
   position: fixed;
   bottom: 24px;
   left: 50%;

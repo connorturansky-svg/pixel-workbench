@@ -8,7 +8,7 @@ import {
   routeIssues,
   deleteRoute,
   portTypeColour
-} from './installation-model.mjs?v=0.75.0';
+} from './installation-model.mjs?v=0.76.0';
 
 let api,
   selected = '',
@@ -55,7 +55,8 @@ export function routeLayer(p) {
   return specs(p)
     .filter(s => visible(p, s))
     .map(s => {
-      const g = routeGeometry(p, s);
+      const state = routeIssues(p, s),
+        g = state.geometry;
       if (!g) return '';
       const r = routeRecord(p, s.id),
         portType = routePortType(p, s),
@@ -64,7 +65,6 @@ export function routeLayer(p) {
           r.cableSnapshot?.color ||
           { data: '#458db9', power: '#d18c43', inject: '#bb6d4b', other: '#8a729a' }[s.kind],
         d = path(g.points),
-        state = routeIssues(p, s),
         short = state.state === 'short',
         issues = state.issues,
         chosen = s.id === selected,
@@ -114,8 +114,48 @@ function refresh() {
   const layer = document.querySelector('#room-routes');
   if (!layer) return;
   const p = api.getProject();
-  layer.innerHTML = routeLayer(p);
-  const s = specs(p).find(x => x.id === selected),
+  const list = specs(p);
+  let rebuild = false;
+  for (const s of list.filter(s => visible(p, s))) {
+    const state = routeIssues(p, s),
+      g = state.geometry,
+      group = layer.querySelector(`[data-route="${CSS.escape(s.id)}"]`);
+    if (!g) {
+      group?.remove();
+      continue;
+    }
+    if (!group) {
+      rebuild = true;
+      continue;
+    }
+    const d = path(g.points),
+      r = routeRecord(p, s.id);
+    group.querySelectorAll('[data-route-path]').forEach(el => el.setAttribute('d', d));
+    group.querySelector('animateMotion')?.setAttribute('path', d);
+    group.querySelectorAll('[data-route-pivot]').forEach((el, i) => {
+      el.setAttribute('cx', r.points[i].x * 100);
+      el.setAttribute('cy', r.points[i].y * 100);
+    });
+    for (const end of ['start', 'end']) {
+      const q = g.points[end === 'start' ? 0 : g.points.length - 1],
+        el = group.querySelector(`[data-route-endpoint$=":${end}"]`);
+      el?.setAttribute('cx', q.x * 100);
+      el?.setAttribute('cy', q.y * 100);
+    }
+    group.classList.toggle('has-issues', state.issues.length > 0);
+    group.classList.toggle('unknown', state.state === 'unknown');
+    group.classList.toggle('valid', state.state === 'valid');
+    group.querySelector('title').textContent = `${s.name}: ${state.issues.join('; ') || 'Route is clear'}`;
+    const alert = group.querySelector('.route-alert');
+    if (Boolean(alert) !== Boolean(state.issues.length)) rebuild = true;
+    if (alert) {
+      alert.setAttribute('x', g.points.at(-1).x * 100 + 8);
+      alert.setAttribute('y', g.points.at(-1).y * 100 - 8);
+      alert.querySelector('title').textContent = state.issues.join('; ');
+    }
+  }
+  if (rebuild) layer.innerHTML = routeLayer(p);
+  const s = list.find(x => x.id === selected),
     g = s && routeGeometry(p, s),
     read = document.querySelector('#route-length-live');
   if (read && g) read.textContent = fmt(g.routeM) + ' m';
@@ -142,6 +182,18 @@ function refreshDrag() {
   }
   const read = document.querySelector('#route-length-live');
   if (read) read.textContent = fmt(g.routeM) + ' m';
+}
+export function refreshRouteInspector() {
+  const sections = [...document.querySelectorAll('.route-inspector')].map(body =>
+    body.closest('.room-inspector-section')
+  );
+  const template = document.createElement('template');
+  template.innerHTML = routeInspector(api.getProject(), api.getLibrary());
+  const replacements = [...template.content.children];
+  sections.forEach((section, i) => {
+    replacements[i].open = section.open;
+    section.replaceWith(replacements[i]);
+  });
 }
 function nearestIndex(points, q) {
   let best = 0,

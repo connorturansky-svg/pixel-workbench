@@ -6,7 +6,15 @@ A device-local 12 V pixel-system planner for Baldrick controllers and FPP channe
 
 Serve `dist/` using an HTTP server, for example `python -m http.server 8765 --directory dist`, then open http://localhost:8765. No build or package installation is required. Modern browsers are required. Google Fonts is optional; system fonts are used offline.
 
-Project state is saved in this browser's local storage. Export/import JSON for backups and moving devices. The hosted and localhost copies have separate browser storage. Use `?test=1` for an isolated, non-saving demonstration session.
+Project state is saved in this browser's local storage. **Save project / Open** backs up the project and used definition snapshots. Separately use **Standards > Back up library / Restore library** for all global standards, measurements, enclosure sizes, cables and templates, including unused entries. Restore validates the complete backup before replacing the library; existing instances still require explicit Sync/Update. The hosted and localhost copies have separate browser storage. Use `?test=1` for a non-saving project demonstration session; regression tests use disposable browsers.
+
+## v0.76.0 forward repair
+
+Configured room boxes now render against measured footprints without changing anchors or connectivity as the camera moves. Active ports remain available; dense targets open an exact-port chooser. Schematic placement is independent of physical coordinates, rotation and stacking. Button and Ethernet edits update snapshots, interfaces and resource counts together. Linked removals require confirmation; explicit template updates retain stable identities, genuine instance overrides and compatible wiring, and remap included internal links for new instances.
+
+This is a forward repair, not a rollback. Rendering fixes apply to existing snapshots without clearing storage or rebuilding boxes. Older schematic metadata is migrated once while retaining physical placement. Historical rollbacks intentionally mix historical application behaviour with current request infrastructure: a larger release number alone does not establish which features are present.
+
+Regression fixtures reconstruct the reference Box Four from the supplied screenshots; they are **not the owner's original saved project**. Browser evidence covers actual port gestures, inspector changes, save/open and separate library backups. Performance targets are observed whole actions (camera ≤350 ms; drag/inspector ≤500 ms), not a claim of universal 60 fps.
 
 ## Included
 
@@ -36,7 +44,7 @@ Brightness is a linear load estimate. Pixel idle draw, controller consumption, c
 
 Every injection starts a V+-isolated radial power section. Continuous positive wiring with multiple feeds is not solved. Switched relay loads and button lamps are labelled but not sized. Suggestions meet the selected voltage-drop/branch-fuse target; aggregate capacities are checked separately after applying.
 
-Generic box-port links are permissive and warn on mismatches. They are documentation, not electrical assignments, and do not configure or control hardware. Box resource limits are user-editable planning references; verify model-specific ratings. Physical cable fit measures the 2D route rather than vertical height or hidden service loops. Back up the standards library on the same device; project JSON preserves its used snapshots but does not export unused global standards.
+Exact box-port gestures reject incompatible or occupied endpoints; existing legacy links retain visible warnings. Generic links document wiring rather than configure or control hardware. Supported box-contained pixel outputs can supply electrical assignments without double counting. Box resource limits are user-editable planning references; verify model-specific ratings. Physical cable fit measures the 2D route rather than vertical height or hidden service loops. Project JSON does not export unused global standards; use the separate library backup.
 
 ## Versioning
 
@@ -46,7 +54,9 @@ Every change bumps `APP_VERSION` in `dist/version.mjs` and adds a `CHANGELOG` en
 
 The **Suggest a feature** page lets anyone give an idea a title, describe it and add screenshots. Selecting **Submit** files a `[Feature]` GitHub issue in the background under the requester's own account, titled `[Feature] #n Title` so the number always comes first. Each user connects GitHub once by pasting a classic token with only the `public_repo` scope. It's kept only in that browser's localStorage and sent only to api.github.com. A classic token is needed because fine-grained tokens can't reach a repository you collaborate on but don't own. Screenshots are uploaded to the `feature-assets` branch, which Pages never deploys, and linked in the issue. The same page lists each allowed request and its build status from the public GitHub API, with the total request count in the heading. Shipped requests show the version they were released in, read from the builder's `vX.Y.Z: … (#n)` commit titles. They also show their estimated tokens, AI credits (whole numbers) and cost, from `dist/build-costs.json`. A counter totals the AI credits, cost, tokens and builds across every automatic build, and a **Last 28 days** line totals the same for recent builds. A **Daily build allowance** meter shows how much of the shared limit of 5,000 AI credits per rolling 24 hours has been used. When the limit is reached it shows roughly when building restarts.
 
-Requesters reply from the status list too. A request in `needs-info` or `build-failed` shows **Answer the question** or **Reply to retry**, with the builder's latest comment, and a bell in the top bar counts the signed-in user's requests waiting on them. For 7 days after a request ships (`FOLLOW_UP_DAYS`, in both `dist/suggest.mjs` and `automation/builder.py`), **Add a follow-up** posts a comment that makes the builder reopen the issue and build just that follow-up as a new version (up to 5 per request). Replies are ordinary issue comments, so commenting on GitHub works the same. The i dialog's **Suggest a feature** tab is the user manual.
+Requesters reply from the status list too. A request in `needs-info` or `build-failed` shows **Answer the question** or **Reply to retry**, with the builder's latest comment, and a bell counts requests waiting on them. **Tested means automated checks passed, not feature acceptance. Shipped means deployed; the issue stays open for requester verification.** Add a follow-up remains available while that issue is open, or for 7 days after closure (`FOLLOW_UP_DAYS`), up to 5 follow-ups. Replies are ordinary issue comments. The i dialog's Suggest tab explains this workflow.
+
+Descriptions and allowed-author threads are no longer silently clipped at 5,000/6,000 characters. GitHub's 65,536-character issue-body limit is checked with generated headings and attachment links included; an oversized body is rejected visibly, not truncated. Every issue-comment page is fetched and the complete assembled worker prompt is supplied through CLI stdin.
 
 ### Explicit version rollback
 
@@ -70,10 +80,10 @@ Only requests from the GitHub accounts in `ALLOWED_AUTHORS` (`J-Turansky` and `c
 
 1. Every 5 minutes (Task Scheduler), it takes the oldest open `[Feature]` issue and labels it `in-progress`.
 2. It resets its own worktree (`..\pixel-workbench-build`) to `origin/main` and downloads the issue's screenshots and attached text documents (`.md`, `.txt`, `.csv`, `.json` and similar files added with GitHub's "Attach files"), which the build agent can read but not copy into the app.
-3. Normal feature requests run the Copilot CLI headlessly under [AGENTS.md](AGENTS.md). The agent gets only file and shell tools: no MCP servers, no web access, no git or gh, and no tokens. Request text is treated as untrusted. Explicit version rollbacks instead use the trusted restoration path described above, without invoking Copilot or downloading request attachments.
-4. It rejects changes outside `dist/` and `README.md` and any new network or `eval` code. Then it runs `stamp-version.mjs`, the verify scripts and `automation/smoke.py` (headless browser, every page and info tab). The agent gets two rounds to fix failures, continuing its own Copilot session (`--resume`) so it doesn't re-read the code.
+3. Normal feature requests run the Copilot CLI headlessly under [AGENTS.md](AGENTS.md). The worker has file/shell tools, but no MCP, web, Git/history, dedicated browser controls or tokens, and cannot edit tests. It is limited to one focused change. Broader historical investigations, rendering refactors or new behavioural tests require maintainer work; collaborator tools are not inherited. Request text remains untrusted. Explicit rollbacks use the trusted restoration path without Copilot.
+4. It rejects changes outside `dist/` and `README.md` and any new network or `eval` code. Trusted code runs `node check.mjs` (numerical/model, builder, behavioural, performance and browser regressions) and screenshot smoke checks. Failure blocks publication. The agent gets two fix rounds using `--resume`; an infrastructure-test failure it cannot fix needs a maintainer, not weaker checks.
    To keep AI credits low, the prompt includes a code map (`automation/codemap.py`), the agent runs one quiet `node check.mjs`, and the builder formats changed files with Prettier (`.prettierrc`) so lines stay short.
-5. It labels the issue `tested`, then appends the build's AI usage to `dist/build-costs.json`: credits, tokens, model and agent time, from the Copilot CLI usage summary. Usage from earlier attempts that didn't ship is included too. Cost is estimated at $0.01 per AI credit. It then commits, tags `vX.Y.0` and pushes to `main` as J-Turansky. It then waits for the Pages deploy, comments, labels `shipped` and closes the issue.
+5. It labels the issue `tested` for passed checks, records usage/cost, commits, tags and pushes as J-Turansky, and verifies Pages deployment. It then comments and labels `shipped` but **does not close the issue**: the requester verifies the actual requested behaviour and closes it when satisfied. Existing credit limits and failed-attempt accounting remain unchanged.
 
 Other outcomes:
 
@@ -82,7 +92,7 @@ Other outcomes:
 - Failures are rolled back and labelled `build-failed` with the reason.
 - If a release has already been pushed but Pages fails or cannot be verified live, the request remains open with `build-failed` and a precise deployment blocker. It is not falsely labelled shipped, and published history is never reset.
 - When the requester or an allowed owner replies, a `needs-info` or `build-failed` request is retried (up to 3 attempts). Such a comment on a request shipped in the last 7 days reopens it, removes `shipped` and builds the follow-up on top of the live version (`MAX_FOLLOW_UPS` = 5 per request). Each requester is limited to 100 builds a day.
-- Every build gets the whole issue thread in order: the original request, then each builder question or outcome, the requester's replies and notes from the project owner (other allowlisted accounts). Only "Building this now" status notes and comments from other accounts are left out. A follow-up build is told to build only what was asked after the latest "Shipped in" note. Very long threads drop their oldest comments first (`THREAD_CHARS`).
+- Every build gets the complete allowed-author issue thread in order, without dropping older comments. Only "Building this now" status notes and comments from other accounts are excluded. A follow-up build handles only work after the latest authentic "Shipped in" note.
 - Across all requests and users, no new build starts once 5,000 AI credits (`DAILY_CREDIT_LIMIT`) have been used in the last 24 hours. A build already running always finishes, so the total can go slightly over. Requests stay queued until older builds drop out of the window. After each build the builder publishes the rolling spend to `usage.json` on the `feature-assets` branch, and the app reads it from there.
 
 Set up the builder once on the build PC:
@@ -100,6 +110,10 @@ Logs, screenshots and state are in `%LOCALAPPDATA%\PixelWorkbenchBuilder`. To ru
 Run `node check.mjs` to run every check quietly, or `node verify.mjs` and `node verify-installation.mjs` for numerical and validation checks. `python automation\smoke.py dist` loads every page and info tab in headless Chromium. The app also exposes read-plan and set-planning-brightness WebMCP tools where supported.
 
 Run `python -m unittest discover -s automation -p test_builder.py` for offline builder regressions. GitHub, issue mutations, Copilot and publishing are mocked; restoration filesystem tests use disposable repositories, never the installed builder or its shared worktree.
+
+`node check.mjs` also runs `node tests\repair-model.mjs`, `python tests\workflows.py` and `python tests\performance.py --wired`. The workflow suite exercises real Chromium controls, port drags, cancellations, connected removals, templates, zoom, manual routes, exports, reload and controller-free placement. Run `python tests\workflows.py --evidence <directory>` for screenshots and `results.json`, or add `--base https://connorturansky-svg.github.io/pixel-workbench/` to repeat them against deployed assets in a disposable browser.
+
+Performance uses the reconstructed reference and a 24-box/120-component installation with 32 links, five samples per action, two animation frames per observation, verified movement and action thresholds. `--output <file>` records fixture/device/browser timings. `--record-only` is solely for historical comparison, never the release gate. These tests do not establish every future feature's acceptance and do not substitute for requester verification.
 
 The layout checks cover old-project migration, geometry bounds, state round-trips and rejected unsafe references. Projects remain compatible with the existing v1 JSON format through optional scene/props fields.
 

@@ -1,4 +1,4 @@
-import { APP_VERSION } from './version.mjs?v=0.75.0';
+import { APP_VERSION } from './version.mjs?v=0.76.0';
 
 // Suggest a feature: submits a `[Feature]` GitHub issue in the background under the requester's own GitHub account
 // (a token they connect once, kept only in this browser and sent only to api.github.com). Screenshots are uploaded
@@ -55,6 +55,11 @@ const gh = (url, opts = {}) =>
     }
   });
 const ready = () => draft.title.trim().length >= 5 && draft.desc.trim().length >= 15;
+export const GITHUB_BODY_LIMIT = 65536;
+export const githubBodyError = body =>
+  String(body).length > GITHUB_BODY_LIMIT
+    ? `GitHub allows at most ${GITHUB_BODY_LIMIT.toLocaleString()} characters per issue or comment. This body has ${String(body).length.toLocaleString()} including headings and screenshot links. Shorten it or split the extra requirements into replies; nothing has been truncated or submitted.`
+    : '';
 export const FOLLOW_UP_DAYS = 7; // automation/builder.py FOLLOW_UP_DAYS must match
 let list = { state: 'idle', items: [], error: '', at: 0 },
   toast = () => {},
@@ -64,9 +69,9 @@ const STAGES = [
   ['all', 'All', () => true],
   ['queued', 'Queued', s => s === 'queued'],
   ['building', 'Building', s => s === 'building'],
-  ['tested', 'Tested', s => s === 'tested'],
+  ['tested', 'Checks passed', s => s === 'tested'],
   ['shipped', 'Shipped', s => s === 'shipped'],
-  ['attention', 'Needs attention', s => s === 'failed' || s === 'info']
+  ['attention', 'Needs attention', s => s === 'failed' || s === 'info' || s === 'maintainer']
 ];
 const stageOf = k => STAGES.find(x => x[0] === k) || STAGES[0];
 function stagesHtml() {
@@ -83,10 +88,20 @@ function stagesHtml() {
 const STATUS = {
   queued: ['Queued', 'Waiting for the builder (it checks every 5 minutes).'],
   building: ['Building', 'Being built and tested on the build PC.'],
-  tested: ['Tested', 'Passed every check; being published to the site.'],
-  shipped: ['Shipped', 'Live on the site. Reload the page to get it.'],
-  failed: ['Build failed', 'Not released. The issue says why.'],
+  tested: [
+    'Checks passed',
+    'Release checks and page-load smoke passed; requested behaviour is not necessarily verified. Publishing.'
+  ],
+  shipped: [
+    'Shipped',
+    'Live on the site; awaiting requester verification of the requested behaviour. Reload to try it.'
+  ],
+  failed: [
+    'Build failed',
+    'Build or live-release verification failed. A version may have been pushed; see the issue for what was verified.'
+  ],
   info: ['Needs info', 'The builder asked a question on the issue.'],
+  maintainer: ['Needs maintainer', 'Beyond the restricted automatic worker; a maintainer must investigate.'],
   declined: ['Declined', 'Out of scope or unsafe. The issue says why.'],
   closed: ['Closed', 'Closed without a build.']
 };
@@ -96,20 +111,22 @@ const date = s => {
     ? ''
     : `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
 };
-function statusOf(i) {
+export function statusOf(i) {
   const l = new Set((i.labels || []).map(x => x.name));
+  if (l.has('maintainer-needed')) return 'maintainer';
+  if (l.has('build-failed')) return 'failed';
   if (l.has('shipped')) return 'shipped';
   if (l.has('declined')) return 'declined';
-  if (l.has('build-failed')) return 'failed';
   if (l.has('needs-info')) return 'info';
   if (l.has('tested')) return 'tested';
   if (l.has('in-progress')) return 'building';
   return i.state === 'closed' ? 'closed' : 'queued';
 }
 
-function issueBody(shots) {
-  return `<!-- pixel-workbench-feature -->\n### What should it do?\n${draft.desc.trim().slice(0, 5000)}\n\n### Screenshots\n${shots.length ? shots.map((u, i) => `![Screenshot ${i + 1}](${u})`).join('\n\n') : '_None_'}\n\n---\n_Suggested from Pixel Workbench v${APP_VERSION}_`;
+export function featureIssueBody(description, shots) {
+  return `<!-- pixel-workbench-feature -->\n### What should it do?\n${description}\n\n### Screenshots\n${shots.length ? shots.map((u, i) => `![Screenshot ${i + 1}](${u})`).join('\n\n') : '_None_'}\n\n---\n_Suggested from Pixel Workbench v${APP_VERSION}_`;
 }
+const issueBody = shots => featureIssueBody(draft.desc, shots);
 const toBase64 = blob =>
   new Promise((res, rej) => {
     const r = new FileReader();
@@ -135,6 +152,12 @@ async function fail(r, what) {
 
 async function submit() {
   if (!ready() || sub.state === 'sending') return;
+  const initialError = githubBodyError(issueBody([]));
+  if (initialError) {
+    sub = { state: 'error', msg: initialError, number: 0, url: '' };
+    paint();
+    return;
+  }
   if (!auth) {
     connect.open = true;
     paint();
@@ -145,6 +168,12 @@ async function submit() {
   sub = { state: 'sending', msg: 'Submitting…', number: 0, url: '' };
   paint();
   try {
+    const projectedShots = draft.images.map(
+      (im, i) =>
+        `https://raw.githubusercontent.com/${REPO}/${ASSETS}/${folder}/${i + 1}.${EXT[im.blob.type] || 'png'}`
+    );
+    const projectedError = githubBodyError(issueBody(projectedShots));
+    if (projectedError) throw new Error(projectedError);
     const shots = [];
     for (const [i, im] of draft.images.entries()) {
       sub.msg = `Uploading screenshot ${i + 1} of ${draft.images.length}…`;
@@ -161,12 +190,15 @@ async function submit() {
       shots.push((await r.json()).content.download_url);
     }
     sub.msg = 'Creating the request…';
+    const body = issueBody(shots),
+      bodyError = githubBodyError(body);
+    if (bodyError) throw new Error(bodyError);
     paint();
     const r = await gh('/issues', {
       method: 'POST',
       body: JSON.stringify({
         title: '[Feature] ' + title,
-        body: issueBody(shots),
+        body,
         labels: ['feature-request']
       })
     });
@@ -367,14 +399,15 @@ let replied = (() => {
   })(),
   reply = { open: 0, text: '', busy: false, error: '', notes: {} };
 // The status a reply was sent from; once the builder changes the status, the request needs nothing from the user.
-const repliedNow = i => replied[i.number] && replied[i.number] === statusOf(i) + '|' + (i.closed_at || '');
+const replyKey = i => statusOf(i) + '|' + (i.closed_at || '') + '|' + (list.versions?.[i.number] || '');
+const repliedNow = i => replied[i.number] && replied[i.number] === replyKey(i);
 // Requests waiting on their requester: a builder question, or a failed build to retry.
 export const needsReply = i => mine(i) && ['info', 'failed'].includes(statusOf(i)) && !repliedNow(i);
-// Shipped requests can take a follow-up comment for a few days; the builder reopens and rebuilds them.
+// Open shipped requests await verification; recently closed requests also accept follow-ups.
 const canFollowUp = i =>
   mine(i) &&
   statusOf(i) === 'shipped' &&
-  Date.now() - new Date(i.closed_at || 0).getTime() < FOLLOW_UP_DAYS * 86400000 &&
+  (!i.closed_at || Date.now() - new Date(i.closed_at).getTime() < FOLLOW_UP_DAYS * 86400000) &&
   !repliedNow(i);
 export function attentionItems() {
   return list.items.filter(needsReply);
@@ -397,11 +430,11 @@ function replyHtml(i) {
   const note = reply.notes[i.number],
     lead =
       s === 'shipped'
-        ? `Missed something? Describe what still needs changing. The builder reopens #${i.number} and builds it as a new version (within ${FOLLOW_UP_DAYS} days of shipping).`
+        ? `Check the requested behaviour before closing #${i.number}. Describe anything missing for a focused follow-up (up to five builds). Open requests await your verification; closed requests allow follow-ups within ${FOLLOW_UP_DAYS} days. Broader investigation needs a maintainer.`
         : s === 'info'
           ? 'The builder needs more detail before it can build this.'
           : 'Add detail or corrections, and the builder tries again.';
-  return `<div class="sg-reply"><p>${E(lead)}</p>${note === undefined ? '<p class="sg-note">Loading the builder’s latest message…</p>' : note ? `<blockquote class="sg-note">${E(note)}</blockquote>` : ''}<textarea rows="4" maxlength="4000" data-sg-field="reply" aria-label="Your reply to #${i.number}" placeholder="${s === 'shipped' ? 'e.g. The main ask was … which still isn’t there.' : 'Your answer'}">${E(reply.text)}</textarea>${reply.error ? `<p class="sg-error">${E(reply.error)}</p>` : ''}<div class="sg-reply-actions"><button type="button" class="btn primary" data-sg="send-reply:${i.number}" ${reply.busy || reply.text.trim().length < 5 ? 'disabled' : ''}>${reply.busy ? 'Sending…' : 'Send'}</button><button type="button" class="text-btn" data-sg="reply-cancel">Cancel</button></div></div>`;
+  return `<div class="sg-reply"><p>${E(lead)}</p>${note === undefined ? '<p class="sg-note">Loading the builder’s latest message…</p>' : note ? `<blockquote class="sg-note">${E(note)}</blockquote>` : ''}<textarea rows="4" data-sg-field="reply" aria-label="Your reply to #${i.number}" placeholder="${s === 'shipped' ? 'e.g. The main ask was … which still isn’t there.' : 'Your answer'}">${E(reply.text)}</textarea><small>GitHub limit: ${GITHUB_BODY_LIMIT.toLocaleString()} characters. Over-limit replies are rejected, never clipped.</small>${reply.error ? `<p class="sg-error">${E(reply.error)}</p>` : ''}<div class="sg-reply-actions"><button type="button" class="btn primary" data-sg="send-reply:${i.number}" ${reply.busy || reply.text.trim().length < 5 ? 'disabled' : ''}>${reply.busy ? 'Sending…' : 'Send'}</button><button type="button" class="text-btn" data-sg="reply-cancel">Cancel</button></div></div>`;
 }
 async function loadNote(n) {
   try {
@@ -423,14 +456,20 @@ async function loadNote(n) {
 }
 async function sendReply(n) {
   const i = list.items.find(x => x.number === n),
-    text = reply.text.trim();
-  if (!i || !auth || text.length < 5 || reply.busy) return;
+    text = reply.text;
+  if (!i || !auth || text.trim().length < 5 || reply.busy) return;
+  const bodyError = githubBodyError(text);
+  if (bodyError) {
+    reply.error = bodyError;
+    paintList();
+    return;
+  }
   reply = { ...reply, busy: true, error: '' };
   paintList();
   try {
     const r = await gh(`/issues/${n}/comments`, { method: 'POST', body: JSON.stringify({ body: text }) });
     if (!r.ok) await fail(r, 'post your reply');
-    replied[n] = statusOf(i) + '|' + (i.closed_at || '');
+    replied[n] = replyKey(i);
     try {
       localStorage.setItem(REPLIED_KEY, JSON.stringify(replied));
     } catch {}
@@ -467,13 +506,14 @@ function listHtml() {
 export function suggestView() {
   return `<div class="sg-grid">
 <section class="panel sg-form"><h3>Describe your idea</h3>
-<p class="sg-lead">Tell us what you'd like Pixel Workbench to do. Your request is filed as a GitHub issue under your own GitHub account. Requests from approved accounts (${ALLOWED_AUTHORS.map(E).join(' and ')}) are built, tested and published automatically, usually within 30 minutes. Requests from other accounts are closed without a build.</p>
+<p class="sg-lead">Tell us what you'd like Pixel Workbench to do. Your request is filed as a GitHub issue under your own GitHub account. Approved accounts (${ALLOWED_AUTHORS.map(E).join(' and ')}) can request one focused local app change, usually within 30 minutes. The restricted worker cannot investigate GitHub history, other systems or browser/web research: those requests need a maintainer. Release checks and page smoke do not verify every requested feature; shipped issues stay open for you to test and confirm. Requests from other accounts are closed without a build.</p>
 <label>Title<input type="text" maxlength="100" data-sg-field="title" placeholder="e.g. Voltage drop on room cable routes" value="${E(draft.title)}"></label>
-<label>What should it do?<textarea rows="7" maxlength="5000" data-sg-field="desc" placeholder="e.g. Show the voltage drop on each room cable route. Highlight routes over 5% so I know where to inject power.">${E(draft.desc)}</textarea></label>
+<label>What should it do?<textarea rows="7" data-sg-field="desc" placeholder="e.g. Show the voltage drop on each room cable route. Highlight routes over 5% so I know where to inject power.">${E(draft.desc)}</textarea></label>
+<small>GitHub limit: ${GITHUB_BODY_LIMIT.toLocaleString()} characters including headings and screenshot links. Longer text is rejected before submission, never silently clipped; add extra requirements in replies.</small>
 <div class="sg-drop" data-sg-drop tabindex="0" role="button" aria-label="Add screenshots: paste, drop or choose files"><strong>Add screenshots</strong><span>Paste (Ctrl+V), drop images here, or <u>choose files</u>. Up to ${MAX_IMAGES}.</span><input type="file" accept="image/*" multiple hidden data-sg-file></div>
 ${imagesHtml()}
 ${connectHtml()}
-<div class="sg-actions"><button type="button" class="btn primary" data-sg="submit" ${ready() && sub.state !== 'sending' ? '' : 'disabled'}>${sub.state === 'sending' ? 'Submitting…' : 'Submit'}</button><small>${sub.state === 'sending' ? E(sub.msg) : ready() ? (auth ? 'Your request is built, tested and published automatically.' : "You'll be asked to connect GitHub once.") : 'Give it a short title and describe your idea in a sentence or more.'}</small></div>
+<div class="sg-actions"><button type="button" class="btn primary" data-sg="submit" ${ready() && sub.state !== 'sending' ? '' : 'disabled'}>${sub.state === 'sending' ? 'Submitting…' : 'Submit'}</button><small>${sub.state === 'sending' ? E(sub.msg) : ready() ? (auth ? 'Focused app changes can be built automatically; verify the result yourself.' : "You'll be asked to connect GitHub once.") : 'Give it a short title and describe your idea in a sentence or more.'}</small></div>
 ${resultHtml()}
 </section>
 <section class="panel sg-status"><div class="sg-status-head"><h3>Requests and build status <span data-sg-count>(${list.items.length})</span></h3><button type="button" class="text-btn" data-sg="refresh">Refresh</button></div>

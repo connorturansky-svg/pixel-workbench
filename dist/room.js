@@ -5,7 +5,7 @@ import {
   makeProp,
   PALETTE,
   clampPosition
-} from './layout-model.mjs?v=0.75.0';
+} from './layout-model.mjs?v=0.76.0';
 import {
   ensureInstallation,
   BUTTON_COLOURS,
@@ -13,15 +13,17 @@ import {
   boxVisualScale,
   perimeterAnchor,
   deleteRoute,
-  portTypeColour
-} from './installation-model.mjs?v=0.75.0';
+  portTypeColour,
+  connectionProblem
+} from './installation-model.mjs?v=0.76.0';
 import {
   routeLayer,
   routeControls,
   routeInspector,
   installRoutes,
-  refreshRoutes
-} from './installation-room.mjs?v=0.75.0';
+  refreshRoutes,
+  refreshRouteInspector
+} from './installation-room.mjs?v=0.76.0';
 let api,
   chosen = '',
   propId = 'prop-smiley',
@@ -31,6 +33,8 @@ let api,
   drag = null,
   panDrag = null,
   roomWire = null,
+  suppressPortClick = false,
+  portPicker = '',
   viewport = { left: 0, top: 0 },
   detailLevels = new Map();
 const E = s =>
@@ -104,8 +108,8 @@ function fitSelected() {
     sc = document.querySelector('.room-scroll'),
     svg = sc?.querySelector('#room-canvas');
   if (!placement || !sc || !svg) return;
-  const horizontal = (p.scene.width / Math.max(0.01, placement.width)) * 0.72,
-    vertical = ((p.scene.width * sc.clientHeight) / Math.max(1, placement.height * sc.clientWidth)) * 0.72;
+  const horizontal = (p.scene.width / Math.max(0.01, placement.width)) * 0.64,
+    vertical = ((p.scene.width * sc.clientHeight) / Math.max(0.01, placement.height * sc.clientWidth)) * 0.64;
   setZoom(Math.min(horizontal, vertical));
   requestAnimationFrame(() => {
     sc.scrollLeft = (placement.x / p.scene.width) * svg.clientWidth - sc.clientWidth / 2;
@@ -119,22 +123,63 @@ function updateVisualScale() {
     matrix = svg?.getScreenCTM();
   if (!svg || !matrix) return;
   const rootScale = Math.hypot(matrix.a, matrix.b) || 1;
+  const viewport = svg.closest('.room-scroll').getBoundingClientRect();
+  const boxMetrics = [...svg.querySelectorAll('.room-box-visual')].map(box => {
+    const transform = box.getScreenCTM(),
+      shell = box.querySelector('.room-box-shell'),
+      width = +shell.getAttribute('width'),
+      height = +shell.getAttribute('height'),
+      halfW = (Math.abs(transform.a) * width + Math.abs(transform.c) * height) / 2,
+      halfH = (Math.abs(transform.b) * width + Math.abs(transform.d) * height) / 2,
+      visible =
+        transform.e + halfW + 140 >= viewport.left &&
+        transform.e - halfW - 140 <= viewport.right &&
+        transform.f + halfH + 140 >= viewport.top &&
+        transform.f - halfH - 140 <= viewport.bottom;
+    return { box, visible, boxScale: Math.hypot(transform.a, transform.b) || rootScale };
+  });
   svg.style.setProperty('--room-unit', 1 / rootScale);
   for (const el of svg.querySelectorAll('[data-room-node]')) {
     const pixels = +el.dataset.roomSize * rootScale,
-      previous = detailLevels.get(el.dataset.roomNode) || 'overview',
-      lower = previous === 'detail' ? 122 : 46,
-      upper = previous === 'overview' ? 138 : 122;
-    let level = pixels < lower ? 'overview' : pixels >= upper ? 'detail' : 'equipment';
+      previous = detailLevels.get(el.dataset.roomNode) || 'overview';
+    let level =
+      pixels >= (previous === 'detail' ? 122 : 138)
+        ? 'detail'
+        : pixels >= (previous === 'overview' ? 54 : 40)
+          ? 'equipment'
+          : 'overview';
     if (el.classList.contains('chosen') && level === 'overview') level = 'equipment';
     detailLevels.set(el.dataset.roomNode, level);
     el.dataset.roomDetail = level;
   }
-  for (const box of svg.querySelectorAll('.room-box-visual')) {
-    const boxMatrix = box.getScreenCTM(),
-      boxScale = boxMatrix ? Math.hypot(boxMatrix.a, boxMatrix.b) : rootScale;
+  for (const { box, boxScale, visible } of boxMetrics) {
+    if (!visible) box.closest('[data-room-node]').dataset.roomDetail = 'overview';
     box.style.setProperty('--room-unit', 1 / (boxScale || 1));
-    box.style.setProperty('--room-port-scale', Math.max(0.35, Math.min(1.25, 2.2 / boxScale)));
+    box.style.setProperty('--room-label-size', Math.min(14 / boxScale, 14) + 'px');
+    for (const port of box.querySelectorAll('[data-room-port]')) {
+      const gap = +port.dataset.portSpacing * boxScale;
+      port.dataset.dense = gap < 20 ? 'true' : 'false';
+      port.style.setProperty(
+        '--port-height',
+        Math.max(2 / boxScale, Math.min(18 / boxScale, +port.dataset.portSpacing * 0.8)) + 'px'
+      );
+    }
+    for (const text of visible ? box.querySelectorAll('[data-max-width]') : []) {
+      text.dataset.fullText ??= text.textContent;
+      const full = text.dataset.fullText,
+        font = Math.min(14 / boxScale, 14),
+        characters = Math.max(1, Math.floor(+text.dataset.maxWidth / (font * 0.62)));
+      const lines = text.querySelectorAll('tspan');
+      for (const line of lines.length ? lines : [text]) {
+        line.dataset.fullText ??= line.textContent;
+        const value = line.dataset.fullText;
+        line.textContent =
+          value.length > characters ? value.slice(0, Math.max(1, characters - 1)) + '…' : value;
+      }
+      text.style.fontSize = font + 'px';
+      text.style.visibility = font * boxScale < 10 ? 'hidden' : 'visible';
+      text.setAttribute('aria-label', full);
+    }
   }
 }
 function propSvg(pr, count = pr.count, numbered = false) {
@@ -232,6 +277,10 @@ export function roomView(p) {
   requestAnimationFrame(() => {
     restoreViewport();
     updateVisualScale();
+    const camera = document.querySelector('.room-camera');
+    if (camera && !camera.querySelector('[data-room="ports"]'))
+      camera.insertAdjacentHTML('beforeend', b('Ports', 'ports', 'room-fit'));
+    if (portPicker) showPortPicker(portPicker);
   });
   const es = entities(p);
   if (!es.some(e => e.key === chosen)) chosen = es[0]?.key;
@@ -301,8 +350,23 @@ function componentLines(name, limit) {
   }
   return lines.map(line => (line.length > limit ? line.slice(0, Math.max(2, limit - 1)) + '…' : line));
 }
+function contrastingText(colour, opacity = 1) {
+  const hex = colour.match(/^#([\da-f]{6})$/i)?.[1];
+  if (!hex) return '#ffffff';
+  const background = [25, 63, 57];
+  const luminance = [0, 2, 4].reduce((sum, offset, i) => {
+    const channel =
+      (parseInt(hex.slice(offset, offset + 2), 16) * opacity + background[i] * (1 - opacity)) / 255;
+    return (
+      sum +
+      (channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4) *
+        [0.2126, 0.7152, 0.0722][i]
+    );
+  }, 0);
+  return luminance > 0.179 ? '#000000' : '#ffffff';
+}
 function boxVisual(box, w, h) {
-  const scale = boxVisualScale(w / 100, h / 100);
+  const scale = w / 400;
   w /= scale;
   h /= scale;
   const items = box.components,
@@ -310,7 +374,7 @@ function boxVisual(box, w, h) {
     n = items.length,
     cols = Math.max(1, Math.ceil(Math.sqrt((n * w) / Math.max(h, 1)))),
     rows = Math.max(1, Math.ceil(n / cols)),
-    header = 22,
+    header = 36,
     cellW = w / cols,
     cellH = (h - header) / rows,
     labels = api.getProject().installation.showLabels,
@@ -324,47 +388,39 @@ function boxVisual(box, w, h) {
       : box.interfacePorts?.length
         ? 'NO ACTIVE EDGE PORTS'
         : `${n} COMPONENT${n === 1 ? '' : 'S'}`;
-  return `<g class="room-box-visual" transform="scale(${scale})"><rect class="room-box-shell" x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="4" fill="#193f39" stroke="#4f806a"/><circle class="room-overview-marker" cx="0" cy="0"/><g class="room-box-internals">${labels ? `<text class="room-box-name" x="${-w / 2 + 6}" y="${-h / 2 + 10}" fill="white" font-weight="700">${E(box.name.length > 32 ? box.name.slice(0, 30) + '…' : box.name)}</text><text class="room-box-configuration" x="${-w / 2 + 6}" y="${-h / 2 + 18}" fill="#d7ebe4">${E(configuration)}</text>` : ''}${items
+  return `<g class="room-box-visual" transform="scale(${scale})"><rect class="room-box-shell" x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="4" fill="#193f39" stroke="#4f806a"/><circle class="room-overview-marker" cx="0" cy="0"/><g class="room-box-internals">${labels ? `<text class="room-box-name" data-max-width="${w - 16}" data-characters="${box.name.length}" x="${-w / 2 + 8}" y="${-h / 2 + 15}" fill="white" font-weight="700">${E(box.name)}</text><text class="room-box-configuration" x="${-w / 2 + 8}" y="${-h / 2 + 29}" fill="#d7ebe4">${E(configuration)}</text>` : ''}${items
     .map((part, i) => {
       const x = -w / 2 + (i % cols) * cellW,
         y = -h / 2 + header + Math.floor(i / cols) * cellH,
         c = part.snapshot.color || '#4b8a76',
-        limit = Math.max(5, Math.floor((cellW - 8) / 3.8)),
+        limit = Math.max(8, Math.floor((cellW - 12) / 6)),
         shortName = componentShortName(part.snapshot.name),
         lines = componentLines(part.snapshot.name, limit);
       if (box.kind === 'button') {
         const labelHeight = labels ? 11 : 0,
-          scale = Math.max(0.18, Math.min((cellW - 8) / 62, (cellH - labelHeight - 4) / 62)),
+          size = { small: 0.7, medium: 0.85, large: 1 }[part.buttonSize || 'medium'],
+          scale = size * Math.max(0.18, Math.min((cellW - 8) / 62, (cellH - labelHeight - 4) / 62)),
           cx = x + cellW / 2,
           cy = y + (cellH - labelHeight) / 2;
-        return `<g><g transform="translate(${cx} ${cy}) scale(${scale}) translate(-50 -51)"><rect x="22" y="38" width="56" height="42" rx="8" fill="#505c58" stroke="#243a34" stroke-width="4"/><ellipse cx="50" cy="40" rx="23" ry="18" fill="${E(c)}" stroke="#f5f7f4" stroke-width="5"/><ellipse cx="50" cy="36" rx="13" ry="8" fill="#ffffff55"/></g>${labels ? `<text class="room-component-label" x="${cx}" y="${y + cellH - 3}" text-anchor="middle" font-size="8" fill="white" paint-order="stroke" stroke="#153d36" stroke-width="1">${E((part.subname || shortName).slice(0, limit * 2))}</text>` : ''}<title>${E(part.snapshot.name)}${part.subname ? ` (${E(part.subname)})` : ''} · ${E(part.buttonColour || 'Custom')} face · ${E(part.snapshot.ports.length)} ports</title></g>`;
+        return `<g data-room-button="${E(part.id)}" data-button-size="${E(part.buttonSize)}"><g class="room-button-symbol" transform="translate(${cx} ${cy}) scale(${scale}) translate(-50 -51)"><rect x="22" y="38" width="56" height="42" rx="8" fill="#505c58" stroke="#243a34" stroke-width="1.5"/><ellipse cx="50" cy="40" rx="23" ry="18" fill="${E(c)}" stroke="${part.buttonType === 'illuminated' ? '#fff3ad' : '#d7dfdc'}" stroke-width="${part.buttonType === 'illuminated' ? 4 : 2}"/><ellipse cx="50" cy="36" rx="13" ry="8" fill="#ffffff55"/></g>${labels ? `<text class="room-component-label" data-max-width="${cellW - 8}" data-characters="${(part.subname || shortName).length}" x="${cx}" y="${y + cellH - 3}" text-anchor="middle" fill="white">${E(part.subname || shortName)}</text>` : ''}<title>${E(part.snapshot.name)}${part.subname ? ` (${E(part.subname)})` : ''} · ${E(part.buttonColour || 'Custom')} · ${E(part.buttonSize)} · ${E(part.snapshot.ports.length)} ports</title></g>`;
       }
-      return `<g class="room-component-card"><rect x="${x + 1}" y="${y + 1}" width="${cellW - 2}" height="${cellH - 2}" rx="2" fill="${E(c)}" fill-opacity=".92" stroke="#f4f8f5" stroke-width=".7"/>${labels ? `<text class="room-component-label" x="${x + 4}" y="${y + 10}" fill="white">${lines.map((line, lineIndex) => `<tspan x="${x + 4}" dy="${lineIndex ? 8 : 0}">${E(line)}</tspan>`).join('')}</text>${cellH >= 29 ? `<text class="room-component-icon" x="${x + cellW / 2}" y="${y + cellH - 7}" text-anchor="middle" fill="white">${E(part.snapshot.icon)}</text>` : ''}${part.subname && cellH >= 44 ? `<text class="room-component-subname" x="${x + 4}" y="${y + cellH - 4}" fill="white">(${E(part.subname.length > limit ? part.subname.slice(0, limit - 1) + '…' : part.subname)})</text>` : ''}` : ''}<title>${E(part.snapshot.name)}${part.subname ? ` (${E(part.subname)})` : ''} · ${E(part.snapshot.ports.length)} ports</title></g>`;
+      return `<g class="room-component-card" style="--label-colour:${contrastingText(c, 0.92)}"><rect x="${x + 2}" y="${y + 2}" width="${cellW - 4}" height="${cellH - 4}" rx="2" fill="${E(c)}" fill-opacity=".92" stroke="#f4f8f5" stroke-width=".7"/>${labels ? `<text class="room-component-label" data-max-width="${cellW - 12}" data-characters="${Math.max(...lines.map(line => line.length))}" x="${x + 6}" y="${y + 17}" fill="white">${lines.map((line, lineIndex) => `<tspan x="${x + 6}" dy="${lineIndex ? 15 : 0}">${E(line)}</tspan>`).join('')}</text>${cellH >= 45 ? `<text class="room-component-icon" x="${x + cellW / 2}" y="${y + cellH - 12}" text-anchor="middle" fill="white">${E(part.snapshot.icon)}</text>` : ''}${part.subname && cellH >= 70 ? `<text class="room-component-subname" x="${x + 6}" y="${y + cellH - 4}" fill="white">(${E(part.subname.slice(0, limit))})</text>` : ''}` : ''}<title>${E(part.snapshot.name)}${part.subname ? ` (${E(part.subname)})` : ''} · ${E(part.snapshot.ports.length)} ports</title></g>`;
     })
     .join(
       ''
     )}${n || !labels ? '' : '<text text-anchor="middle" y="5" fill="white" font-size="11">EMPTY BOX</text>'}</g>${ports
-    .map(({ component, port, edge }) => {
-      const point = perimeterAnchor(api.getProject(), box.id, component.id, port.id);
-      if (!point) return '';
-      const placement = api.getProject().scene.placements['box:' + box.id],
-        x = ((point.x - placement.x) * 100) / scale,
-        y = ((point.y - placement.y) * 100) / scale,
-        label = port.label.slice(0, 24),
-        innerX = edge === 'left' ? -w / 2 : edge === 'right' ? w / 2 : x,
-        innerY = edge === 'top' ? -h / 2 : edge === 'bottom' ? h / 2 : y,
-        pillX =
-          Math.min(x, innerX) -
-          (edge === 'top' || edge === 'bottom'
-            ? Math.max(12, Math.min(w * 0.38, label.length * 2.4 + 8))
-            : 0),
-        pillY = Math.min(y, innerY) - (edge === 'left' || edge === 'right' ? 6 : 0),
-        pillW =
-          edge === 'left' || edge === 'right'
-            ? Math.abs(x - innerX)
-            : Math.max(24, Math.min(w * 0.76, label.length * 4.8 + 16)),
-        pillH = edge === 'top' || edge === 'bottom' ? Math.abs(y - innerY) : 12;
-      return `<g class="room-external-node" data-room-port="${E(box.id)}:${E(component.id)}:${E(port.id)}" data-anchor-x="${x}" data-anchor-y="${y}" tabindex="0" role="button" aria-label="${E(box.name)} ${E(component.snapshot.name)} ${E(port.label)} ${E(port.type)} port"><rect class="room-port-hit" x="${pillX}" y="${pillY}" width="${pillW}" height="${pillH}" rx="6"/><rect class="room-port-symbol" x="${pillX}" y="${pillY}" width="${pillW}" height="${pillH}" rx="6" fill="${E(component.snapshot.color || '#4b8a76')}" stroke="${portTypeColour(port.type)}"/><title>${E(box.name)} → ${E(component.snapshot.name)}${component.subname ? ` (${E(component.subname)})` : ''} → ${E(port.label)} (${E(port.type)})</title>${labels ? `<text class="room-port-label" x="${(x + innerX) / 2}" y="${(y + innerY) / 2 + 2.5}" text-anchor="middle">${E(label)}</text>` : ''}</g>`;
+    .map(({ component, port, edge, t }) => {
+      const x = edge === 'left' ? -w / 2 : edge === 'right' ? w / 2 : (t - 0.5) * w,
+        y = edge === 'top' ? -h / 2 : edge === 'bottom' ? h / 2 : (t - 0.5) * h,
+        horizontal = edge === 'left' || edge === 'right',
+        spacing = (horizontal ? h : w) / (ports.filter(p => p.edge === edge).length + 1),
+        label = port.label.slice(0, 28),
+        pillW = horizontal ? 96 : Math.min(90, spacing * 0.86),
+        pillX = edge === 'left' ? x - pillW : edge === 'right' ? x : x - pillW / 2,
+        pillY = edge === 'top' ? y - 20 : edge === 'bottom' ? y : y - 10,
+        textX = pillX + pillW / 2,
+        textY = pillY + 14;
+      return `<g class="room-external-node" style="--label-colour:${contrastingText(component.snapshot.color || '#4b8a76')}" data-room-port="${E(box.id)}:${E(component.id)}:${E(port.id)}" data-port-spacing="${spacing}" data-anchor-x="${x}" data-anchor-y="${y}" tabindex="0" role="button" aria-label="${E(box.name)} ${E(component.snapshot.name)} ${E(port.label)} ${E(port.type)} port"><rect class="room-port-symbol" x="${pillX}" y="${pillY}" width="${pillW}" height="20" rx="5" fill="${E(component.snapshot.color || '#4b8a76')}" stroke="${portTypeColour(port.type)}"/><circle class="room-port-dot" cx="${x}" cy="${y}" fill="${E(component.snapshot.color || '#4b8a76')}" stroke="${portTypeColour(port.type)}"/><title>${E(box.name)} → ${E(component.snapshot.name)}${component.subname ? ` (${E(component.subname)})` : ''} → ${E(port.label)} (${E(port.type)})</title>${labels ? `<text class="room-port-label" data-max-width="${pillW - 8}" data-characters="${label.length}" x="${textX}" y="${textY}" text-anchor="middle">${E(label)}</text>` : ''}</g>`;
     })
     .join('')}</g>`;
 }
@@ -431,6 +487,12 @@ export function installRoom(a) {
   document.addEventListener('change', onChange);
   document.addEventListener('pointerdown', down);
   document.addEventListener('pointermove', move);
+  document.addEventListener('pointerover', e =>
+    tracePort(e.target.closest('[data-room-port]')?.dataset.roomPort)
+  );
+  document.addEventListener('focusin', e =>
+    tracePort(e.target.closest('[data-room-port]')?.dataset.roomPort)
+  );
   document.addEventListener('pointerup', up);
   document.addEventListener('pointercancel', up);
   document.addEventListener('wheel', wheel, { passive: false });
@@ -454,7 +516,41 @@ function completeRoomWire(target) {
     return;
   const source = roomWire;
   roomWire = null;
+  portPicker = '';
+  document.querySelector('.room-port-picker')?.remove();
   api.linkRoom(source, target);
+}
+function showPortPicker(boxId, candidates) {
+  const box = api.getProject().installation.boxes.find(b => b.id === boxId);
+  const stage = document.querySelector('.room-stage');
+  if (!box || !stage) return;
+  portPicker = boxId;
+  document.querySelector('.room-port-picker')?.remove();
+  stage.insertAdjacentHTML(
+    'beforeend',
+    `<section class="room-port-picker" aria-label="${E(box.name)} individual ports"><div><strong>${E(box.name)}</strong>${b('Close', 'close-ports', 'text-btn')}</div><p>${roomWire ? 'Select the exact destination port.' : 'Select a port, then another box’s port or a field object.'}</p>${
+      (candidates || exposedPorts(box).map(e => ({ ...e, boxId: box.id })))
+        .map(
+          ({ component, port, boxId: owner }) =>
+            `<button type="button" data-room-choose-port="${E(owner)}:${E(component.id)}:${E(port.id)}" style="--port-color:${portTypeColour(port.type)}">${candidates ? E(api.getProject().installation.boxes.find(b => b.id === owner)?.name) + ' · ' : ''}${E(component.subname || component.snapshot.name)} · <strong>${E(port.label)}</strong><small>${E(port.type.replaceAll('_', ' '))}</small></button>`
+        )
+        .join('') || '<p>No active edge ports. Activate them in Box builder.</p>'
+    }</section>`
+  );
+}
+function overlappingPorts(ev) {
+  if (ev.target.closest('.room-port-dot')) return [];
+  return [...document.querySelectorAll('[data-room-port]')]
+    .filter(el => {
+      const r = el.querySelector('.room-port-symbol').getBoundingClientRect();
+      return ev.clientX >= r.left && ev.clientX <= r.right && ev.clientY >= r.top && ev.clientY <= r.bottom;
+    })
+    .map(el => {
+      const [boxId, componentId, portId] = el.dataset.roomPort.split(':'),
+        box = api.getProject().installation.boxes.find(b => b.id === boxId),
+        component = box.components.find(c => c.id === componentId);
+      return { boxId, component, port: component.snapshot.ports.find(p => p.id === portId) };
+    });
 }
 function removeRoomObject(p) {
   const e = entities(p).find(item => item.key === chosen);
@@ -502,9 +598,34 @@ function removeRoomObject(p) {
   });
 }
 function onClick(ev) {
+  const precise = ev.target.closest('[data-room-choose-port]');
+  if (precise) {
+    const [boxId, componentId, portId] = precise.dataset.roomChoosePort.split(':');
+    if (roomWire) completeRoomWire({ boxId, componentId, portId });
+    else {
+      roomWire = { boxId, componentId, portId };
+      portPicker = '';
+      document.querySelector('.room-port-picker')?.remove();
+      api.toast('Select another box, its exact port, or a field object.');
+    }
+    return;
+  }
   const external = ev.target.closest('[data-room-port]');
   if (external) {
+    if (suppressPortClick) {
+      suppressPortClick = false;
+      return;
+    }
     const [boxId, componentId, portId] = external.dataset.roomPort.split(':');
+    const nearby = overlappingPorts(ev);
+    if (nearby.length > 1) {
+      showPortPicker(boxId, nearby);
+      return;
+    }
+    if (external.dataset.dense === 'true' && ev.detail !== 0) {
+      showPortPicker(boxId);
+      return;
+    }
     if (roomWire) {
       completeRoomWire({ boxId, componentId, portId });
       return;
@@ -515,6 +636,10 @@ function onClick(ev) {
   }
   const node = ev.target.closest('[data-room-node]');
   if (node && roomWire) {
+    if (node.dataset.roomNode.startsWith('box:')) {
+      showPortPicker(node.dataset.roomNode.slice(4));
+      return;
+    }
     completeRoomWire(node.dataset.roomNode);
     return;
   }
@@ -539,6 +664,16 @@ function onClick(ev) {
   const [action, id] = el.dataset.room.split(':'),
     p = api.getProject(),
     pr = p.props.find(x => x.id === propId);
+  if (action === 'ports') {
+    if (chosen?.startsWith('box:')) showPortPicker(chosen.slice(4));
+    else api.toast('Select a box to inspect its individual ports.');
+    return;
+  }
+  if (action === 'close-ports') {
+    portPicker = '';
+    document.querySelector('.room-port-picker')?.remove();
+    return;
+  }
   if (action === 'field-library') {
     api.showFieldLibrary();
     return;
@@ -675,6 +810,7 @@ function onChange(ev) {
     } else if (k.startsWith('item.')) {
       const key = k.slice(5);
       p.scene.placements[chosen][key] = key === 'color' ? t.value : +t.value;
+      if (key === 'width' || key === 'height') p.scene.placements[chosen].customFootprint = true;
     } else if (k === 'device.buttonColour') {
       const device = p.installation.fieldDevices.find(x => 'field:' + x.id === chosen),
         colour = BUTTON_COLOURS.find(([name]) => name === t.value);
@@ -709,7 +845,8 @@ function refreshRoomWire(ev) {
           )}"]`
         )
       : null;
-  document.querySelector('.room-object.wire-target')?.classList.remove('wire-target');
+  for (const node of document.querySelectorAll('.wire-target, .wire-invalid'))
+    node.classList.remove('wire-target', 'wire-invalid');
   if (!svg || !path || !source || !ev) {
     path?.removeAttribute('d');
     return;
@@ -722,13 +859,44 @@ function refreshRoomWire(ev) {
     target = document.elementFromPoint(ev.clientX, ev.clientY)?.closest('[data-room-node]'),
     key = target?.dataset.roomNode;
   if (key?.startsWith('field:') || key?.startsWith('segment:')) target.classList.add('wire-target');
-  path.setAttribute('stroke', source.querySelector('rect')?.getAttribute('stroke') || '#d9982d');
+  const port = document.elementFromPoint(ev.clientX, ev.clientY)?.closest('[data-room-port]');
+  if (port) {
+    const [boxId, componentId, portId] = port.dataset.roomPort.split(':');
+    port.classList.add(
+      connectionProblem(api.getProject(), roomWire, { boxId, componentId, portId })
+        ? 'wire-invalid'
+        : 'wire-target'
+    );
+  }
+  path.setAttribute('stroke', source.querySelector('.room-port-dot')?.getAttribute('stroke') || '#d9982d');
   path.setAttribute('d', `M${a.x} ${a.y} L${point.x * 100} ${point.y * 100}`);
 }
+function tracePort(value) {
+  for (const el of document.querySelectorAll('.port-traced')) el.classList.remove('port-traced');
+  if (!value) return;
+  const [boxId, componentId, portId] = value.split(':');
+  for (const link of api.getProject().installation.connections) {
+    const endpoints = ['from', 'to'].map(end => ({
+      boxId: link[end + 'Key']?.startsWith('box:') ? link[end + 'Key'].slice(4) : link.boxId,
+      componentId: link[end + 'Component'],
+      portId: link[end + 'Port']
+    }));
+    if (!endpoints.some(e => e.boxId === boxId && e.componentId === componentId && e.portId === portId))
+      continue;
+    document.querySelector(`[data-route="custom:${CSS.escape(link.id)}"]`)?.classList.add('port-traced');
+    for (const e of endpoints)
+      document
+        .querySelector(`[data-room-port="${CSS.escape(e.boxId + ':' + e.componentId + ':' + e.portId)}"]`)
+        ?.classList.add('port-traced');
+  }
+}
 function down(ev) {
+  if (ev.target.closest('.room-port-picker')) return;
   if (ev.target.closest('[data-room-port]')) {
-    const [boxId, componentId, portId] = ev.target.closest('[data-room-port]').dataset.roomPort.split(':');
-    roomWire = { boxId, componentId, portId, pointer: ev.pointerId };
+    const element = ev.target.closest('[data-room-port]');
+    if (element.dataset.dense === 'true' || overlappingPorts(ev).length > 1 || roomWire) return;
+    const [boxId, componentId, portId] = element.dataset.roomPort.split(':');
+    roomWire = { boxId, componentId, portId, pointer: ev.pointerId, startX: ev.clientX, startY: ev.clientY };
     refreshRoomWire(ev);
     ev.preventDefault();
     return;
@@ -740,8 +908,17 @@ function down(ev) {
       key = el.dataset.roomNode,
       v = p.scene.placements[key],
       pt = locationAt(ev, svg);
+    const alreadySelected = chosen === key;
     chosen = key;
-    drag = { svg, el, key, start: { ...v }, offset: { x: pt.x - v.x, y: pt.y - v.y }, pointer: ev.pointerId };
+    drag = {
+      svg,
+      el,
+      key,
+      alreadySelected,
+      start: { ...v },
+      offset: { x: pt.x - v.x, y: pt.y - v.y },
+      pointer: ev.pointerId
+    };
     el.setPointerCapture(ev.pointerId);
     ev.preventDefault();
     return;
@@ -784,12 +961,19 @@ function move(ev) {
   }
   pos = clampPosition(pos, p.scene);
   const v = p.scene.placements[drag.key];
-  v.x = +pos.x.toFixed(3);
-  v.y = +pos.y.toFixed(3);
+  const x = +pos.x.toFixed(3),
+    y = +pos.y.toFixed(3);
+  if (v.x === x && v.y === y) return;
+  v.x = x;
+  v.y = y;
   drag.el.setAttribute('transform', `translate(${v.x * 100} ${v.y * 100})`);
   refreshRoutes();
 }
 function up(ev) {
+  if (ev.type === 'pointercancel') {
+    roomWire = null;
+    refreshRoomWire();
+  }
   if (panDrag && ev.pointerId === panDrag.pointer) {
     panDrag.sc.classList.remove('panning');
     viewport = { left: panDrag.sc.scrollLeft, top: panDrag.sc.scrollTop };
@@ -800,19 +984,38 @@ function up(ev) {
     const element = document.elementFromPoint(ev.clientX, ev.clientY),
       targetPort = element?.closest('[data-room-port]'),
       target = element?.closest('[data-room-node]');
+    const moved = Math.hypot(ev.clientX - roomWire.startX, ev.clientY - roomWire.startY) > 4;
     roomWire.pointer = null;
     refreshRoomWire();
+    if (!moved) {
+      roomWire = null;
+      return;
+    }
+    suppressPortClick = true;
     if (targetPort) {
       const [boxId, componentId, portId] = targetPort.dataset.roomPort.split(':');
-      completeRoomWire({ boxId, componentId, portId });
+      const nearby = overlappingPorts({ target: element, clientX: ev.clientX, clientY: ev.clientY });
+      if (nearby.length > 1) showPortPicker(boxId, nearby);
+      else if (targetPort.dataset.dense === 'true') showPortPicker(boxId);
+      else completeRoomWire({ boxId, componentId, portId });
     } else if (target) completeRoomWire(target.dataset.roomNode);
     return;
   }
   if (!drag || ev.pointerId !== drag.pointer) return;
   if (ev.type === 'pointercancel') Object.assign(api.getProject().scene.placements[drag.key], drag.start);
+  const incremental = drag.alreadySelected && ev.type !== 'pointercancel';
   drag = null;
+  if (incremental) {
+    const placement = api.getProject().scene.placements[chosen];
+    for (const axis of ['x', 'y']) {
+      const field = document.querySelector(`[data-room-field="item.${axis}"]`);
+      if (field) field.value = placement[axis];
+    }
+    refreshRouteInspector();
+    api.refreshRoomSummary();
+    requestAnimationFrame(updateVisualScale);
+  } else api.render();
   api.save();
-  api.render();
 }
 function wheel(ev) {
   const sc = ev.target.closest('.room-scroll');
@@ -821,10 +1024,19 @@ function wheel(ev) {
   setZoom(zoom * (ev.deltaY < 0 ? 1.15 : 1 / 1.15), ev.clientX, ev.clientY);
 }
 function rememberViewport(ev) {
-  if (ev.target.matches?.('.room-scroll'))
+  if (ev.target.matches?.('.room-scroll')) {
     viewport = { left: ev.target.scrollLeft, top: ev.target.scrollTop };
+    requestAnimationFrame(updateVisualScale);
+  }
 }
 function key(ev) {
+  if (ev.key === 'Escape') {
+    roomWire = null;
+    portPicker = '';
+    document.querySelector('.room-port-picker')?.remove();
+    refreshRoomWire();
+    return;
+  }
   const port = ev.target.closest('[data-room-port]');
   if (port && ['Enter', ' '].includes(ev.key)) {
     ev.preventDefault();
@@ -834,6 +1046,11 @@ function key(ev) {
   const el = ev.target.closest('[data-room-node]');
   if (!el) return;
   if (['Enter', ' '].includes(ev.key)) {
+    ev.preventDefault();
+    if (roomWire && !el.dataset.roomNode.startsWith('box:')) {
+      completeRoomWire(el.dataset.roomNode);
+      return;
+    }
     chosen = el.dataset.roomNode;
     api.render();
     return;
@@ -856,10 +1073,6 @@ function place(pr, p) {
     return;
   }
   const options = outputOptions(p);
-  if (!options.length) {
-    api.toast('Add a controller first.');
-    return;
-  }
   api.modal(
     'Place ' + E(pr.name),
     `<p>Add ${pr.count} ${E(pr.kind)} pixels (${(pr.count * pr.watts).toFixed(1)} W full white) to the electrical plan.</p><label>Data connection<select name="target">${options.join('')}</select></label>`,

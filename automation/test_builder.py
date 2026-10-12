@@ -3,6 +3,7 @@ import base64
 import hashlib
 import importlib.util
 import json
+import shutil
 import sys
 from pathlib import Path
 import subprocess
@@ -188,7 +189,7 @@ class RemoteTests(unittest.TestCase):
 class RestorationTests(unittest.TestCase):
     """Exercise real git restoration only in a fresh disposable repo, with tag resolution mocked."""
     def setUp(self):
-        self.temp = tempfile.TemporaryDirectory()
+        self.temp = tempfile.TemporaryDirectory(dir=Path(__file__).parent)
         self.root = Path(self.temp.name)
         self.cwd = patch.object(b, "BUILD_DIR", self.temp.name)
         self.cwd.start()
@@ -355,6 +356,35 @@ class BuildFlowTests(unittest.TestCase):
         restore.assert_not_called()
         self.mocks["copilot"].assert_called_once()
 
+    def test_ship_is_live_not_feature_verified_and_issue_stays_open(self):
+        result = b.build(issue("Make zoom labels larger."), self.state)
+        self.assertEqual(result["outcome"], "shipped")
+        self.mocks["gh"].assert_not_called()
+        self.mocks["label"].assert_any_call(45, add=["tested"], remove=["in-progress"])
+        self.mocks["label"].assert_any_call(45, add=["shipped"], remove=["in-progress", "tested"])
+        message = self.mocks["comment"].call_args.args[1]
+        self.assertIn("does not establish", message)
+        self.assertIn("stays open awaiting your verification", message)
+
+    def test_maintainer_route_never_publishes_or_closes(self):
+        self.mocks["copilot"].return_value = "MAINTAINER-NEEDED: Investigate history and browser workflows."
+        result = b.build(issue("Investigate history and browser workflows."), self.state)
+        self.assertEqual(result["outcome"], "maintainer-needed")
+        self.mocks["push"].assert_not_called()
+        self.mocks["gh"].assert_not_called()
+        self.mocks["rollback"].assert_called_once()
+        self.mocks["label"].assert_any_call(45, add=["maintainer-needed"], remove=["in-progress", "tested"])
+        self.assertIn("remains open", self.mocks["comment"].call_args.args[1])
+
+    def test_post_publish_exception_never_rolls_back_or_claims_nothing_released(self):
+        self.mocks["wait_live"].side_effect = RuntimeError("status unavailable")
+        result = b.build(issue("Make zoom labels larger."), self.state)
+        self.assertEqual(result["outcome"], "publish-follow-up")
+        self.mocks["rollback"].assert_not_called()
+        message = self.mocks["comment"].call_args.args[1]
+        self.assertIn("was pushed", message)
+        self.assertNotIn("nothing was released", message)
+
     def test_missing_unknown_ambiguous_and_incompatible_targets_never_publish(self):
         for body in ("Rollback please.", "Rollback to v0.65.0 or v0.66.0.", "Rollback to v99.0.0."):
             with self.subTest(body=body), patch.object(
@@ -389,6 +419,188 @@ class BuildFlowTests(unittest.TestCase):
             self.assertIn("off limits", real_checks("0.69.0"))
         with patch.object(b, "changed", return_value=["README.md"]), patch.object(b, "new_network_code", return_value=True):
             self.assertIn("network", real_checks("0.69.0"))
+
+    def test_behavioural_check_failure_blocks_publication(self):
+        self.mocks["checks"].return_value = "node check.mjs failed:\nFAILED: tests/repair-model.mjs"
+        result = b.build(issue("Make zoom labels larger."), self.state)
+        self.assertEqual(result["outcome"], "failed")
+        self.assertEqual(self.mocks["checks"].call_count, b.FIX_ROUNDS + 1)
+        self.mocks["push"].assert_not_called()
+        self.mocks["write_costs"].assert_not_called()
+        self.mocks["release_shots"].assert_not_called()
+
+
+class TrustedCheckTests(unittest.TestCase):
+    def test_shared_check_runner_gates_release_screenshot_capture(self):
+        with patch.object(b, "changed", return_value=["README.md"]), \
+                patch.object(b, "new_network_code", return_value=False), \
+                patch.object(b, "app_version", return_value="0.69.0"), \
+                patch.object(b, "run", return_value=Mock(returncode=0, stdout="OK", stderr="")) as run:
+            self.assertIsNone(real_checks("0.69.0"))
+        steps = [call.args[0] for call in run.call_args_list]
+        self.assertEqual(steps[0], ["node", "check.mjs"])
+        self.assertEqual(steps[1], [sys.executable, str(Path(b.OWNER_DIR) / "automation" / "smoke.py"),
+                                    "dist", "--shots", str(Path(b.LOG_DIR) / "shots" / "0.69.0")])
+        self.assertEqual(len(steps), 2)
+
+    def test_shared_check_failure_stops_before_release_screenshots(self):
+        for failure in ("FAILED: node tests/repair-model.mjs", "FAILED: python tests/workflows.py"):
+            with self.subTest(failure=failure), patch.object(b, "changed", return_value=["README.md"]), \
+                    patch.object(b, "new_network_code", return_value=False), \
+                    patch.object(b, "app_version", return_value="0.69.0"), \
+                    patch.object(b, "run", return_value=Mock(returncode=1, stdout=failure, stderr="")) as run:
+                problem = real_checks("0.69.0")
+                self.assertIn(failure, problem)
+                run.assert_called_once_with(["node", "check.mjs"], check=False, timeout=900)
+
+
+class RequirementTests(unittest.TestCase):
+    def test_full_body_and_all_qualifying_comments_preserve_tails(self):
+        body = "Original requirement\n" + "x" * 65000 + "\n<!-- retain hidden reference -->\nBODY-TAIL"
+        request = issue(body)
+        request["comments"] = [reply("Old context " + "a" * 30000 + "OLDEST-TAIL"),
+                               reply("Clarification " + "b" * 30000 + "OWNER-TAIL", "connorturansky-svg", 3),
+                               reply("Untrusted outsider tail", "attacker", 4),
+                               reply(" \nLatest " + "c" * 10000 + "LATEST-TAIL\n ", day=5)]
+        text = b.request_text(request)
+        self.assertIn(body, text)
+        for c in request["comments"]:
+            if c["author"]["login"] != "attacker":
+                self.assertIn(c["body"], text)
+        self.assertNotIn("Untrusted outsider tail", text)
+        self.assertLess(text.index("OLDEST-TAIL"), text.index("OWNER-TAIL"))
+        self.assertLess(text.index("OWNER-TAIL"), text.index("LATEST-TAIL"))
+
+    def test_all_comment_pages_are_loaded(self):
+        pages = [[{"body": "First", "user": {"login": "J-Turansky"}, "created_at": "2026-10-01T12:00:00Z"}],
+                 [{"body": "z" * 9000 + "FINAL-PAGE-TAIL", "user": {"login": "connorturansky-svg"},
+                   "created_at": "2026-10-02T12:00:00Z"}]]
+        request = issue("A feature")
+        with patch.object(b, "gh", return_value=json.dumps(pages)) as gh:
+            b.load_issue_comments(request)
+        self.assertIn("--paginate", gh.call_args.args)
+        self.assertIn("--slurp", gh.call_args.args)
+        self.assertIn(pages[1][0]["body"], b.request_text(request))
+
+    def test_long_prompt_uses_stdin_without_changing_tool_restrictions(self):
+        prompt = "x" * 150000 + "\nPROMPT-TAIL"
+        with tempfile.TemporaryDirectory(dir=Path(__file__).parent) as folder, \
+                patch.object(b, "LOG_DIR", folder), patch.object(b.shutil, "which", return_value="copilot"), \
+                patch.object(b.subprocess, "run", return_value=Mock(stdout="Built", stderr="", returncode=0)) as run:
+            before = len(b.USAGE)
+            try:
+                b.copilot(prompt, "long-prompt", resume="existing-session")
+                args, kwargs = run.call_args
+                self.assertNotIn(prompt, args[0])
+                self.assertNotIn("-p", args[0])
+                self.assertEqual(kwargs["input"], prompt)
+                self.assertNotIn("stdin", kwargs)
+                self.assertIn("--disable-builtin-mcps", args[0])
+                self.assertIn("--resume=existing-session", args[0])
+                for tool in b.DENY:
+                    self.assertIn(tool, args[0])
+            finally:
+                del b.USAGE[before:]
+
+    @unittest.skipUnless(shutil.which("copilot"), "Copilot CLI documentation not installed")
+    def test_installed_cli_documents_piped_stdin_as_supported_prompt_input(self):
+        # --help never starts a session or model; this checks the actual installed CLI's contract offline.
+        result = subprocess.run([shutil.which("copilot"), "--help"], capture_output=True, text=True,
+                                encoding="utf-8", errors="replace", timeout=30)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("combine with -i, -p, or piped stdin", " ".join(result.stdout.split()))
+
+    def test_prompt_is_explicit_about_narrow_capabilities_and_verification(self):
+        with patch.object(b, "code_map", return_value="map"):
+            prompt = b.build_prompt(issue("A feature"), "0.69.0", [])
+        for text in ("MAINTAINER-NEEDED:", "cannot inspect GitHub history",
+                     "comprehensive multi-system", "what remains unverified"):
+            self.assertIn(text, prompt)
+
+    def test_form_preserves_long_body_and_explicitly_rejects_over_limit(self):
+        module = (Path(__file__).parents[1] / "dist" / "suggest.mjs").as_uri()
+        script = """
+globalThis.location = {search: '?test'};
+globalThis.localStorage = {getItem: () => null};
+const {strict: assert} = await import('node:assert');
+const s = await import(MODULE);
+const description = 'start\\n' + 'x'.repeat(10000) + '\\nBODY-TAIL';
+const body = s.featureIssueBody(description, ['https://example.invalid/shot.png']);
+assert.ok(body.includes(description));
+assert.equal(s.githubBodyError(body), '');
+assert.equal(s.githubBodyError('x'.repeat(s.GITHUB_BODY_LIMIT)), '');
+assert.match(s.githubBodyError('x'.repeat(s.GITHUB_BODY_LIMIT + 1)), /nothing has been truncated or submitted/);
+const nearLimit = 'x'.repeat(s.GITHUB_BODY_LIMIT - 10);
+assert.notEqual(s.githubBodyError(s.featureIssueBody(nearLimit, [])), '');
+assert.ok(!s.suggestView().includes('maxlength="5000"'));
+assert.ok(s.suggestView().includes('cannot investigate GitHub history'));
+assert.ok(s.suggestView().includes('Checks passed'));
+assert.equal(s.statusOf({state:'open', labels:[{name:'shipped'}]}), 'shipped');
+assert.equal(s.statusOf({labels:[{name:'shipped'}, {name:'maintainer-needed'}]}), 'maintainer');
+assert.equal(s.statusOf({labels:[{name:'shipped'}, {name:'build-failed'}]}), 'failed');
+""".replace("MODULE", json.dumps(module))
+        result = subprocess.run(["node", "--input-type=module", "-e", script], capture_output=True,
+                                text=True, encoding="utf-8", cwd=Path(__file__).parents[1])
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+
+class FollowUpTests(unittest.TestCase):
+    def request(self, state="OPEN"):
+        request = issue("A feature")
+        request.update(state=state, labels=[{"name": "shipped"}, {"name": "tested"}],
+                       closedAt=b.datetime.now(b.timezone.utc).isoformat() if state == "CLOSED" else None)
+        request["comments"] = [ship(1), reply("Still missing the main ask", day=2)]
+        return request
+
+    def test_open_unverified_and_recently_closed_ship_followups_queue_cleanly(self):
+        for status in ("OPEN", "CLOSED"):
+            request = self.request(status)
+            state = {"attempts": {"45": 3}}
+            with self.subTest(status=status), patch.object(b, "gh", return_value=json.dumps([request])) as gh, \
+                    patch.object(b, "load_issue_comments"), patch.object(b, "label") as label, \
+                    patch.object(b, "save_state"), patch.object(b, "log"):
+                b.reopen_follow_ups(state)
+                self.assertEqual(state["attempts"]["45"], 0)
+                self.assertEqual(state["follow_ups"]["45"], 1)
+                label.assert_called_once_with(45, remove=["shipped", "tested"])
+                reopens = [call for call in gh.call_args_list if call.args[:2] == ("issue", "reopen")]
+                self.assertEqual(len(reopens), int(status == "CLOSED"))
+
+    def test_no_reply_or_expired_closed_followup_does_not_requeue(self):
+        for scenario in ("no-reply", "expired"):
+            request = self.request("CLOSED")
+            state = {"attempts": {}}
+            if scenario == "no-reply":
+                request["comments"] = [ship()]
+            elif scenario == "expired":
+                request["closedAt"] = "2000-01-01T12:00:00Z"
+            with self.subTest(scenario=scenario), patch.object(b, "gh", return_value=json.dumps([request])), \
+                    patch.object(b, "load_issue_comments"), patch.object(b, "label") as label:
+                b.reopen_follow_ups(state)
+                label.assert_not_called()
+
+    def test_exhausted_followup_routes_to_maintainer_instead_of_silent_skip(self):
+        request = self.request()
+        state = {"attempts": {}, "follow_ups": {"45": b.MAX_FOLLOW_UPS}}
+        with patch.object(b, "gh", return_value=json.dumps([request])), \
+                patch.object(b, "load_issue_comments"), patch.object(b, "label") as label, \
+                patch.object(b, "comment") as comment:
+            b.reopen_follow_ups(state)
+            label.assert_called_once_with(45, add=["maintainer-needed"], remove=["shipped"])
+            self.assertIn("limit has been reached", comment.call_args.args[1])
+            self.assertEqual(state["follow_ups"]["45"], b.MAX_FOLLOW_UPS)
+
+    def test_exhausted_retry_routes_to_maintainer_without_requeue(self):
+        request = self.request()
+        request["labels"] = [{"name": "feature-request"}, {"name": "build-failed"}]
+        request["createdAt"] = "2026-10-01T12:00:00Z"
+        state = {"attempts": {"45": b.MAX_ATTEMPTS}, "history": []}
+        with patch.object(b, "reopen_follow_ups"), patch.object(b, "gh", return_value=json.dumps([request])), \
+                patch.object(b, "load_issue_comments"), patch.object(b, "label") as label, \
+                patch.object(b, "comment") as comment:
+            self.assertIsNone(b.next_request(state))
+            label.assert_called_once_with(45, add=["maintainer-needed"], remove=["build-failed"])
+            self.assertIn("retry limit", comment.call_args.args[1])
 
 
 class FakeRepo:
@@ -441,7 +653,7 @@ class FakeRepo:
 
 class ScreenshotTests(unittest.TestCase):
     def setUp(self):
-        self.temp = tempfile.TemporaryDirectory()
+        self.temp = tempfile.TemporaryDirectory(dir=Path(__file__).parent)
         self.folder = Path(self.temp.name)
         for name in ("01-workspace.png", "09-suggest.png", "info-how.png", "mobile.png"):
             (self.folder / name).write_bytes(b"\x89PNG fake " + name.encode())
