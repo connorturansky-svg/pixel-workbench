@@ -1,0 +1,26 @@
+{
+ "version": "v0.78.0",
+ "date": "12/10/2026",
+ "commit": "fd55e3bb9813dcc522024630a83458f1edaf551d",
+ "issue": 48,
+ "changelog": "Stopped automatic PSU creation when adding hardware or linking box controllers. Supplies can be removed even when in use or the last one; loads remain in the plan with unassigned supplies and missing-power warnings. Hardware supply selectors now include Unassigned (suggested in #48).",
+ "status": "ok",
+ "shots": [
+  "01-workspace.png",
+  "02-hardware.png",
+  "03-presets.png",
+  "04-props.png",
+  "05-guide.png",
+  "06-boxes.png",
+  "07-standards.png",
+  "08-bom.png",
+  "09-suggest.png",
+  "info-arch.png",
+  "info-how.png",
+  "info-keys.png",
+  "info-new.png",
+  "info-suggest.png",
+  "mobile.png"
+ ],
+ "error": ""
+}

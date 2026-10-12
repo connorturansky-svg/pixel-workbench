@@ -2,6 +2,16 @@
 
 Every release is captured by the builder's release smoke test (`automation/smoke.py --shots`): every page, every info tab and a mobile view. This branch is never deployed by Pages. Newest first.
 
+## [v0.78.0](v0.78.0/)
+
+12/10/2026 · [commit fd55e3b](https://github.com/connorturansky-svg/pixel-workbench/commit/fd55e3bb9813dcc522024630a83458f1edaf551d) · [issue #48](https://github.com/connorturansky-svg/pixel-workbench/issues/48)
+
+> Stopped automatic PSU creation when adding hardware or linking box controllers. Supplies can be removed even when in use or the last one; loads remain in the plan with unassigned supplies and missing-power warnings. Hardware supply selectors now include Unassigned (suggested in #48).
+
+<a href="v0.78.0/01-workspace.png"><img src="v0.78.0/01-workspace.png" width="420" alt="v0.78.0 workspace"></a> <a href="v0.78.0/mobile.png"><img src="v0.78.0/mobile.png" width="240" alt="v0.78.0 mobile"></a>
+
+All shots: [workspace](v0.78.0/01-workspace.png) · [hardware](v0.78.0/02-hardware.png) · [presets](v0.78.0/03-presets.png) · [props](v0.78.0/04-props.png) · [guide](v0.78.0/05-guide.png) · [boxes](v0.78.0/06-boxes.png) · [standards](v0.78.0/07-standards.png) · [bom](v0.78.0/08-bom.png) · [suggest](v0.78.0/09-suggest.png) · [info arch](v0.78.0/info-arch.png) · [info how](v0.78.0/info-how.png) · [info keys](v0.78.0/info-keys.png) · [info new](v0.78.0/info-new.png) · [info suggest](v0.78.0/info-suggest.png) · [mobile](v0.78.0/mobile.png)
+
 ## [v0.77.0](v0.77.0/)
 
 12/10/2026 · [commit 2af088b](https://github.com/connorturansky-svg/pixel-workbench/commit/2af088bc4e6e17334c361b0bf922defe5d980800) · [issue #47](https://github.com/connorturansky-svg/pixel-workbench/issues/47)
