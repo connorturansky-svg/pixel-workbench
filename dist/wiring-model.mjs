@@ -1,4 +1,4 @@
-import { BOARDS } from './model.mjs?v=0.77.0';
+import { BOARDS } from './model.mjs?v=0.78.0';
 
 export function ensureWiring(p) {
   const used = new Map();
@@ -53,6 +53,7 @@ export function validateWiring(p) {
       throw Error('Invalid PSU bank terminals.');
     c.bankPsuPorts.forEach((port, i) => {
       if (!Number.isInteger(port) || port < 1 || port > 3) throw Error('PSU terminal must be 1–3.');
+      if (!c.bankPsus[i]) return;
       const key = c.bankPsus[i] + ':' + port;
       if (psuUse.has(key)) throw Error('A PSU terminal is already assigned.');
       psuUse.add(key);
@@ -61,6 +62,7 @@ export function validateWiring(p) {
   for (const d of p.distros) {
     if (!Number.isInteger(d.psuPort) || d.psuPort < 1 || d.psuPort > 3)
       throw Error('Distro PSU terminal must be 1–3.');
+    if (!d.psu) continue;
     const key = d.psu + ':' + d.psuPort;
     if (psuUse.has(key)) throw Error('A PSU terminal is already assigned.');
     psuUse.add(key);

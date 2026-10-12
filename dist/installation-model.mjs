@@ -933,6 +933,39 @@ export function migrateInfrastructure(p, lib) {
   p.installation.infrastructureMigrated = true;
   return !!keys.length;
 }
+export function removePowerSupply(p, psuId) {
+  ensureInstallation(p);
+  const key = 'psu:' + psuId;
+  if (!p.psus.some(ps => ps.id === psuId)) throw Error('Power supply not found.');
+  for (const c of p.controllers)
+    c.bankPsus.forEach((ps, i) => {
+      if (ps !== psuId) return;
+      c.bankPsus[i] = '';
+      c.bankPsuPorts[i] = 1;
+      delete p.installation.routes[`bank:${c.id}:${i}`];
+    });
+  for (const d of p.distros)
+    if (d.psu === psuId) {
+      d.psu = '';
+      d.psuPort = 1;
+      delete p.installation.routes['supply:' + d.id];
+    }
+  for (const a of p.aux) if (a.psu === psuId) a.psu = '';
+  for (const ch of p.chains) for (const s of ch.segments) if (s.psu === psuId) s.psu = '';
+  for (const box of p.installation.boxes) {
+    const components = box.components.filter(c => c.sourceKey !== key);
+    if (components.length === box.components.length) continue;
+    const removed = new Set(box.components.filter(c => c.sourceKey === key).map(c => c.id));
+    for (const link of affectedConnections(p, box, { components })) deleteRoute(p, 'custom:' + link.id);
+    box.components = components;
+    box.interfacePorts = box.interfacePorts.filter(port => !removed.has(port.componentId));
+    syncInterfacePorts(box);
+  }
+  for (const link of p.installation.connections.filter(link => link.fromKey === key || link.toKey === key))
+    deleteRoute(p, 'custom:' + link.id);
+  p.psus = p.psus.filter(ps => ps.id !== psuId);
+  if (p.scene?.placements) delete p.scene.placements[key];
+}
 export function exposedPorts(box) {
   if (box.interfacePorts?.length)
     return box.interfacePorts
@@ -1304,16 +1337,18 @@ export function routeSpecs(p) {
   requireInstallation(p);
   const routes = [];
   for (const c of p.controllers)
-    c.bankPsus.forEach((ps, i) =>
+    c.bankPsus.forEach((ps, i) => {
+      if (!ps) return;
       routes.push({
         id: `bank:${c.id}:${i}`,
         from: `psu:${ps}`,
         to: `controller:${c.id}`,
         kind: 'power',
         name: `${c.name} bank ${i + 1}`
-      })
-    );
-  for (const d of p.distros)
+      });
+    });
+  for (const d of p.distros) {
+    if (!d.psu) continue;
     routes.push({
       id: `supply:${d.id}`,
       from: `psu:${d.psu}`,
@@ -1321,6 +1356,7 @@ export function routeSpecs(p) {
       kind: 'power',
       name: `${d.name} supply`
     });
+  }
   for (const ch of p.chains)
     ch.segments.forEach((s, i) => {
       if (i || ch.controller)

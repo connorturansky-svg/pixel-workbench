@@ -26,8 +26,9 @@ import {
   componentSearch,
   componentSizeGuides,
   deleteRoute,
+  removePowerSupply,
   portTypeColour
-} from './installation-model.mjs?v=0.77.0';
+} from './installation-model.mjs?v=0.78.0';
 
 const SCHEMATIC_MIN_WIDTH = 1400,
   SCHEMATIC_MIN_HEIGHT = 700;
@@ -1250,6 +1251,19 @@ export function installInstallation(a) {
       });
     } else if (action === 'delete-part' && box) {
       const removedId = partId;
+      const sourceKey = box.components.find(c => c.id === removedId)?.sourceKey;
+      if (sourceKey?.startsWith('psu:')) {
+        api.confirmAction(
+          'Remove PSU?',
+          'This supply and its linked box components and cables will be removed. Its loads will remain unassigned and show missing-power warnings.',
+          () => {
+            removePowerSupply(p, sourceKey.slice(4));
+            normalizedSchematicBoxes.delete(box.id);
+            partId = '';
+          }
+        );
+        return;
+      }
       preservingEdit(
         box,
         draft => {

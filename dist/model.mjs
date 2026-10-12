@@ -1,12 +1,12 @@
-import { validateScene } from './layout-model.mjs?v=0.77.0';
+import { validateScene } from './layout-model.mjs?v=0.78.0';
 import {
   validateInstallation,
   routeSpecs,
   routeGeometry,
   projectCapacity,
   RESOURCE_LABELS
-} from './installation-model.mjs?v=0.77.0';
-import { ensureWiring, validateWiring } from './wiring-model.mjs?v=0.77.0';
+} from './installation-model.mjs?v=0.78.0';
+import { ensureWiring, validateWiring } from './wiring-model.mjs?v=0.78.0';
 export const AWG = {
   10: 0.003277,
   12: 0.005211,
@@ -414,14 +414,14 @@ export function calculate(p) {
   }
   for (const a of p.aux || []) {
     const ps = p.psus.find(x => x.id === a.psu);
+    out.watts += a.watts;
+    out.fullWatts += a.watts;
     if (ps) {
       const watts = a.watts;
       out.psus[ps.id].watts += watts;
       out.psus[ps.id].fullWatts += watts;
       out.psus[ps.id].amps += watts / ps.voltage;
-      out.watts += watts;
-      out.fullWatts += watts;
-    }
+    } else warn('error', 'Missing power supply', `${a.name}: assign a board supply in Hardware & power.`);
     warn(
       'info',
       `${a.name}: external loads excluded`,
@@ -453,6 +453,7 @@ export function calculate(p) {
   }
   for (const d of p.distros) {
     let r = out.distros[d.id];
+    if (!d.psu) warn('error', 'Missing power supply', `${d.name}: assign a supply in Hardware & power.`);
     if (r.feeds > d.outputs)
       warn('error', `${d.name} has no free outputs`, `${r.feeds} feeds assigned to ${d.outputs} outputs.`);
     if (r.amps > d.amps)
@@ -464,6 +465,7 @@ export function calculate(p) {
     for (let b = 0; b < BOARDS[c.model].banks; b++) {
       const r = out.banks[c.id + ':' + b],
         limit = c.bankLimits[b];
+      if (!c.bankPsus[b]) warn('error', 'Missing power supply', `${c.name}: bank ${b + 1} is unassigned.`);
       if (limit && r.amps > limit)
         warn('error', `${c.name}: bank ${b + 1} over limit`, `${r.amps.toFixed(2)} A / ${limit} A.`);
       else if (limit && r.fullAmps > limit)
@@ -525,7 +527,6 @@ export function validateProject(p) {
     fail('This is not a valid Workbench v1 project.');
   for (const key of ['psus', 'distros', 'controllers', 'chains', 'presets', 'aux'])
     if (!Array.isArray(p[key]) || p[key].length > 500) fail(`Invalid ${key} list.`);
-  if (p.controllers.length && !p.psus.length) fail('Add a PSU before adding a controller.');
   const validId = v =>
     typeof v === 'string' &&
     /^[A-Za-z0-9_-]{1,200}$/.test(v) &&
@@ -536,7 +537,7 @@ export function validateProject(p) {
       if (!validId(x.id) || !txt(x.name) || ids.has(x.id)) fail('Invalid or duplicate item.');
       ids.add(x.id);
     }
-  const psu = id => p.psus.some(x => x.id === id),
+  const psu = id => id === '' || p.psus.some(x => x.id === id),
     validSeg = s =>
       s &&
       ['seed', 'bullet', 'flood'].includes(s.kind) &&

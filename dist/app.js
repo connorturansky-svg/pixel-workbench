@@ -1,12 +1,13 @@
-import { ensureScene } from './layout-model.mjs?v=0.77.0';
-import { roomView, propsView, installRoom } from './room.js?v=0.77.0';
-import { wiringGraph, installGraph, drawGraph } from './wiring-graph.mjs?v=0.77.0';
+import { ensureScene } from './layout-model.mjs?v=0.78.0';
+import { roomView, propsView, installRoom } from './room.js?v=0.78.0';
+import { wiringGraph, installGraph, drawGraph } from './wiring-graph.mjs?v=0.78.0';
 import {
   defaultLibrary,
   ensureLibrary,
   ensureInstallation,
   migrateInfrastructure,
   addInfrastructure,
+  removePowerSupply,
   makeBox,
   addFieldDevice,
   componentPlacement,
@@ -16,7 +17,7 @@ import {
   projectCapacity,
   connectionProblem,
   externalConnectionProblem
-} from './installation-model.mjs?v=0.77.0';
+} from './installation-model.mjs?v=0.78.0';
 import {
   boxBuilderView,
   standardsView,
@@ -25,11 +26,11 @@ import {
   drawBoxConnections,
   openBox,
   physicalIssues
-} from './installation-ui.mjs?v=0.77.0';
-import { APP_VERSION } from './version.mjs?v=0.77.0';
-import { installInfo } from './info.mjs?v=0.77.0';
-import { suggestView, installSuggest, afterSuggestRender, bellHtml } from './suggest.mjs?v=0.77.0';
-import { createDemoProject } from './demo-project.mjs?v=0.77.0';
+} from './installation-ui.mjs?v=0.78.0';
+import { APP_VERSION } from './version.mjs?v=0.78.0';
+import { installInfo } from './info.mjs?v=0.78.0';
+import { suggestView, installSuggest, afterSuggestRender, bellHtml } from './suggest.mjs?v=0.78.0';
+import { createDemoProject } from './demo-project.mjs?v=0.78.0';
 import {
   tailoredInitial,
   calculate,
@@ -40,7 +41,7 @@ import {
   PSU_MODELS,
   newSegment,
   uid
-} from './model.mjs?v=0.77.0';
+} from './model.mjs?v=0.78.0';
 const testing = new URLSearchParams(location.search).has('test');
 let project = tailoredInitial(),
   view = 'room',
@@ -84,7 +85,7 @@ const inp = (label, value, path, o = {}) =>
 const sel = (label, value, path, items) =>
   `<label>${label}<select data-bind="${path}">${items.map(([id, name]) => `<option value="${esc(id)}" ${String(id) === String(value) ? 'selected' : ''}>${esc(name)}</option>`).join('')}</select></label>`;
 const awgs = Object.keys(AWG).map(a => [a, a + ' AWG']),
-  psuOpts = () => project.psus.map(p => [p.id, p.name]),
+  psuOpts = () => [['', 'Unassigned'], ...project.psus.map(p => [p.id, p.name])],
   kindOpts = [
     ['seed', 'Seed pixels'],
     ['bullet', 'Bullet pixels'],
@@ -305,7 +306,7 @@ function inspector(r) {
             'Output ' + (i + 1)
           ])
         )}<div class="two">${inp('Feed length (m)', s.feedM, `${sp}.feedM`, { max: 10000 })}${sel('Feed gauge', s.feedAwg, `${sp}.feedAwg`, awgs)}</div>${inp('Branch fuse (A)', s.fuse, `${sp}.fuse`, { min: 0.1, max: 100 })}<p class="wire-note">Disconnect upstream V+ here. Data and the required signal reference continue. Run a dedicated load return to this PSU.</p>`
-      : `<p class="source-note">${esc(project.psus.find(p => p.id === sr?.source)?.name)} · ${si === 0 ? 'bank ' + (r.chains[ch.id].bank + 1) : 'upstream section'}</p>`
+      : `<p class="source-note">${esc(project.psus.find(p => p.id === sr?.source)?.name || 'Unassigned supply')} · ${si === 0 ? 'bank ' + (r.chains[ch.id].bank + 1) : 'upstream section'}</p>`
   }<div class="voltage-result"><span>Estimated end voltage · this segment</span><strong>${sr?.endV > 0 ? fmt(sr.endV, 2) : '—'} <small>V</small></strong><small>${fmt(sr?.dropPct || 0)}% drop · ${fmt(sr?.amps || 0, 2)} A device load</small></div><p class="micro">Linear brightness estimate. Confirm actual full-white watts, pixel pitch and wire size.</p><div class="inspector-actions">${btn('Move earlier', 'move:-1', 'text-btn')}${btn('Move later', 'move:1', 'text-btn')}${btn('Remove segment', 'remove-segment', 'text-btn danger')}${btn('Remove output', 'remove-chain', 'text-btn danger')}</div></div>`;
 }
 function hardware(r) {
@@ -381,9 +382,10 @@ function sourceFor(ch, s, r) {
     sr = cr.segments.find(x => x.id === s.id),
     ps = project.psus.find(p => p.id === sr?.source);
   if (!ch.controller) return 'Not connected';
+  const supply = ps?.name || 'Unassigned supply';
   return s.inject
-    ? `${project.distros.find(d => d.id === s.distro)?.name} / ${ps?.name}`
-    : `${ps?.name} via ${ch.segments[0].id === s.id ? 'Baldrick bank ' + (cr.bank + 1) : 'upstream section'}`;
+    ? `${project.distros.find(d => d.id === s.distro)?.name} / ${supply}`
+    : `${supply} via ${ch.segments[0].id === s.id ? 'Baldrick bank ' + (cr.bank + 1) : 'upstream section'}`;
 }
 function physicalCableGuide() {
   const rows = routeSpecs(project)
@@ -454,18 +456,8 @@ function allocatePowerTerminals(count) {
         }
       if (pair) break;
     }
-    if (!pair) {
-      const ps = {
-        id: uid(),
-        name: 'PSU ' + String(project.psus.length + 1).padStart(2, '0'),
-        model: 'unconfirmed',
-        voltage: 12,
-        watts: 320
-      };
-      project.psus.push(ps);
-      pair = [ps.id, 1];
-    }
-    used.add(pair.join(':'));
+    pair ??= ['', 1];
+    if (pair[0]) used.add(pair.join(':'));
     result.push(pair);
   }
   return result;
@@ -936,7 +928,7 @@ document.addEventListener('click', e => {
             id,
             name: model === 'switchy' ? 'Relay board' : model === 'input8' ? '8-input board' : 'Input board',
             model,
-            psu: project.psus[0].id,
+            psu: project.psus[0]?.id || '',
             watts: model === 'switchy' ? 2.76 : 1,
             labels: Array(model === 'switchy' ? 4 : model === 'input8' ? 8 : 1).fill('')
           });
@@ -970,19 +962,10 @@ document.addEventListener('click', e => {
     return;
   }
   if (a === 'remove-psu') {
-    if (
-      project.psus.length === 1 ||
-      project.controllers.some(c => c.bankPsus.includes(id)) ||
-      project.distros.some(d => d.psu === id) ||
-      project.aux.some(x => x.psu === id)
-    ) {
-      toast('Reassign this PSU’s banks, distros and boards first.');
-      return;
-    }
     confirmAction(
       'Remove PSU?',
-      'This unused supply will be removed.',
-      () => (project.psus = project.psus.filter(x => x.id !== id))
+      'This supply and its linked box components and cables will be removed. Its loads will remain unassigned and show missing-power warnings.',
+      () => removePowerSupply(project, id)
     );
     return;
   }

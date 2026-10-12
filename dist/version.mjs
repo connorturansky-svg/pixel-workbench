@@ -1,6 +1,6 @@
 export const ABOUT =
   'Pixel Workbench is a device-local planner for 12 V pixel systems built on Baldrick controllers and FPP. Use it to lay out a room, size power and injection, design controller boxes and produce a wiring guide, bill of materials and channel CSV. Calculations are planning estimates. Confirm ratings and wiring against the actual equipment.';
-export const APP_VERSION = '0.77.0';
+export const APP_VERSION = '0.78.0';
 export const ARCHITECTURE_NOTES = [
   'A static, no-build web app: plain ES modules, HTML and CSS served from dist/. Pushing to main publishes dist/ to GitHub Pages through the Actions workflow.',
   'Calculation and data modules are UI-free. installation-model separates logical schematic coordinates from measured physical placement, validates exact typed endpoints across boxes and routes around physical obstacles. Camera and Labels changes do not affect cable lengths. Cached routes are invalidated by moved endpoints and intersecting obstacles. Node model checks and real Chromium workflows exercise these contracts.',
@@ -8,11 +8,19 @@ export const ARCHITECTURE_NOTES = [
   'Explicit release rollback bypasses Copilot: the trusted builder resolves the latest allowed target against this repository’s remote tags, checks main ancestry, restores the release’s app files (not the builder, checks or ledger) with a data-loss warning, and applies a new monotonic version and dated target changelog. Current request UI, infrastructure and cost accounting are preserved. Unclear or ambiguous targets need information; normal feature requests still use the restricted agent and the same release checks.',
   'app.js owns the shared project and library. All planning views read that state; supported box-contained controllers contribute electrical assignments without double counting. room.js maps a normalized configured-box drawing onto measured footprints and selects stable detail by projected size. Strokes/text are bounded in screen space; active port nodes and physical anchors persist. Dense overlapping targets use an anchored exact-port chooser with keyboard access. installation-ui keeps controller/button builders and logical schematic positions separate from physical coordinates, rotation and stacking. Explicit Sync/Update preserves stable identities, supported overrides and links; removals/conflicts require confirmation. Automatic routing avoids physical obstacles independently of labels and reports unsolved paths; manual pivots, cable standards and slack remain saved.',
   'layout-model seeds pixel rows using the visible room entities, not the number of hardware items contained inside boxes. It repairs negative pixel-row coordinates from the earlier initializer in the current scene; nonnegative saved placements stay unchanged and project validation remains strict.',
+  'Power assignments can be explicitly unassigned while planning. Adding or linking controllers and distros uses existing free PSU terminals without creating supplies. Shared PSU removal clears assignments and linked components/cables while preserving loads; missing power remains an electrical error warning, not a structural validation failure.',
   'Suggest a feature (suggest.mjs) files a [Feature] GitHub issue, titled with its number and the requester’s title, in the background under the requester’s own account, using a token they connect once (stored in this browser, sent only to api.github.com). Screenshots are uploaded to the repo’s feature-assets branch, which is never deployed. It reads request status from the public GitHub issues API and maps shipped requests to versions from builder commit titles (vX.Y.Z: … (#n)); It also reads build-costs.json from the site itself for the AI cost figures, and usage.json from the feature-assets branch for the daily allowance meter. It reads the builder’s latest issue comment and posts the requester’s replies and follow-ups as issue comments; a top-bar bell counts the requester’s requests that need a reply. Together these are the only network calls the app makes. Only allowlisted authors (ALLOWED_AUTHORS) are listed.',
   'The scheduled builder receives complete issue bodies and paginated allowed-author threads through CLI stdin. The restricted worker has file/shell tools, no Git/history, web, MCP or browser-control tools, and cannot edit tests. Maintainers handle broader investigation. Trusted release code rejects forbidden changes and runs check.mjs, including behavioural and performance regressions, plus screenshot smoke checks. Tested denotes checks only. After verified Pages deployment the builder marks shipped but leaves the issue open for requester acceptance; follow-ups remain available while open or seven days after closure. Existing author restrictions, release/rollback verification, accounting, 5,000-credit daily budget and separate screenshot publication remain in place.',
   'version.mjs is the single source for the version, changelog, help text and shortcuts. info.mjs renders the i dialog.'
 ];
 export const CHANGELOG = [
+  {
+    version: '0.78.0',
+    date: '12/10/2026',
+    items: [
+      'Stopped automatic PSU creation when adding hardware or linking box controllers. Supplies can be removed even when in use or the last one; loads remain in the plan with unassigned supplies and missing-power warnings. Hardware supply selectors now include Unassigned (suggested in #48).'
+    ]
+  },
   {
     version: '0.77.0',
     date: '12/10/2026',
@@ -619,7 +627,7 @@ export const HOW_TO_USE = [
   ],
   [
     'Start a plan',
-    'Use Hardware & power to add supplies, distros, Baldrick controllers, BaldrickInput or BaldrickInput8 boards. Add outputs in the Wiring workspace. Data entry and Visual stay in sync.'
+    'Use Hardware & power to add supplies, distros, Baldrick controllers, BaldrickInput or BaldrickInput8 boards. Supplies are only added explicitly; hardware can remain Unassigned when no free PSU terminal is available. You can remove an in-use or last PSU: its linked box components and cables are removed, but loads remain with missing-power warnings. Choose Unassigned in a supply selector to disconnect a load without deleting the PSU. Resolve all power and safety warnings before physical wiring. Add outputs in the Wiring workspace. Data entry and Visual stay in sync.'
   ],
   [
     'Wire the system',

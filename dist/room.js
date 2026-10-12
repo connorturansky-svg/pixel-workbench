@@ -5,7 +5,7 @@ import {
   makeProp,
   PALETTE,
   clampPosition
-} from './layout-model.mjs?v=0.77.0';
+} from './layout-model.mjs?v=0.78.0';
 import {
   ensureInstallation,
   BUTTON_COLOURS,
@@ -13,9 +13,10 @@ import {
   boxVisualScale,
   perimeterAnchor,
   deleteRoute,
+  removePowerSupply,
   portTypeColour,
   connectionProblem
-} from './installation-model.mjs?v=0.77.0';
+} from './installation-model.mjs?v=0.78.0';
 import {
   routeLayer,
   routeControls,
@@ -23,7 +24,7 @@ import {
   installRoutes,
   refreshRoutes,
   refreshRouteInspector
-} from './installation-room.mjs?v=0.77.0';
+} from './installation-room.mjs?v=0.78.0';
 let api,
   chosen = '',
   propId = 'prop-smiley',
@@ -556,22 +557,20 @@ function removeRoomObject(p) {
   const e = entities(p).find(item => item.key === chosen);
   if (!e) return;
   if (
-    (e.type === 'psu' &&
-      (p.psus.length === 1 ||
-        p.controllers.some(c => c.bankPsus.includes(e.id)) ||
-        p.distros.some(d => d.psu === e.id) ||
-        p.aux.some(x => x.psu === e.id))) ||
     (e.type === 'distro' && p.chains.some(c => c.segments.some(s => s.inject && s.distro === e.id))) ||
     (e.type === 'controller' && p.controllers.length === 1)
   ) {
     api.toast(
-      e.type === 'controller'
-        ? 'Keep at least one controller.'
-        : `Reassign this ${e.type === 'psu' ? 'PSU’s loads' : 'distro’s feeds'} first.`
+      e.type === 'controller' ? 'Keep at least one controller.' : 'Reassign this distro’s feeds first.'
     );
     return;
   }
-  api.confirmAction('Remove selected object?', `${e.name} will be removed from the project.`, () => {
+  const detail =
+    `${e.name} will be removed from the project.` +
+    (e.type === 'psu'
+      ? ' Linked box components and cables will be removed; loads remain unassigned with missing-power warnings.'
+      : '');
+  api.confirmAction('Remove selected object?', detail, () => {
     const keys = new Set([e.key]);
     if (e.type === 'box') {
       p.installation.boxes = p.installation.boxes.filter(box => box.id !== e.id);
@@ -586,7 +585,7 @@ function removeRoomObject(p) {
         for (const segment of chain.segments) keys.add('segment:' + segment.id);
       p.controllers = p.controllers.filter(controller => controller.id !== e.id);
       p.chains = p.chains.filter(chain => chain.controller !== e.id);
-    } else if (e.type === 'psu') p.psus = p.psus.filter(psu => psu.id !== e.id);
+    } else if (e.type === 'psu') removePowerSupply(p, e.id);
     else if (e.type === 'distro') p.distros = p.distros.filter(distro => distro.id !== e.id);
     else if (e.type === 'aux') p.aux = p.aux.filter(board => board.id !== e.id);
     for (const link of p.installation.connections.filter(
