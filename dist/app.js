@@ -1,6 +1,6 @@
-import { ensureScene } from './layout-model.mjs?v=0.76.0';
-import { roomView, propsView, installRoom } from './room.js?v=0.76.0';
-import { wiringGraph, installGraph, drawGraph } from './wiring-graph.mjs?v=0.76.0';
+import { ensureScene } from './layout-model.mjs?v=0.77.0';
+import { roomView, propsView, installRoom } from './room.js?v=0.77.0';
+import { wiringGraph, installGraph, drawGraph } from './wiring-graph.mjs?v=0.77.0';
 import {
   defaultLibrary,
   ensureLibrary,
@@ -16,7 +16,7 @@ import {
   projectCapacity,
   connectionProblem,
   externalConnectionProblem
-} from './installation-model.mjs?v=0.76.0';
+} from './installation-model.mjs?v=0.77.0';
 import {
   boxBuilderView,
   standardsView,
@@ -25,11 +25,11 @@ import {
   drawBoxConnections,
   openBox,
   physicalIssues
-} from './installation-ui.mjs?v=0.76.0';
-import { APP_VERSION } from './version.mjs?v=0.76.0';
-import { installInfo } from './info.mjs?v=0.76.0';
-import { suggestView, installSuggest, afterSuggestRender, bellHtml } from './suggest.mjs?v=0.76.0';
-import { createDemoProject } from './demo-project.mjs?v=0.76.0';
+} from './installation-ui.mjs?v=0.77.0';
+import { APP_VERSION } from './version.mjs?v=0.77.0';
+import { installInfo } from './info.mjs?v=0.77.0';
+import { suggestView, installSuggest, afterSuggestRender, bellHtml } from './suggest.mjs?v=0.77.0';
+import { createDemoProject } from './demo-project.mjs?v=0.77.0';
 import {
   tailoredInitial,
   calculate,
@@ -40,7 +40,7 @@ import {
   PSU_MODELS,
   newSegment,
   uid
-} from './model.mjs?v=0.76.0';
+} from './model.mjs?v=0.77.0';
 const testing = new URLSearchParams(location.search).has('test');
 let project = tailoredInitial(),
   view = 'room',

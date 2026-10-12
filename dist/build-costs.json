@@ -67,6 +67,7 @@
   {"issue":44,"version":"0.70.0","title":"roll back request","outcome":"needs-info","at":"2026-10-06T13:33:24Z","runs":0,"model":"","credits":0,"tokensIn":0,"tokensCached":0,"tokensOut":0,"seconds":0},
   {"issue":44,"version":"0.71.0","title":"roll back request","outcome":"shipped","at":"2026-10-06T14:13:35Z","runs":0,"model":"","credits":0,"tokensIn":0,"tokensCached":0,"tokensOut":0,"seconds":0},
   {"issue":45,"version":"0.72.0","title":"roll back request","outcome":"shipped","at":"2026-10-06T14:23:49Z","runs":0,"model":"","credits":0,"tokensIn":0,"tokensCached":0,"tokensOut":0,"seconds":0},
-  {"issue":46,"version":"0.75.0","title":"roll back request","outcome":"shipped","at":"2026-10-12T12:54:50Z","runs":0,"model":"","credits":0,"tokensIn":0,"tokensCached":0,"tokensOut":0,"seconds":0}
+  {"issue":46,"version":"0.75.0","title":"roll back request","outcome":"shipped","at":"2026-10-12T12:54:50Z","runs":0,"model":"","credits":0,"tokensIn":0,"tokensCached":0,"tokensOut":0,"seconds":0},
+  {"issue":47,"version":"0.77.0","title":"Box builder is not functioning","outcome":"shipped","at":"2026-10-12T15:44:20Z","runs":1,"model":"gpt-6.1-sol","credits":14.79,"tokensIn":263700,"tokensCached":228100,"tokensOut":3600,"seconds":180}
  ]
 }

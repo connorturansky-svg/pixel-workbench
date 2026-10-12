@@ -82,7 +82,8 @@ export function ensureScene(p) {
     makeProp('star', 'prop-star')
   ];
   p.scene ??= { width: 12, depth: 8, snap: 0.1, placements: {} };
-  const es = entities(p);
+  const es = entities(p),
+    pixelStart = es.findIndex(e => e.type === 'segment');
   es.forEach((e, i) => {
     const isPixel = e.type === 'segment',
       prop = p.props.find(pr => pr.id === e.o.propId),
@@ -96,6 +97,8 @@ export function ensureScene(p) {
           : null,
       existing = p.scene.placements[e.key];
     if (existing) {
+      if (isPixel && existing.y < 0)
+        existing.y = Math.min(p.scene.depth - 0.5, 1 + Math.floor((i - pixelStart) / 3) * 2);
       if (boxSize && existing.width === 2.4 && existing.height === 1.7)
         [existing.width, existing.height] = boxSize;
       return;
@@ -104,10 +107,7 @@ export function ensureScene(p) {
       x: Math.min(p.scene.width - 0.5, isPixel ? 4 + (i % 3) * 2.2 : 1 + (i % 3) * 1.3),
       y: Math.min(
         p.scene.depth - 0.5,
-        isPixel
-          ? 1 +
-              Math.floor((i - p.controllers.length - p.psus.length - p.distros.length - p.aux.length) / 3) * 2
-          : 1 + Math.floor(i / 3) * 1.25
+        isPixel ? 1 + Math.floor((i - pixelStart) / 3) * 2 : 1 + Math.floor(i / 3) * 1.25
       ),
       width: prop?.width || boxSize?.[0] || fieldSize?.[0] || (isPixel ? 1.8 : 0.65),
       height: prop?.height || boxSize?.[1] || fieldSize?.[1] || (isPixel ? 0.45 : 0.45),
