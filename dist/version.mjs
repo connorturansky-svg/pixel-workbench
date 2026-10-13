@@ -1,7 +1,8 @@
 export const ABOUT =
   'Pixel Workbench is a device-local planner for 12 V pixel systems built on Baldrick controllers and FPP. Use it to lay out a room, size power and injection, design controller boxes and produce a wiring guide, bill of materials and channel CSV. Calculations are planning estimates. Confirm ratings and wiring against the actual equipment.';
-export const APP_VERSION = '0.91.0';
+export const APP_VERSION = '0.92.0';
 export const ARCHITECTURE_NOTES = [
+  'Room boxes share a session-only semantic detail policy based on projected enclosure width, height, component-cell space and exact port spacing, with separate enter/leave thresholds. Overview and equipment hide configured internals; detail reveals the same real components and port IDs. Screen-sized group counts on enclosure edges open the exact-port chooser and are not junctions. Cable attachment dots retain real roomPortGeometry anchors in every representation; grouped cable projection is deferred. Camera, selection and representation changes never persist display geometry.',
   'Room cables retain world-space geometry and saved endpoint offsets. Screen-sized endpoint/pivot markers use a separate overlay above equipment; exact port tips remain interactive above it. Transparent hit regions are separate from paint. Screen-space proximity checks offer an exact-connection chooser for overlapping cable targets without moving paths. Nonzero saved endpoint offsets remain deliberate open ends, shown with dashed markers and accessible unconnected descriptions.',
   'Box builder side-panel toggles retain session-only visibility independently for the hardware library and box/component inspector. Hidden panels leave the grid and keyboard navigation; responsive columns give the space to the editor. Toggling updates the existing DOM and redraws schematic wires without changing project data, canvas zoom, selection or panel contents.',
   'Box builder Port list reads the same exact installation connections and edge-port mappings as Schematic. Compatible internal links are validated before atomic replacement and both endpoint dropdowns derive from one saved link. Generated edge mappings stay fixed; activation is shared with Schematic and Room layout. Room-connected endpoints are read-only in the list. Native component and edge disclosures retain session-only expansion state.',
@@ -27,6 +28,13 @@ export const ARCHITECTURE_NOTES = [
   'version.mjs is the single source for the version, changelog, help text and shortcuts. info.mjs renders the i dialog.'
 ];
 export const CHANGELOG = [
+  {
+    version: '0.92.0',
+    date: '13/10/2026',
+    items: [
+      'Replaced tiny room-box mosaics with enclosure symbols and compact equipment summaries, revealing configured components only when projected space is readable. Added stable detail thresholds and exact-port group cues while retaining physical cable anchors (suggested in #64).'
+    ]
+  },
   {
     version: '0.91.0',
     date: '13/10/2026',
@@ -759,7 +767,7 @@ export const HOW_TO_USE = [
   ],
   [
     'Read room labels',
-    'Keep Labels on to see box names at all zoom levels. Internal component labels stay screen-sized where their cells have room; long names are shortened and very small internal labels give way to the box name. Zoom in or use Fit selected for more detail; hover a component or port for its full description. The dashed outline identifies the selected or keyboard-focused object, not a physical enclosure or clearance. Zoom and selection do not change measured footprints or cable lengths.'
+    'Keep Labels on to identify boxes. Overview shows an enclosure symbol and name badge; equipment shows a readable name and real component/port counts when height permits. Detail reveals the configured components only when box width, height, component cells and port spacing allow it; enter/leave thresholds prevent flicker. Zoom in beyond Fit selected if a dense box needs more space. Numbered edge cues represent groups, not junctions: click or press Enter/Space to choose an exact port. Small dots retain the real cable attachment points even in overview; cables are not projected onto group cues. Long labels are shortened; hover a component or port for its full description. The dashed outline identifies selection, not a physical enclosure or clearance. Labels, zoom and selection do not change footprints, connections or cable lengths.'
   ],
   [
     'Frame all room components',
@@ -811,6 +819,7 @@ export const SHORTCUTS = [
     'Enter / Space on a port',
     'Select an exact source, then connect the exact destination; crowded ports open a chooser'
   ],
+  ['Enter / Space on a numbered port group', 'Open the exact-port chooser; the group is not a junction'],
   ['Enter / Space on a cable endpoint or pivot', 'Select its exact cable and inspect its route'],
   ['Esc in Choose connection', 'Close the overlapping-cable chooser'],
   ['← ↑ → ↓', 'Move the focused room object by the snap grid'],
