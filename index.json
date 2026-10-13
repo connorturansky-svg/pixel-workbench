@@ -1972,5 +1972,31 @@
    "mobile.png"
   ],
   "error": ""
+ },
+ {
+  "version": "v0.85.0",
+  "date": "13/10/2026",
+  "commit": "1d9c177bb644ee889e4c4b4fe4cfa3ebeab4deae",
+  "issue": 57,
+  "changelog": "Added a Controller box button in Room layout with a dropdown for an empty box or saved box template, placing and selecting the new enclosure at the room centre (suggested in #57).",
+  "status": "ok",
+  "shots": [
+   "01-workspace.png",
+   "02-hardware.png",
+   "03-presets.png",
+   "04-props.png",
+   "05-guide.png",
+   "06-boxes.png",
+   "07-standards.png",
+   "08-bom.png",
+   "09-suggest.png",
+   "info-arch.png",
+   "info-how.png",
+   "info-keys.png",
+   "info-new.png",
+   "info-suggest.png",
+   "mobile.png"
+  ],
+  "error": ""
  }
 ]
