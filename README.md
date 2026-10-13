@@ -2,6 +2,16 @@
 
 Every release is captured by the builder's release smoke test (`automation/smoke.py --shots`): every page, every info tab and a mobile view. This branch is never deployed by Pages. Newest first.
 
+## [v0.79.0](v0.79.0/)
+
+13/10/2026 · [commit d70d13c](https://github.com/connorturansky-svg/pixel-workbench/commit/d70d13c4d98f5023cb00d2b9fe77c1e5230d1302) · [issue #49](https://github.com/connorturansky-svg/pixel-workbench/issues/49)
+
+> Box-builder schematic wires now compare both sides of each component and use the shortest clear route, including drag previews and connections to box edge ports. Port types and logical connections remain unchanged (suggested in #49).
+
+<a href="v0.79.0/01-workspace.png"><img src="v0.79.0/01-workspace.png" width="420" alt="v0.79.0 workspace"></a> <a href="v0.79.0/mobile.png"><img src="v0.79.0/mobile.png" width="240" alt="v0.79.0 mobile"></a>
+
+All shots: [workspace](v0.79.0/01-workspace.png) · [hardware](v0.79.0/02-hardware.png) · [presets](v0.79.0/03-presets.png) · [props](v0.79.0/04-props.png) · [guide](v0.79.0/05-guide.png) · [boxes](v0.79.0/06-boxes.png) · [standards](v0.79.0/07-standards.png) · [bom](v0.79.0/08-bom.png) · [suggest](v0.79.0/09-suggest.png) · [info arch](v0.79.0/info-arch.png) · [info how](v0.79.0/info-how.png) · [info keys](v0.79.0/info-keys.png) · [info new](v0.79.0/info-new.png) · [info suggest](v0.79.0/info-suggest.png) · [mobile](v0.79.0/mobile.png)
+
 ## [v0.78.0](v0.78.0/)
 
 12/10/2026 · [commit fd55e3b](https://github.com/connorturansky-svg/pixel-workbench/commit/fd55e3bb9813dcc522024630a83458f1edaf551d) · [issue #48](https://github.com/connorturansky-svg/pixel-workbench/issues/48)

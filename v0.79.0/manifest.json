@@ -1,0 +1,26 @@
+{
+ "version": "v0.79.0",
+ "date": "13/10/2026",
+ "commit": "d70d13c4d98f5023cb00d2b9fe77c1e5230d1302",
+ "issue": 49,
+ "changelog": "Box-builder schematic wires now compare both sides of each component and use the shortest clear route, including drag previews and connections to box edge ports. Port types and logical connections remain unchanged (suggested in #49).",
+ "status": "ok",
+ "shots": [
+  "01-workspace.png",
+  "02-hardware.png",
+  "03-presets.png",
+  "04-props.png",
+  "05-guide.png",
+  "06-boxes.png",
+  "07-standards.png",
+  "08-bom.png",
+  "09-suggest.png",
+  "info-arch.png",
+  "info-how.png",
+  "info-keys.png",
+  "info-new.png",
+  "info-suggest.png",
+  "mobile.png"
+ ],
+ "error": ""
+}
