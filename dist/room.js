@@ -5,7 +5,7 @@ import {
   makeProp,
   PALETTE,
   clampPosition
-} from './layout-model.mjs?v=0.79.0';
+} from './layout-model.mjs?v=0.80.0';
 import {
   ensureInstallation,
   BUTTON_COLOURS,
@@ -16,7 +16,7 @@ import {
   removePowerSupply,
   portTypeColour,
   connectionProblem
-} from './installation-model.mjs?v=0.79.0';
+} from './installation-model.mjs?v=0.80.0';
 import {
   routeLayer,
   routeControls,
@@ -24,7 +24,7 @@ import {
   installRoutes,
   refreshRoutes,
   refreshRouteInspector
-} from './installation-room.mjs?v=0.79.0';
+} from './installation-room.mjs?v=0.80.0';
 let api,
   chosen = '',
   propId = 'prop-smiley',

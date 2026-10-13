@@ -1,7 +1,8 @@
 export const ABOUT =
   'Pixel Workbench is a device-local planner for 12 V pixel systems built on Baldrick controllers and FPP. Use it to lay out a room, size power and injection, design controller boxes and produce a wiring guide, bill of materials and channel CSV. Calculations are planning estimates. Confirm ratings and wiring against the actual equipment.';
-export const APP_VERSION = '0.79.0';
+export const APP_VERSION = '0.80.0';
 export const ARCHITECTURE_NOTES = [
+  'The native Project summary disclosure starts closed on each load and keeps its open/closed state across page renders in the current session. Its coloured bars distinguish statistics, not warning severity; project notifications remain separate and visible.',
   'A static, no-build web app: plain ES modules, HTML and CSS served from dist/. Pushing to main publishes dist/ to GitHub Pages through the Actions workflow.',
   'Calculation and data modules are UI-free. installation-model separates logical schematic coordinates from measured physical placement, validates exact typed endpoints across boxes and routes around physical obstacles. Camera and Labels changes do not affect cable lengths. Cached routes are invalidated by moved endpoints and intersecting obstacles. Node model checks and real Chromium workflows exercise these contracts.',
   'Project data stays device-local in localStorage. Save project backs up the project and its used snapshots; Standards > Back up library separately includes unused global components, sizes, cables and templates. Restore library validates the complete file before replacing it. Project and library changes render successfully before persistence. ?test=1 does not save the project.',
@@ -15,6 +16,13 @@ export const ARCHITECTURE_NOTES = [
   'version.mjs is the single source for the version, changelog, help text and shortcuts. info.mjs renders the i dialog.'
 ];
 export const CHANGELOG = [
+  {
+    version: '0.80.0',
+    date: '13/10/2026',
+    items: [
+      'Made the project statistics collapsible and closed by default, explained the decorative category colours, and added space between the bars and readable labels. Notifications remain visible when the summary is closed (suggested in #50).'
+    ]
+  },
   {
     version: '0.79.0',
     date: '13/10/2026',
@@ -618,6 +626,10 @@ export const CHANGELOG = [
 ];
 export const HOW_TO_USE = [
   [
+    'Show project statistics',
+    'Expand Project summary above any planning page to see device capacity, estimated load, PSU budget, input/audio ports and plan-check counts. It starts closed to save space; your choice is kept while moving between pages until you reload. Coloured bars distinguish statistics only, not status or limits. Review Plan checks and project notifications for warnings; notifications stay visible when the summary is closed.'
+  ],
+  [
     'Open the demo',
     'Choose Open demo to explore a sample installation without changing your project. Exit demo restores your project; Save demo as project keeps an editable copy.'
   ],
@@ -674,6 +686,7 @@ export const SHORTCUTS = [
   ['?', 'Open this dialog on the Shortcuts tab (outside text fields)'],
   ['Esc', 'Cancel pending port wiring or close an open dialog'],
   ['Tab', 'Move between controls and room objects'],
+  ['Enter / Space on Project summary', 'Show or hide the project statistics'],
   ['Enter', 'Select the focused room object'],
   ['Space', 'Select the focused room object'],
   [

@@ -67,7 +67,7 @@ select {
   font-size: 12px;
 }
 .summary > div {
-  padding: 0 20px;
+  padding: 16px 20px 0;
 }
 .topbar .btn {
   font-size: 13px;
@@ -849,7 +849,7 @@ h1 {
     font-size: 13px;
   }
   .summary > div {
-    padding: 0 13px;
+    padding: 16px 13px 0;
   }
   .summary span {
     font-size: 11px;
@@ -901,7 +901,7 @@ h1 {
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .summary {
+  .project-summary {
     margin-bottom: 20px;
   }
   .workspace-bar > .btn {
@@ -1042,7 +1042,7 @@ h1 {
     font-size: 24px;
   }
   .summary > div {
-    padding: 0 14px;
+    padding: 16px 14px 0;
   }
   .page-head {
     margin: 25px 0;
@@ -1117,7 +1117,7 @@ h1 {
   .sidebar,
   .topbar,
   .page-head,
-  .summary,
+  .project-summary,
   .guide-actions,
   footer,
   #toast,

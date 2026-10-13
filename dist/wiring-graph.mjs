@@ -1,5 +1,5 @@
-import { BOARDS } from './model.mjs?v=0.79.0';
-import { ensureWiring, connectWire } from './wiring-model.mjs?v=0.79.0';
+import { BOARDS } from './model.mjs?v=0.80.0';
+import { ensureWiring, connectWire } from './wiring-model.mjs?v=0.80.0';
 
 let api,
   pending = null,

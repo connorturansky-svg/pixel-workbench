@@ -1,6 +1,6 @@
-import { ensureScene } from './layout-model.mjs?v=0.79.0';
-import { roomView, propsView, installRoom } from './room.js?v=0.79.0';
-import { wiringGraph, installGraph, drawGraph } from './wiring-graph.mjs?v=0.79.0';
+import { ensureScene } from './layout-model.mjs?v=0.80.0';
+import { roomView, propsView, installRoom } from './room.js?v=0.80.0';
+import { wiringGraph, installGraph, drawGraph } from './wiring-graph.mjs?v=0.80.0';
 import {
   defaultLibrary,
   ensureLibrary,
@@ -17,7 +17,7 @@ import {
   projectCapacity,
   connectionProblem,
   externalConnectionProblem
-} from './installation-model.mjs?v=0.79.0';
+} from './installation-model.mjs?v=0.80.0';
 import {
   boxBuilderView,
   standardsView,
@@ -26,11 +26,11 @@ import {
   drawBoxConnections,
   openBox,
   physicalIssues
-} from './installation-ui.mjs?v=0.79.0';
-import { APP_VERSION } from './version.mjs?v=0.79.0';
-import { installInfo } from './info.mjs?v=0.79.0';
-import { suggestView, installSuggest, afterSuggestRender, bellHtml } from './suggest.mjs?v=0.79.0';
-import { createDemoProject } from './demo-project.mjs?v=0.79.0';
+} from './installation-ui.mjs?v=0.80.0';
+import { APP_VERSION } from './version.mjs?v=0.80.0';
+import { installInfo } from './info.mjs?v=0.80.0';
+import { suggestView, installSuggest, afterSuggestRender, bellHtml } from './suggest.mjs?v=0.80.0';
+import { createDemoProject } from './demo-project.mjs?v=0.80.0';
 import {
   tailoredInitial,
   calculate,
@@ -41,7 +41,7 @@ import {
   PSU_MODELS,
   newSegment,
   uid
-} from './model.mjs?v=0.79.0';
+} from './model.mjs?v=0.80.0';
 const testing = new URLSearchParams(location.search).has('test');
 let project = tailoredInitial(),
   view = 'room',
@@ -54,7 +54,8 @@ let library,
   previousProject = null,
   previousLibrary = null,
   targetBoxId = '',
-  notificationsOpen = false;
+  notificationsOpen = false,
+  summaryOpen = false;
 try {
   library = ensureLibrary(JSON.parse(localStorage.getItem('pixel-workbench-library-v1')) || defaultLibrary());
 } catch {
@@ -167,6 +168,7 @@ function notifications(r) {
   }</section>`;
 }
 function render() {
+  summaryOpen = $('.project-summary')?.open ?? summaryOpen;
   const roomSections = new Map(
     [...document.querySelectorAll('.room-inspector-section')].map(section => [
       section.querySelector('summary').textContent.trim(),
@@ -196,6 +198,16 @@ function render() {
   if (!pages.some(x => x[0] === page)) page = 'workspace';
   $('#app').innerHTML =
     `<aside class="sidebar"><a class="brand" href="#" data-action="page:workspace"><span class="brandmark">▦</span><span>pixel<span class="light">workbench</span></span></a><button type="button" class="brand-version" data-info="new" title="What's new in v${APP_VERSION}">v${APP_VERSION}</button><div class="workspace-label">YOUR WORKSPACE</div><div class="project-card"><span class="project-icon">P</span><div><strong>${esc(project.name)}</strong><small>${demo ? 'DEMO MODE' : '12 V pixel system'}</small></div></div><nav aria-label="Main navigation">${pages.map(([id, ic, label]) => btn(`<span class="nav-icon">${ic}</span>${label}`, 'page:' + id, 'nav ' + (id === page ? 'active' : ''), id === page ? 'aria-current="page"' : '')).join('')}</nav></aside><main><header class="topbar"><div class="crumb">Projects <span>/</span> ${esc(project.name)}</div><div class="top-actions"><span class="local-label">${storageOK ? 'Saved on this device' : 'Save a JSON backup'}</span>${btn('↓ Save project', 'export', 'btn')}${btn('↑ Open', 'import', 'btn')}${btn('↗ Wiring guide', 'page:guide', 'btn')}${demo ? btn('Exit demo', 'exit-demo', 'btn') : btn('Open demo', 'open-demo', 'btn')}${btn('Blank project', 'blank-project', 'btn danger')}${bellHtml()}<button type="button" class="info-btn" data-info="how" title="Info: how to use, what's new, architecture, shortcuts" aria-label="Info">i</button></div></header>${notifications(r)}<section class="page-head"><div><div class="eyebrow">PLAN • WIRE • DEPLOY</div><h1>${pages.find(x => x[0] === page)[2]}</h1><p>${{ workspace: 'Every connection, with the power to back it up.', hardware: 'Give every circuit a source.', presets: 'Your repeatable building blocks.', props: 'Pixel shapes, built for your space.', guide: 'A build sheet for the workbench and the field.', boxes: 'Build controller enclosures and custom button boxes in separate tools.', standards: 'Reusable cables and hardware for every project.', bom: 'A practical packing and ordering list.', suggest: 'Request a focused change. Check the shipped behaviour before closing its issue.' }[page]}</p></div>${page === 'hardware' ? btn('+ Add controller', 'add-controller', 'btn primary') : page === 'suggest' || page === 'boxes' ? '' : btn('+ Controller box', 'new-box-main', 'btn primary')}</section>${page === 'suggest' ? '' : `<div class="summary"><div><span>ADDRESSABLE DEVICES</span><strong>${r.pixels.toLocaleString()} <small>of ${(capacity.capacity.pixels || 0).toLocaleString()} capacity</small></strong></div><div><span>ESTIMATED LOAD</span><strong>${fmt(r.watts)} <small>W at ${project.brightness}%</small></strong></div><div><span>PSU DESIGN BUDGET</span><strong>${fmt(((capacity.capacity.psuWatts || 0) * project.headroom) / 100, 0)} <small>W total</small></strong></div><div><span>INPUT / AUDIO PORTS</span><strong>${inputPorts} <small>inputs · ${capacity.capacity.audioOutputs || 0} audio</small></strong></div><div><span>PLAN CHECKS</span><strong class="amber">${r.warnings.filter(w => w.level !== 'info').length} <small>+ ${r.warnings.filter(w => w.level === 'info').length} assumptions</small></strong></div></div>`}<section id="content">${{ workspace: () => workspace(r), hardware: () => hardware(r), presets: () => presets(), props: () => propsView(project), guide: () => guide(r), boxes: () => boxBuilderView(project, library), standards: () => standardsView(library), bom: () => bomView(project), suggest: () => suggestView() }[page]()}</section><footer><span><i class="status-dot"></i> Changes sync across views</span><span>DC planning estimates • Verify against your actual hardware</span></footer></main><dialog id="modal"></dialog>`;
+  const stats = $('.summary');
+  if (stats) {
+    const disclosure = document.createElement('details');
+    disclosure.className = 'project-summary';
+    disclosure.open = summaryOpen;
+    disclosure.innerHTML =
+      '<summary>Project summary</summary><p class="summary-key">Coloured bars distinguish statistics only; they do not indicate status or limits. Review Plan checks and project notifications for warnings.</p>';
+    stats.before(disclosure);
+    disclosure.append(stats);
+  }
   for (const section of document.querySelectorAll('.room-inspector-section')) {
     const key = section.querySelector('summary').textContent.trim();
     if (roomSections.has(key)) section.open = roomSections.get(key);

@@ -70,6 +70,7 @@
   {"issue":46,"version":"0.75.0","title":"roll back request","outcome":"shipped","at":"2026-10-12T12:54:50Z","runs":0,"model":"","credits":0,"tokensIn":0,"tokensCached":0,"tokensOut":0,"seconds":0},
   {"issue":47,"version":"0.77.0","title":"Box builder is not functioning","outcome":"shipped","at":"2026-10-12T15:44:20Z","runs":1,"model":"gpt-6.1-sol","credits":14.79,"tokensIn":263700,"tokensCached":228100,"tokensOut":3600,"seconds":180},
   {"issue":48,"version":"0.78.0","title":"auto-generated PSU","outcome":"shipped","at":"2026-10-12T16:17:09Z","runs":1,"model":"gpt-6.1-sol","credits":32.25,"tokensIn":724500,"tokensCached":668800,"tokensOut":11600,"seconds":356},
-  {"issue":49,"version":"0.79.0","title":"allow wires to start from either side","outcome":"shipped","at":"2026-10-13T07:00:39Z","runs":1,"model":"gpt-6.1-sol","credits":13.3,"tokensIn":185800,"tokensCached":158300,"tokensOut":4800,"seconds":242}
+  {"issue":49,"version":"0.79.0","title":"allow wires to start from either side","outcome":"shipped","at":"2026-10-13T07:00:39Z","runs":1,"model":"gpt-6.1-sol","credits":13.3,"tokensIn":185800,"tokensCached":158300,"tokensOut":4800,"seconds":242},
+  {"issue":50,"version":"0.80.0","title":"improve stat tool","outcome":"shipped","at":"2026-10-13T07:09:20Z","runs":1,"model":"gpt-6.1-sol","credits":14.65,"tokensIn":269800,"tokensCached":240000,"tokensOut":4800,"seconds":224}
  ]
 }

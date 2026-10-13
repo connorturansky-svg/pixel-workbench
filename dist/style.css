@@ -347,17 +347,37 @@ main {
   color: #798781;
   margin-top: 8px;
 }
-.summary {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
+.project-summary {
   border: 1px solid var(--line);
   background: #fff;
   border-radius: 9px;
   margin-bottom: 28px;
+}
+.project-summary > summary {
+  padding: 14px 20px;
+  color: var(--ink);
+  font-weight: 600;
+  cursor: pointer;
+}
+.project-summary > summary:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: -4px;
+  border-radius: 9px;
+}
+.summary-key {
+  margin: 0;
+  padding: 0 20px;
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.summary {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   padding: 21px 0;
 }
 .summary > div {
-  padding: 0 25px;
+  padding: 16px 25px 0;
   border-right: 1px solid var(--line);
 }
 .summary > div:nth-child(4n + 1) {
@@ -378,7 +398,7 @@ main {
 .summary span {
   display: block;
   font-size: 10px;
-  color: #7a8b80;
+  color: var(--ink);
   letter-spacing: 1px;
   margin-bottom: 8px;
 }
@@ -389,10 +409,11 @@ main {
   letter-spacing: -0.8px;
 }
 .summary small {
+  display: block;
   font: 12px 'DM Sans';
   letter-spacing: 0;
-  color: #8b9991;
-  margin-left: 5px;
+  color: var(--ink);
+  margin: 6px 0 0;
 }
 .amber {
   color: var(--orange) !important;
@@ -869,11 +890,7 @@ footer {
     grid-template-columns: 220px 1fr;
   }
   .summary > div {
-    padding: 0 15px;
-  }
-  .summary strong small {
-    display: block;
-    margin: 4px 0 0;
+    padding: 16px 15px 0;
   }
   .local-label {
     display: none;
