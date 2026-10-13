@@ -2,6 +2,16 @@
 
 Every release is captured by the builder's release smoke test (`automation/smoke.py --shots`): every page, every info tab and a mobile view. This branch is never deployed by Pages. Newest first.
 
+## [v0.91.0](v0.91.0/)
+
+13/10/2026 · [commit f99ec82](https://github.com/connorturansky-svg/pixel-workbench/commit/f99ec8253a81a43b163ba0ab72704854a7ca2d17) · [issue #63](https://github.com/connorturansky-svg/pixel-workbench/issues/63)
+
+> Kept room cable strokes and port/pivot markers small through zoom, raised endpoint markers above equipment, identified open ends and added an exact-connection chooser for overlapping cable targets without moving saved paths (suggested in #63).
+
+<a href="v0.91.0/01-workspace.png"><img src="v0.91.0/01-workspace.png" width="420" alt="v0.91.0 workspace"></a> <a href="v0.91.0/mobile.png"><img src="v0.91.0/mobile.png" width="240" alt="v0.91.0 mobile"></a>
+
+All shots: [workspace](v0.91.0/01-workspace.png) · [hardware](v0.91.0/02-hardware.png) · [presets](v0.91.0/03-presets.png) · [props](v0.91.0/04-props.png) · [guide](v0.91.0/05-guide.png) · [boxes](v0.91.0/06-boxes.png) · [standards](v0.91.0/07-standards.png) · [bom](v0.91.0/08-bom.png) · [suggest](v0.91.0/09-suggest.png) · [info arch](v0.91.0/info-arch.png) · [info how](v0.91.0/info-how.png) · [info keys](v0.91.0/info-keys.png) · [info new](v0.91.0/info-new.png) · [info suggest](v0.91.0/info-suggest.png) · [mobile](v0.91.0/mobile.png)
+
 ## [v0.90.0](v0.90.0/)
 
 13/10/2026 · [commit b13a90e](https://github.com/connorturansky-svg/pixel-workbench/commit/b13a90e0793c2e0192931c822359c1f0ab5d12a5) · [issue #62](https://github.com/connorturansky-svg/pixel-workbench/issues/62)

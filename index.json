@@ -2102,5 +2102,31 @@
    "mobile.png"
   ],
   "error": ""
+ },
+ {
+  "version": "v0.91.0",
+  "date": "13/10/2026",
+  "commit": "f99ec8253a81a43b163ba0ab72704854a7ca2d17",
+  "issue": 63,
+  "changelog": "Kept room cable strokes and port/pivot markers small through zoom, raised endpoint markers above equipment, identified open ends and added an exact-connection chooser for overlapping cable targets without moving saved paths (suggested in #63).",
+  "status": "ok",
+  "shots": [
+   "01-workspace.png",
+   "02-hardware.png",
+   "03-presets.png",
+   "04-props.png",
+   "05-guide.png",
+   "06-boxes.png",
+   "07-standards.png",
+   "08-bom.png",
+   "09-suggest.png",
+   "info-arch.png",
+   "info-how.png",
+   "info-keys.png",
+   "info-new.png",
+   "info-suggest.png",
+   "mobile.png"
+  ],
+  "error": ""
  }
 ]
