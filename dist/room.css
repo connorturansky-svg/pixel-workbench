@@ -654,7 +654,7 @@
   vector-effect: non-scaling-stroke;
 }
 .physical-route.selected .route-line {
-  stroke-width: 3.7;
+  stroke-width: 3;
 }
 .route-cable-label {
   fill: var(--ink);
@@ -671,9 +671,9 @@
 .route-handle {
   fill: #fff;
   stroke: #287159;
-  stroke-width: 3;
+  stroke-width: 1.5;
   cursor: grab;
-  pointer-events: all;
+  pointer-events: none;
   touch-action: none;
   vector-effect: non-scaling-stroke;
 }
@@ -681,7 +681,29 @@
   cursor: grabbing;
 }
 .route-handle.endpoint {
-  stroke: #cc934d;
+  stroke: #287159;
+}
+.route-marker.open .endpoint {
+  stroke: #a86b25;
+  stroke-dasharray: 2 2;
+}
+.route-marker.selected .endpoint {
+  fill: #ffdd8e;
+}
+.route-marker-hit {
+  r: calc(10px * var(--room-unit, 1));
+  fill: transparent;
+  stroke: none;
+  pointer-events: all;
+  cursor: grab;
+  touch-action: none;
+}
+.route-marker:focus-visible {
+  outline: none;
+}
+.route-marker:focus-visible .route-handle {
+  stroke: var(--ink);
+  stroke-width: 2.5;
 }
 .route-handle.active {
   fill: #ffdd8e;
@@ -791,12 +813,12 @@
   outline: none;
 }
 .room-port-dot {
-  r: min(4px, calc(4px * var(--room-unit, 1)));
+  r: calc(3px * var(--room-unit, 1));
   stroke-width: 1.5;
   vector-effect: non-scaling-stroke;
 }
 .room-port-tip {
-  r: min(calc(4px * var(--port-scale)), calc(4px * var(--room-unit, 1)));
+  r: calc(3px * var(--room-unit, 1));
   stroke-width: 1.5;
   vector-effect: non-scaling-stroke;
   pointer-events: all;
@@ -860,7 +882,10 @@
   outline-offset: 2px;
 }
 .route-handle {
-  r: calc(6px * var(--room-unit, 1));
+  r: calc(4px * var(--room-unit, 1));
+}
+.route-handle.endpoint {
+  r: calc(3px * var(--room-unit, 1));
 }
 .route-alert {
   font-size: calc(14px * var(--room-unit, 1));
@@ -877,8 +902,6 @@
   display: block;
 }
 .physical-route.has-issues .route-line {
-  filter: drop-shadow(0 0 2px #c04c35);
-  stroke-width: 4;
   stroke-dasharray: 9 4;
 }
 .physical-route.unknown .route-line {

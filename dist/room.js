@@ -5,7 +5,7 @@ import {
   makeProp,
   PALETTE,
   clampPosition
-} from './layout-model.mjs?v=0.90.0';
+} from './layout-model.mjs?v=0.91.0';
 import {
   ensureInstallation,
   makeBox,
@@ -19,15 +19,16 @@ import {
   removePowerSupply,
   portTypeColour,
   connectionProblem
-} from './installation-model.mjs?v=0.90.0';
+} from './installation-model.mjs?v=0.91.0';
 import {
   routeLayer,
+  routeMarkers,
   routeControls,
   routeInspector,
   installRoutes,
   refreshRoutes,
   refreshRouteInspector
-} from './installation-room.mjs?v=0.90.0';
+} from './installation-room.mjs?v=0.91.0';
 let api,
   chosen = '',
   propId = 'prop-smiley',
@@ -498,19 +499,22 @@ function boxVisual(box, w, h) {
   return `<g class="room-box-visual" transform="scale(${scale})">${internals}${nodes}</g>`;
 }
 function boxPorts(p) {
-  return p.installation.boxes
-    .map(box => {
-      const v = p.scene.placements['box:' + box.id];
-      if (!v) return '';
-      const ports = exposedPorts(box);
-      return `<g data-room-port-tips="${E('box:' + box.id)}" transform="translate(${v.x * 100} ${v.y * 100})" style="--port-scale:${v.width / 4}" aria-hidden="true"><g transform="rotate(${v.rotation})">${ports
-        .map(node => {
-          const { x, y } = roomPortGeometry(v.width * 100, v.height * 100, node, ports);
-          return `<circle class="room-port-tip" data-room-port-proxy="${E(box.id)}:${E(node.component.id)}:${E(node.port.id)}" cx="${x}" cy="${y}" fill="${E(node.component.snapshot.color || '#4b8a76')}" stroke="${portTypeColour(node.port.type)}"/>`;
-        })
-        .join('')}</g></g>`;
-    })
-    .join('');
+  return (
+    `<g id="room-route-markers">${routeMarkers(p)}</g>` +
+    p.installation.boxes
+      .map(box => {
+        const v = p.scene.placements['box:' + box.id];
+        if (!v) return '';
+        const ports = exposedPorts(box);
+        return `<g data-room-port-tips="${E('box:' + box.id)}" transform="translate(${v.x * 100} ${v.y * 100})" aria-hidden="true"><g transform="rotate(${v.rotation})">${ports
+          .map(node => {
+            const { x, y } = roomPortGeometry(v.width * 100, v.height * 100, node, ports);
+            return `<circle class="room-port-tip" data-room-port-proxy="${E(box.id)}:${E(node.component.id)}:${E(node.port.id)}" cx="${x}" cy="${y}" fill="${E(node.component.snapshot.color || '#4b8a76')}" stroke="${portTypeColour(node.port.type)}"/>`;
+          })
+          .join('')}</g></g>`;
+      })
+      .join('')
+  );
 }
 function roomPortTarget(element) {
   const proxy = element?.closest('[data-room-port-proxy]');

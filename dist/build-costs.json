@@ -84,6 +84,7 @@
   {"issue":60,"version":"0.87.0","title":"wire flow balls are to big","outcome":"shipped","at":"2026-10-13T17:19:12Z","runs":1,"model":"gpt-6.1-sol","credits":10.0,"tokensIn":172000,"tokensCached":146500,"tokensOut":2200,"seconds":164},
   {"issue":59,"version":"0.88.0","title":"hove over button labels","outcome":"shipped","at":"2026-10-13T17:33:39Z","runs":2,"model":"gpt-6.1-sol","credits":33.66,"tokensIn":598000,"tokensCached":523900,"tokensOut":9900,"seconds":483},
   {"issue":61,"version":"0.89.0","title":"new view for the controller box builder","outcome":"shipped","at":"2026-10-13T17:48:52Z","runs":1,"model":"gpt-6.1-sol","credits":44.46,"tokensIn":955900,"tokensCached":895600,"tokensOut":20400,"seconds":465},
-  {"issue":62,"version":"0.90.0","title":"dynamic resisziing of builder view","outcome":"shipped","at":"2026-10-13T18:00:10Z","runs":1,"model":"gpt-6.1-sol","credits":19.25,"tokensIn":325400,"tokensCached":288200,"tokensOut":7100,"seconds":238}
+  {"issue":62,"version":"0.90.0","title":"dynamic resisziing of builder view","outcome":"shipped","at":"2026-10-13T18:00:10Z","runs":1,"model":"gpt-6.1-sol","credits":19.25,"tokensIn":325400,"tokensCached":288200,"tokensOut":7100,"seconds":238},
+  {"issue":63,"version":"0.91.0","title":"fix wire markers and visible endpoint attachment","outcome":"shipped","at":"2026-10-13T18:12:40Z","runs":1,"model":"gpt-6.1-sol","credits":32.43,"tokensIn":598900,"tokensCached":545800,"tokensOut":13700,"seconds":390}
  ]
 }

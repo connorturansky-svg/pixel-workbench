@@ -1,7 +1,8 @@
 export const ABOUT =
   'Pixel Workbench is a device-local planner for 12 V pixel systems built on Baldrick controllers and FPP. Use it to lay out a room, size power and injection, design controller boxes and produce a wiring guide, bill of materials and channel CSV. Calculations are planning estimates. Confirm ratings and wiring against the actual equipment.';
-export const APP_VERSION = '0.90.0';
+export const APP_VERSION = '0.91.0';
 export const ARCHITECTURE_NOTES = [
+  'Room cables retain world-space geometry and saved endpoint offsets. Screen-sized endpoint/pivot markers use a separate overlay above equipment; exact port tips remain interactive above it. Transparent hit regions are separate from paint. Screen-space proximity checks offer an exact-connection chooser for overlapping cable targets without moving paths. Nonzero saved endpoint offsets remain deliberate open ends, shown with dashed markers and accessible unconnected descriptions.',
   'Box builder side-panel toggles retain session-only visibility independently for the hardware library and box/component inspector. Hidden panels leave the grid and keyboard navigation; responsive columns give the space to the editor. Toggling updates the existing DOM and redraws schematic wires without changing project data, canvas zoom, selection or panel contents.',
   'Box builder Port list reads the same exact installation connections and edge-port mappings as Schematic. Compatible internal links are validated before atomic replacement and both endpoint dropdowns derive from one saved link. Generated edge mappings stay fixed; activation is shared with Schematic and Room layout. Room-connected endpoints are read-only in the list. Native component and edge disclosures retain session-only expansion state.',
   'button-help.mjs adds short native hover titles using the existing button action hooks. Delegated pointer and focus events cover page renders, dialogs and in-place controls without observing room drawing mutations; authored titles and all actions remain unchanged. Help is device-local and does not alter saved data.',
@@ -26,6 +27,13 @@ export const ARCHITECTURE_NOTES = [
   'version.mjs is the single source for the version, changelog, help text and shortcuts. info.mjs renders the i dialog.'
 ];
 export const CHANGELOG = [
+  {
+    version: '0.91.0',
+    date: '13/10/2026',
+    items: [
+      'Kept room cable strokes and port/pivot markers small through zoom, raised endpoint markers above equipment, identified open ends and added an exact-connection chooser for overlapping cable targets without moving saved paths (suggested in #63).'
+    ]
+  },
   {
     version: '0.90.0',
     date: '13/10/2026',
@@ -731,7 +739,7 @@ export const HOW_TO_USE = [
   ],
   [
     'Inspect cable warnings',
-    'Select a route for cable length, slack, pivots and the full issue list. A highlighted line and ! indicate short or incompatible wiring; an unassigned physical length is neutral. Delete a custom cable or injection from the route inspector. Wire flow shows small moving markers that stay the same screen size when zooming; turn it off to hide them.'
+    'Select a route for cable length, slack, pivots and the full issue list. Only the selected cable shows editable pivots; endpoint markers remain visible above equipment. Dashed endpoint markers identify deliberately offset, unconnected cable ends. Overlapping cable click regions open Choose connection rather than selecting an arbitrary wire; the inspector Connection dropdown is also available. A dashed line and ! indicate short or incompatible wiring; an unassigned physical length is neutral. Delete a custom cable or injection from the route inspector. Wire flow shows small moving markers that stay the same screen size when zooming; turn it off to hide them.'
   ],
   [
     'Route around room objects',
@@ -803,6 +811,8 @@ export const SHORTCUTS = [
     'Enter / Space on a port',
     'Select an exact source, then connect the exact destination; crowded ports open a chooser'
   ],
+  ['Enter / Space on a cable endpoint or pivot', 'Select its exact cable and inspect its route'],
+  ['Esc in Choose connection', 'Close the overlapping-cable chooser'],
   ['← ↑ → ↓', 'Move the focused room object by the snap grid'],
   ['Shift + ← ↑ → ↓', 'Move the focused room object by 1 m'],
   ['Mouse wheel', 'Zoom the room layout or box schematic around the pointer'],

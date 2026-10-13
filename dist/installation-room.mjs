@@ -8,10 +8,11 @@ import {
   routeIssues,
   deleteRoute,
   portTypeColour
-} from './installation-model.mjs?v=0.90.0';
+} from './installation-model.mjs?v=0.91.0';
 
 let api,
   selected = '',
+  editChoice = '',
   pivotIndex = -1,
   drag = null;
 const E = s =>
@@ -98,10 +99,63 @@ export function routeLayer(p) {
           chosen && p.installation.showLabels && r.cableSnapshot
             ? `<text class="route-cable-label" x="${labelPoint.x}" y="${labelPoint.y}">${E(r.cableSnapshot.name)}</text>`
             : '',
-        handles = chosen ? [g.points[0], ...r.points, g.points.at(-1)] : [];
-      return `<g class="physical-route ${s.kind} ${chosen ? 'selected' : ''} ${issues.length ? 'has-issues' : state.state === 'unknown' ? 'unknown' : 'valid'}" data-route="${E(s.id)}"><title>${E(s.name)}: ${issues.length ? issues.join('; ') : state.state === 'unknown' ? 'Physical cable length unknown' : 'Cable length valid'}</title><path class="route-hit" d="${d}" data-route-path="${E(s.id)}"/><path class="route-line" d="${d}" stroke="${colour}" data-route-path="${E(s.id)}"/>${label}${issues.length ? `<text class="route-alert" x="${g.points.at(-1).x * 100 + 8}" y="${g.points.at(-1).y * 100 - 8}">!<title>${E(issues.join('; '))}</title></text>` : ''}${p.installation.animate ? `<circle r="4" fill="${colour}" class="route-pulse"><animateMotion dur="4s" repeatCount="indefinite" path="${d}"/></circle>` : ''}${handles.map((q, i) => (i === 0 || i === handles.length - 1 ? `<circle class="route-handle endpoint" data-route-endpoint="${E(s.id)}:${i === 0 ? 'start' : 'end'}" cx="${q.x * 100}" cy="${q.y * 100}" r="7" tabindex="0" role="button" aria-label="Move ${i === 0 ? 'start' : 'end'} of ${E(s.name)}"/>` : `<circle class="route-handle pivot ${i - 1 === pivotIndex ? 'active' : ''}" data-route-pivot="${E(s.id)}:${i - 1}" cx="${q.x * 100}" cy="${q.y * 100}" r="7" tabindex="0" role="button" aria-label="Move pivot ${i} of ${E(s.name)}"/>`)).join('')}</g>`;
+        flow = p.installation.animate
+          ? `<circle r="2.5" fill="${colour}" class="route-pulse"><animateMotion dur="4s" repeatCount="indefinite" path="${d}"/></circle>`
+          : '';
+      return `<g class="physical-route ${s.kind} ${chosen ? 'selected' : ''} ${issues.length ? 'has-issues' : state.state === 'unknown' ? 'unknown' : 'valid'}" data-route="${E(s.id)}"><title>${E(s.name)}: ${issues.length ? issues.join('; ') : state.state === 'unknown' ? 'Physical cable length unknown' : 'Cable length valid'}</title><path class="route-hit" d="${d}" data-route-path="${E(s.id)}"/><path class="route-line" d="${d}" stroke="${colour}" data-route-path="${E(s.id)}"/>${label}${issues.length ? `<text class="route-alert" x="${g.points.at(-1).x * 100 + 8}" y="${g.points.at(-1).y * 100 - 8}">!<title>${E(issues.join('; '))}</title></text>` : ''}${flow}</g>`;
     })
     .join('');
+}
+export function routeMarkers(p) {
+  return specs(p)
+    .filter(s => visible(p, s))
+    .sort((a, b) => Number(a.id === selected) - Number(b.id === selected))
+    .map(s => {
+      const g = routeGeometry(p, s);
+      if (!g) return '';
+      const r = routeRecord(p, s.id),
+        chosen = s.id === selected,
+        marker = (q, value, kind, label, open = false) =>
+          `<g class="route-marker ${chosen ? 'selected' : ''} ${open ? 'open' : ''}" data-route-${kind}="${E(s.id)}:${value}" transform="translate(${q.x * 100} ${q.y * 100})" tabindex="0" role="button" aria-label="${E(label)}"><title>${E(label)}</title><circle class="route-marker-hit"/><circle class="route-handle ${kind === 'endpoint' ? 'endpoint' : 'pivot'} ${kind === 'pivot' && value === pivotIndex ? 'active' : ''}"/></g>`;
+      return `<g data-route-markers="${E(s.id)}">${['start', 'end']
+        .map((end, i) => {
+          const offset = end === 'start' ? r.startOffset : r.endOffset,
+            open = Boolean(offset?.x || offset?.y);
+          return marker(
+            g.points[i ? g.points.length - 1 : 0],
+            end,
+            'endpoint',
+            `${s.name}: ${end} ${open ? 'unconnected cable end' : 'connected endpoint'}`,
+            open
+          );
+        })
+        .join(
+          ''
+        )}${chosen ? r.points.map((q, i) => marker(q, i, 'pivot', `Move pivot ${i + 1} of ${s.name}`)).join('') : ''}</g>`;
+    })
+    .join('');
+}
+function refreshMarkers(s, g, r) {
+  const group = document.querySelector(`[data-route-markers="${CSS.escape(s.id)}"]`);
+  if (!group) return;
+  group.querySelectorAll('[data-route-pivot]').forEach(el => {
+    const [, index] = handleParts(el.dataset.routePivot),
+      q = r.points[+index];
+    el.setAttribute('transform', `translate(${q.x * 100} ${q.y * 100})`);
+  });
+  for (const end of ['start', 'end']) {
+    const q = g.points[end === 'start' ? 0 : g.points.length - 1],
+      el = group.querySelector(`[data-route-endpoint$=":${end}"]`),
+      offset = end === 'start' ? r.startOffset : r.endOffset,
+      open = Boolean(offset?.x || offset?.y);
+    el?.setAttribute('transform', `translate(${q.x * 100} ${q.y * 100})`);
+    el?.classList.toggle('open', open);
+    if (el) {
+      const label = `${s.name}: ${end} ${open ? 'unconnected cable end' : 'connected endpoint'}`;
+      el.setAttribute('aria-label', label);
+      el.querySelector('title').textContent = label;
+    }
+  }
 }
 export function routeControls(p) {
   ensureInstallation(p);
@@ -174,16 +228,7 @@ function refresh() {
     group.querySelectorAll('[data-route-path]').forEach(el => el.setAttribute('d', d));
     group.querySelector('animateMotion')?.setAttribute('path', d);
     refreshRouteLabel(group, g.points);
-    group.querySelectorAll('[data-route-pivot]').forEach((el, i) => {
-      el.setAttribute('cx', r.points[i].x * 100);
-      el.setAttribute('cy', r.points[i].y * 100);
-    });
-    for (const end of ['start', 'end']) {
-      const q = g.points[end === 'start' ? 0 : g.points.length - 1],
-        el = group.querySelector(`[data-route-endpoint$=":${end}"]`);
-      el?.setAttribute('cx', q.x * 100);
-      el?.setAttribute('cy', q.y * 100);
-    }
+    refreshMarkers(s, g, r);
     group.classList.toggle('has-issues', state.issues.length > 0);
     group.classList.toggle('unknown', state.state === 'unknown');
     group.classList.toggle('valid', state.state === 'valid');
@@ -196,7 +241,10 @@ function refresh() {
       alert.querySelector('title').textContent = state.issues.join('; ');
     }
   }
-  if (rebuild) layer.innerHTML = routeLayer(p);
+  if (rebuild) {
+    layer.innerHTML = routeLayer(p);
+    document.querySelector('#room-route-markers').innerHTML = routeMarkers(p);
+  }
   const s = list.find(x => x.id === selected),
     g = s && routeGeometry(p, s),
     read = document.querySelector('#route-length-live');
@@ -212,17 +260,7 @@ function refreshDrag() {
   group.querySelectorAll('[data-route-path]').forEach(el => el.setAttribute('d', d));
   group.querySelector('animateMotion')?.setAttribute('path', d);
   refreshRouteLabel(group, g.points);
-  group.querySelectorAll('[data-route-pivot]').forEach((el, i) => {
-    const q = routeRecord(p, drag.id).points[i];
-    el.setAttribute('cx', q.x * 100);
-    el.setAttribute('cy', q.y * 100);
-  });
-  for (const end of ['start', 'end']) {
-    const q = g.points[end === 'start' ? 0 : g.points.length - 1],
-      el = group.querySelector(`[data-route-endpoint$=":${end}"]`);
-    el?.setAttribute('cx', q.x * 100);
-    el?.setAttribute('cy', q.y * 100);
-  }
+  refreshMarkers(s, g, routeRecord(p, drag.id));
   const read = document.querySelector('#route-length-live');
   if (read) read.textContent = fmt(g.routeM) + ' m';
 }
@@ -255,21 +293,79 @@ function nearestIndex(points, q) {
   }
   return best;
 }
+function nearbyRoutes(e, radius = 7.5) {
+  const svg = e.target.closest('#room-canvas'),
+    matrix = svg?.getScreenCTM();
+  if (!matrix) return [];
+  const p = api.getProject(),
+    screen = q => ({
+      x: (matrix.a * q.x + matrix.c * q.y) * 100 + matrix.e,
+      y: (matrix.b * q.x + matrix.d * q.y) * 100 + matrix.f
+    }),
+    q = { x: e.clientX, y: e.clientY };
+  return specs(p).filter(s => {
+    if (!visible(p, s)) return false;
+    const g = routeGeometry(p, s);
+    if (!g) return false;
+    const points = g.points.map(screen),
+      index = nearestIndex(points, q),
+      a = points[index],
+      b = points[index + 1],
+      dx = b.x - a.x,
+      dy = b.y - a.y,
+      t = Math.max(0, Math.min(1, ((q.x - a.x) * dx + (q.y - a.y) * dy) / (dx * dx + dy * dy || 1)));
+    return Math.hypot(q.x - a.x - t * dx, q.y - a.y - t * dy) <= radius;
+  });
+}
+function chooseOverlapping(e, radius) {
+  if (e.type === 'click' && e.detail === 0) return false;
+  const choices = nearbyRoutes(e, radius);
+  if (choices.length < 2) return false;
+  document.querySelector('.room-port-picker')?.remove();
+  const picker = document.createElement('div');
+  picker.className = 'room-port-picker room-route-picker';
+  picker.setAttribute('role', 'group');
+  picker.setAttribute('aria-label', 'Choose cable connection');
+  picker.innerHTML = `<div><strong>Choose connection</strong><button type="button" class="text-btn" data-route-dismiss>Close</button></div><p>These cable click regions overlap. Choose the exact connection; cable paths stay unchanged.</p>${choices.map(s => `<button type="button" data-route-choice="${E(s.id)}" style="--port-color:${portTypeColour(routePortType(api.getProject(), s))}">${E(s.name)}<small>${E(s.from)} → ${E(s.to)} · ${E(s.id)}</small></button>`).join('')}`;
+  e.target.closest('.room-stage').append(picker);
+  picker.querySelector('[data-route-choice]').focus();
+  return true;
+}
 export function installRoutes(a) {
   api = a;
   document.addEventListener('click', e => {
+    const choice = e.target.closest('[data-route-choice]');
+    if (choice) {
+      selected = choice.dataset.routeChoice;
+      editChoice = selected;
+      pivotIndex = -1;
+      api.render();
+      const select = document.querySelector('[data-route-field="select"]');
+      if (select) {
+        select.closest('details').open = true;
+        select.focus();
+      }
+      return;
+    }
+    if (e.target.closest('[data-route-dismiss]')) {
+      document.querySelector('.room-route-picker')?.remove();
+      document.querySelector('[data-route-field="select"]')?.focus();
+      return;
+    }
     const pathEl = e.target.closest('[data-route-path], .unrouted[data-route]');
     if (pathEl) {
+      if (chooseOverlapping(e)) return;
       selected = pathEl.dataset.routePath || pathEl.dataset.route;
       pivotIndex = -1;
       api.render();
       return;
     }
-    const pv = e.target.closest('[data-route-pivot]');
+    const pv = e.target.closest('[data-route-pivot],[data-route-endpoint]');
     if (pv) {
-      const [id, i] = handleParts(pv.dataset.routePivot);
+      if (chooseOverlapping(e, 10)) return;
+      const [id, i] = handleParts(pv.dataset.routePivot || pv.dataset.routeEndpoint);
       selected = id;
-      pivotIndex = +i;
+      pivotIndex = pv.dataset.routePivot ? +i : -1;
       api.render();
       return;
     }
@@ -338,6 +434,10 @@ export function installRoutes(a) {
   document.addEventListener('dblclick', e => {
     const el = e.target.closest('[data-route-path]');
     if (!el) return;
+    if (chooseOverlapping(e)) {
+      e.preventDefault();
+      return;
+    }
     const p = api.getProject(),
       s = specs(p).find(x => x.id === el.dataset.routePath),
       svg = el.closest('#room-canvas'),
@@ -364,6 +464,7 @@ export function installRoutes(a) {
     const p = api.getProject();
     if (k === 'select') {
       selected = t.value;
+      editChoice = selected;
       pivotIndex = -1;
       api.render();
       return;
@@ -380,8 +481,13 @@ export function installRoutes(a) {
   document.addEventListener('pointerdown', e => {
     const el = e.target.closest('[data-route-pivot],[data-route-endpoint]');
     if (!el || e.button !== 0) return;
-    const [id, index] = handleParts(el.dataset.routePivot || el.dataset.routeEndpoint),
-      p = api.getProject(),
+    const [id, index] = handleParts(el.dataset.routePivot || el.dataset.routeEndpoint);
+    if (!(id === selected && id === editChoice) && chooseOverlapping(e, 10)) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+    const p = api.getProject(),
       r = routeRecord(p, id);
     selected = id;
     pivotIndex = el.dataset.routePivot ? +index : -1;
@@ -434,6 +540,15 @@ export function installRoutes(a) {
     }
   });
   document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && e.target.closest('.room-route-picker')) {
+      document.querySelector('[data-route-dismiss]').click();
+      return;
+    }
+    if (['Enter', ' '].includes(e.key) && e.target.matches('[data-route-pivot],[data-route-endpoint]')) {
+      e.preventDefault();
+      e.target.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      return;
+    }
     if (['Enter', ' '].includes(e.key) && e.target.matches('.unrouted[data-route]')) {
       e.preventDefault();
       e.target.dispatchEvent(new MouseEvent('click', { bubbles: true }));
