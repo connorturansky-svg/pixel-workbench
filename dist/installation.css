@@ -140,6 +140,24 @@
   gap: 18px;
   align-items: start;
 }
+.box-panel-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.box-layout.library-collapsed {
+  grid-template-columns: minmax(0, 1fr) 245px;
+}
+.box-layout.inspector-collapsed {
+  grid-template-columns: 200px minmax(0, 1fr);
+}
+.box-layout.library-collapsed.inspector-collapsed {
+  grid-template-columns: minmax(0, 1fr);
+}
+.box-layout > [hidden] {
+  display: none;
+}
 .install-palette,
 .part-inspector,
 .box-editor {
@@ -713,8 +731,12 @@
   }
 }
 @media (max-width: 1150px) {
-  .box-layout {
-    grid-template-columns: 1fr 240px;
+  .box-layout,
+  .box-layout.library-collapsed {
+    grid-template-columns: minmax(0, 1fr) 240px;
+  }
+  .box-layout.inspector-collapsed {
+    grid-template-columns: minmax(0, 1fr);
   }
   .install-palette {
     grid-column: 1/-1;
@@ -732,15 +754,17 @@
   }
 }
 @media (max-width: 760px) {
-  .box-layout {
-    grid-template-columns: 1fr;
+  .box-layout,
+  .box-layout.library-collapsed,
+  .box-layout.inspector-collapsed {
+    grid-template-columns: minmax(0, 1fr);
   }
   .install-palette {
     grid-column: auto;
   }
   .part-inspector {
     position: static;
-    grid-row: 3;
+    grid-row: auto;
     max-height: 60vh;
   }
 }

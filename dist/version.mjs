@@ -1,7 +1,8 @@
 export const ABOUT =
   'Pixel Workbench is a device-local planner for 12 V pixel systems built on Baldrick controllers and FPP. Use it to lay out a room, size power and injection, design controller boxes and produce a wiring guide, bill of materials and channel CSV. Calculations are planning estimates. Confirm ratings and wiring against the actual equipment.';
-export const APP_VERSION = '0.89.0';
+export const APP_VERSION = '0.90.0';
 export const ARCHITECTURE_NOTES = [
+  'Box builder side-panel toggles retain session-only visibility independently for the hardware library and box/component inspector. Hidden panels leave the grid and keyboard navigation; responsive columns give the space to the editor. Toggling updates the existing DOM and redraws schematic wires without changing project data, canvas zoom, selection or panel contents.',
   'Box builder Port list reads the same exact installation connections and edge-port mappings as Schematic. Compatible internal links are validated before atomic replacement and both endpoint dropdowns derive from one saved link. Generated edge mappings stay fixed; activation is shared with Schematic and Room layout. Room-connected endpoints are read-only in the list. Native component and edge disclosures retain session-only expansion state.',
   'button-help.mjs adds short native hover titles using the existing button action hooks. Delegated pointer and focus events cover page renders, dialogs and in-place controls without observing room drawing mutations; authored titles and all actions remain unchanged. Help is device-local and does not alter saved data.',
   'Room wire-flow markers use the existing inverse camera scale (--room-unit) for a constant 5 px screen diameter. Animation paths, route geometry, colours and reduced-motion handling are unchanged.',
@@ -25,6 +26,13 @@ export const ARCHITECTURE_NOTES = [
   'version.mjs is the single source for the version, changelog, help text and shortcuts. info.mjs renders the i dialog.'
 ];
 export const CHANGELOG = [
+  {
+    version: '0.90.0',
+    date: '13/10/2026',
+    items: [
+      'Added independent menu buttons to hide and restore the hardware library and box/component details, giving the box editor more room across its views (suggested in #62).'
+    ]
+  },
   {
     version: '0.89.0',
     date: '13/10/2026',
@@ -758,6 +766,10 @@ export const HOW_TO_USE = [
     'Open Box builder and keep Controller boxes selected to create a box and arrange components in Schematic, choosing reusable hardware such as controllers, PSUs, step-down transformers and any documented Baldrick board from the library. A Baldrick8, Baldrick17 or BaldrickInput8 added directly to a box also appears in Hardware & power and makes its pixel outputs available when adding room floods, strings or props. The summary above every planning page totals pixel, PSU, input and audio capacity from complete boxes as well as loose hardware. Use Sync standards on a box to pull in changed hardware names, colours, ports and other library details while keeping that box’s placement, subnames, limits and connections. The large schematic canvas scrolls on smaller screens so labels remain readable; components cannot overlap, while Auto layout arranges connected parts as a spaced flow chart. Saved boxes from older versions receive this current layout once when opened. Use the zoom controls or mouse wheel to change its scale. Baldrick components show their named real-world power, network, pixel, input, relay and DMX connectors. For a placed network switch, set its Ethernet port count in Component details; its schematic connectors and matching box edge ports update immediately. Every component connector gets a matching inactive box edge port; expand its component group to edit the label or edge and activate only the ports that should appear around the Schematic, show their component wire and become route targets in Room layout. Active ports are outlined in that component standard’s colour, while inactive ports remain available only in the editor. Drag an exact connector to see its type-coloured wire leave the component edge and route around other parts and their text, then drop it on a destination; linked connectors are filled, and hovering a connector or wire highlights both ends. Expand Box details to apply a reusable enclosure size in centimetres; it collapses when you select a component so that component’s controls take priority. Edit Small, Medium, Large or custom sizes in Standards. Give a placed component an optional subname, such as “12 V feed”; it appears beneath the hardware name. For a generic PSU or Raspberry Pi, choose a common Mean Well LRS or Pi model from Common size guide to fill its reference dimensions, then confirm the exact variant and any case, connector or airflow allowance. Switch to Physical layout for a scale enclosure plan. Use the bell to answer missing-size tickets; confirmed measurements are reused from the device library. Rotate parts, use stacking layers for intentional overlap and resolve enclosure-bound or same-layer overlap warnings. Return to Schematic to connect typed ports and room targets.'
   ],
   [
+    'Make room in the box builder',
+    'Use the three-line Hardware library and Box and component details buttons above the editor to hide either side panel independently. The editor uses the freed space in Schematic, Port list and Physical layout. Press the same button to restore the panel; its contents are retained. Both panels start visible and remember your choice while the app stays open. On narrow screens the library sits above the editor and details below it, so hiding them also reduces scrolling. The buttons work with Tab and Enter or Space.'
+  ],
+  [
     'Connect ports in a list',
     'In Box builder, choose Port list and expand a component. Each connector has a dropdown of compatible free ports; choosing one updates both ends and Schematic. Choose Not connected to remove an internal link, or choose its matching Box edge to activate that edge. Expand Box edge ports to review their fixed matching connectors, edit labels and edges, and toggle Active. Generated edge mappings cannot be reassigned. Green rows mean connected or active; outstanding or inactive rows have an orange border and a text status. Colours do not indicate electrical safety. Existing room connections are read-only here: edit them in Room layout or Connections. Groups start closed and retain their expansion during this session.'
   ],
@@ -782,6 +794,7 @@ export const SHORTCUTS = [
   ['?', 'Open this dialog on the Shortcuts tab (outside text fields)'],
   ['Esc', 'Cancel pending port wiring or close an open dialog'],
   ['Tab', 'Move between controls and room objects'],
+  ['Enter / Space on builder menu buttons', 'Hide or restore the hardware library or box/component details'],
   ['Enter / Space on Port list headings', 'Expand or collapse component and box edge port groups'],
   ['Enter / Space on Project summary', 'Show or hide the project statistics'],
   ['Enter', 'Select the focused room object'],

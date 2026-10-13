@@ -29,7 +29,7 @@ import {
   deleteRoute,
   removePowerSupply,
   portTypeColour
-} from './installation-model.mjs?v=0.89.0';
+} from './installation-model.mjs?v=0.90.0';
 
 const SCHEMATIC_MIN_WIDTH = 1400,
   SCHEMATIC_MIN_HEIGHT = 700;
@@ -51,6 +51,8 @@ let api,
   connectionFrame = 0,
   showTickets = false,
   boxDetailsOpen = false,
+  libraryCollapsed = false,
+  inspectorCollapsed = false,
   builderMode = 'controller';
 const openStandards = new Set();
 const openPortGroups = new Set();
@@ -61,6 +63,8 @@ const E = s =>
   );
 const B = (label, action, cls = 'btn') =>
   `<button type="button" class="${cls}" data-install="${action}">${label}</button>`;
+const panelToggle = (label, panel, collapsed) =>
+  `<button type="button" class="btn" data-install="toggle-panel:${panel}" aria-controls="box-${panel}" aria-expanded="${!collapsed}" title="Show or hide ${label.toLowerCase()}"><span aria-hidden="true">&#9776;</span> ${label}</button>`;
 const F = (label, value, key, type = 'text', extra = '') => {
   if (boxMode === 'schematic' && (key === 'part.x' || key === 'part.y')) {
     const part = current(api.getProject())?.components.find(c => c.id === partId);
@@ -657,7 +661,7 @@ function boxesView(p, lib) {
   )}${lib.boxTemplates.length ? '<label>Find template<input type="search" data-template-search placeholder="Search box templates"></label>' : ''}${lib.boxTemplates.length ? S('Reusable template', '', 'template-select', [['', 'Choose template'], ...lib.boxTemplates.map(t => [t.id, t.name + ' · v' + t.version])]) : ''}${B('Add template box', 'add-template')}${B('Save as template', 'save-template')}${template && template.version > box.templateRef.version ? B(`Update to template v${template.version}`, 'update-template') : ''}${B(`🔔 ${tickets.length}`, 'tickets', 'notification-btn ' + (tickets.length ? 'has-tickets' : ''))}</div>${showTickets ? `<section class="panel measurement-tickets"><h3>Measurement tickets</h3><div class="install-scroll-list">${tickets.map(x => `<button type="button" data-install="select-part:${E(x.part.id)}">${E(x.text)}</button>`).join('') || '<p class="micro">Every placed component has a confirmed footprint.</p>'}</div></section>` : ''}<details class="install-global panel install-disclosure" open><summary>Project resource capacity</summary><div class="install-disclosure-body">${resources(cap)}</div></details>${
     !box
       ? '<div class="panel install-empty">Create a box to place controllers, power supplies, buttons, relays and other parts.</div>'
-      : `<div class="box-layout"><aside class="panel install-palette"><h3>Hardware library</h3><p class="micro">Internal components for this enclosure. Click a part to add it.</p>${catalogBar(
+      : `<div class="box-panel-toggles" role="group" aria-label="Builder side panels">${panelToggle('Hardware library', 'library', libraryCollapsed)}${panelToggle('Box and component details', 'inspector', inspectorCollapsed)}</div><div class="box-layout${libraryCollapsed ? ' library-collapsed' : ''}${inspectorCollapsed ? ' inspector-collapsed' : ''}"><aside id="box-library" class="panel install-palette" ${libraryCollapsed ? 'hidden' : ''}><h3>Hardware library</h3><p class="micro">Internal components for this enclosure. Click a part to add it.</p>${catalogBar(
           'box-palette',
           lib.components.filter(d => componentPlacement(d) !== 'field')
         )}${lib.components
@@ -686,7 +690,7 @@ function boxesView(p, lib) {
               return `<div class="box-connection"><span>${E(box.components.find(c => c.id === x.fromComponent)?.snapshot.name)} ${E(x.fromPort)} → ${E(x.toKey || box.components.find(c => c.id === x.toComponent)?.snapshot.name)} ${E(x.toPort)}${warnings.length ? `<b title="${E(warnings.join('; '))}"> ⚠ ${E(warnings.join('; '))}${x.acknowledged ? ' · acknowledged' : ''}</b>` : ''}</span>${warnings.length ? B(x.acknowledged ? 'Unacknowledge' : 'Acknowledge', 'ack:' + x.id, 'text-btn') : ''}${B('Remove', 'delete-connection:' + x.id, 'text-btn danger')}</div>`;
             })
             .join('') || '<p class="micro">No internal connections yet.</p>'
-        }</div></details><details class="box-text-section" open><summary>Box capacity</summary><div class="install-disclosure-body">${resources(boxCapacity(p, box))}</div></details></section><aside class="panel part-inspector"><details class="box-details" ${boxDetailsOpen || !part ? 'open' : ''}><summary>Box details</summary><div class="box-details-body">${F('Box label', box.name, 'box.name')}${F('Description', box.description, 'box.description')}${S('Enclosure size', lib.boxSizes.find(s => s.widthCm * 10 === (box.physicalWidthMm || 400) && s.depthCm * 10 === (box.physicalDepthMm || 250))?.id || '', 'box-size-select', [['', 'Custom size'], ...lib.boxSizes.map(s => [s.id, `${s.name} · ${s.widthCm} × ${s.depthCm} cm`])])}${F('Enclosure width (cm)', (box.physicalWidthMm || 400) / 10, 'box.physicalWidthCm', 'number', 'min="2" max="1000" step="0.1"')}${F('Enclosure depth (cm)', (box.physicalDepthMm || 250) / 10, 'box.physicalDepthCm', 'number', 'min="2" max="1000" step="0.1"')}<p class="micro">Reusable sizes are managed in Standards.</p>${F('Room footprint width (m)', box.width, 'box.width', 'number', 'min="0.1" max="50" step="any"')}${F('Room footprint depth (m)', box.height, 'box.height', 'number', 'min="0.1" max="50" step="any"')}</div></details>${
+        }</div></details><details class="box-text-section" open><summary>Box capacity</summary><div class="install-disclosure-body">${resources(boxCapacity(p, box))}</div></details></section><aside id="box-inspector" class="panel part-inspector" ${inspectorCollapsed ? 'hidden' : ''}><details class="box-details" ${boxDetailsOpen || !part ? 'open' : ''}><summary>Box details</summary><div class="box-details-body">${F('Box label', box.name, 'box.name')}${F('Description', box.description, 'box.description')}${S('Enclosure size', lib.boxSizes.find(s => s.widthCm * 10 === (box.physicalWidthMm || 400) && s.depthCm * 10 === (box.physicalDepthMm || 250))?.id || '', 'box-size-select', [['', 'Custom size'], ...lib.boxSizes.map(s => [s.id, `${s.name} · ${s.widthCm} × ${s.depthCm} cm`])])}${F('Enclosure width (cm)', (box.physicalWidthMm || 400) / 10, 'box.physicalWidthCm', 'number', 'min="2" max="1000" step="0.1"')}${F('Enclosure depth (cm)', (box.physicalDepthMm || 250) / 10, 'box.physicalDepthCm', 'number', 'min="2" max="1000" step="0.1"')}<p class="micro">Reusable sizes are managed in Standards.</p>${F('Room footprint width (m)', box.width, 'box.width', 'number', 'min="0.1" max="50" step="any"')}${F('Room footprint depth (m)', box.height, 'box.height', 'number', 'min="0.1" max="50" step="any"')}</div></details>${
           part
             ? `<div class="component-details"><h3>${E(part.snapshot.name)}</h3>${F('Component subname', part.subname || '', 'part.subname', 'text', 'maxlength="200" placeholder="For example, 12 V feed"')}${S('Linked project hardware', part.sourceKey, 'part.sourceKey', sources(p))}${sizeGuides.length ? S('Common size guide', sizeGuides.find(guide => guide.manufacturer === part.snapshot.manufacturer && guide.model === part.snapshot.model)?.id || '', 'size-guide', [['', 'Choose a model'], ...sizeGuides.map(guide => [guide.id, `${guide.manufacturer} ${guide.model} · ${guide.physical.widthMm} × ${guide.physical.depthMm}${guide.physical.heightMm ? ` × ${guide.physical.heightMm}` : ''} mm`])]) + '<p class="micro">Applies reference dimensions to this part. Confirm the exact variant and allow for cases, connectors and airflow.</p>' : ''}${F('Position X (%)', part.x, 'part.x', 'number', 'min="0" max="100" step="any"')}${F('Position Y (%)', part.y, 'part.y', 'number', 'min="0" max="100" step="any"')}${F('Width (mm)', part.snapshot.physical?.widthMm ?? '', 'physical.widthMm', 'number', 'min="1" max="5000" step="1"')}${F('Depth (mm)', part.snapshot.physical?.depthMm ?? '', 'physical.depthMm', 'number', 'min="1" max="5000" step="1"')}${F('Height (mm)', part.snapshot.physical?.heightMm ?? '', 'physical.heightMm', 'number', 'min="1" max="5000" step="1"')}${B('Save measurements globally', 'save-size', 'text-btn')}${B(`Rotate 90° (${part.rotation || 0}°)`, 'rotate-part', 'text-btn')}${F('Stacking layer', part.stackLevel || 0, 'part.stackLevel', 'number', 'min="0" max="20" step="1"')}${part.snapshot.category === 'Network' && part.snapshot.resources?.ethernetPorts ? `<h4>Connectors</h4>${F('Ethernet ports', part.snapshot.ports.filter(port => port.type === 'ethernet').length, 'portcount.ethernet', 'number', 'min="1" max="128" step="1"')}<p class="micro">Changes the connectors shown on this placed component and its matching box edge ports.</p>` : ''}<h4>Operating limits</h4><p class="micro">Set below the reference rating when you want headroom.</p>${Object.entries(
                 part.snapshot.resources || {}
@@ -1377,6 +1381,20 @@ export function installInstallation(a) {
     }
     const el = e.target.closest('[data-install]');
     if (!el) return;
+    if (el.dataset.install.startsWith('toggle-panel:')) {
+      const panel = el.dataset.install.split(':')[1],
+        target = document.getElementById('box-' + panel),
+        layout = target?.closest('.box-layout');
+      if (!layout) return;
+      if (panel === 'library') libraryCollapsed = !libraryCollapsed;
+      else inspectorCollapsed = !inspectorCollapsed;
+      const collapsed = panel === 'library' ? libraryCollapsed : inspectorCollapsed;
+      target.hidden = collapsed;
+      layout.classList.toggle(panel + '-collapsed', collapsed);
+      el.setAttribute('aria-expanded', String(!collapsed));
+      scheduleBoxConnections();
+      return;
+    }
     const [action, id, sub] = el.dataset.install.split(':'),
       p = api.getProject(),
       lib = api.getLibrary(),
