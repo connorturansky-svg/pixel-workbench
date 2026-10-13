@@ -1,7 +1,8 @@
 export const ABOUT =
   'Pixel Workbench is a device-local planner for 12 V pixel systems built on Baldrick controllers and FPP. Use it to lay out a room, size power and injection, design controller boxes and produce a wiring guide, bill of materials and channel CSV. Calculations are planning estimates. Confirm ratings and wiring against the actual equipment.';
-export const APP_VERSION = '0.80.0';
+export const APP_VERSION = '0.81.0';
 export const ARCHITECTURE_NOTES = [
+  'installation-room shows the selected route’s assigned cable snapshot name beside its longest segment when Labels is on. Labels follow route and pivot movement with screen-sized text; they do not change geometry, measurements or saved cable assignments.',
   'The native Project summary disclosure starts closed on each load and keeps its open/closed state across page renders in the current session. Its coloured bars distinguish statistics, not warning severity; project notifications remain separate and visible.',
   'A static, no-build web app: plain ES modules, HTML and CSS served from dist/. Pushing to main publishes dist/ to GitHub Pages through the Actions workflow.',
   'Calculation and data modules are UI-free. installation-model separates logical schematic coordinates from measured physical placement, validates exact typed endpoints across boxes and routes around physical obstacles. Camera and Labels changes do not affect cable lengths. Cached routes are invalidated by moved endpoints and intersecting obstacles. Node model checks and real Chromium workflows exercise these contracts.',
@@ -16,6 +17,13 @@ export const ARCHITECTURE_NOTES = [
   'version.mjs is the single source for the version, changelog, help text and shortcuts. info.mjs renders the i dialog.'
 ];
 export const CHANGELOG = [
+  {
+    version: '0.81.0',
+    date: '13/10/2026',
+    items: [
+      'Added the assigned physical cable standard name beside the selected room route, following route edits and respecting the Labels toggle (suggested in #52).'
+    ]
+  },
   {
     version: '0.80.0',
     date: '13/10/2026',
@@ -659,7 +667,7 @@ export const HOW_TO_USE = [
   ],
   [
     'Choose physical cables',
-    'In Standards, edit your cable colours, connectors and actual lengths. Assign a standard to a room route. Route length, optional slack and spare/shortfall are shown separately.'
+    'In Standards, edit your cable colours, connectors and actual lengths. Assign a standard to a room route. With Labels on, the selected route shows its assigned cable standard name beside the wire; unassigned routes have no cable name label. The label follows endpoint and pivot movement. Route length, optional slack and spare/shortfall are shown separately.'
   ],
   [
     'Build controller boxes',

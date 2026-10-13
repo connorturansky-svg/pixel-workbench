@@ -653,6 +653,18 @@
 .physical-route.selected .route-line {
   stroke-width: 3.7;
 }
+.route-cable-label {
+  fill: var(--ink);
+  font-size: calc(12px * var(--room-unit, 1));
+  font-weight: 700;
+  text-anchor: middle;
+  transform: translateY(calc(-10px * var(--room-unit, 1)));
+  stroke: white;
+  stroke-width: calc(4px * var(--room-unit, 1));
+  stroke-linejoin: round;
+  paint-order: stroke;
+  pointer-events: none;
+}
 .route-handle {
   fill: #fff;
   stroke: #287159;

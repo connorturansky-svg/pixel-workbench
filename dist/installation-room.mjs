@@ -8,7 +8,7 @@ import {
   routeIssues,
   deleteRoute,
   portTypeColour
-} from './installation-model.mjs?v=0.80.0';
+} from './installation-model.mjs?v=0.81.0';
 
 let api,
   selected = '',
@@ -50,6 +50,27 @@ function routePortType(p, spec) {
   }
   return '';
 }
+function routeLabelPoint(points) {
+  let index = 0,
+    longest = -1;
+  for (let i = 0; i < points.length - 1; i++) {
+    const length = Math.hypot(points[i + 1].x - points[i].x, points[i + 1].y - points[i].y);
+    if (length > longest) {
+      longest = length;
+      index = i;
+    }
+  }
+  const a = points[index],
+    b = points[index + 1] || a;
+  return { x: ((a.x + b.x) / 2) * 100, y: ((a.y + b.y) / 2) * 100 };
+}
+function refreshRouteLabel(group, points) {
+  const label = group.querySelector('.route-cable-label');
+  if (!label) return;
+  const q = routeLabelPoint(points);
+  label.setAttribute('x', q.x);
+  label.setAttribute('y', q.y);
+}
 export function routeLayer(p) {
   ensureInstallation(p);
   return specs(p)
@@ -68,8 +89,13 @@ export function routeLayer(p) {
         short = state.state === 'short',
         issues = state.issues,
         chosen = s.id === selected,
+        labelPoint = routeLabelPoint(g.points),
+        label =
+          chosen && p.installation.showLabels && r.cableSnapshot
+            ? `<text class="route-cable-label" x="${labelPoint.x}" y="${labelPoint.y}">${E(r.cableSnapshot.name)}</text>`
+            : '',
         handles = chosen ? [g.points[0], ...r.points, g.points.at(-1)] : [];
-      return `<g class="physical-route ${s.kind} ${chosen ? 'selected' : ''} ${issues.length ? 'has-issues' : state.state === 'unknown' ? 'unknown' : 'valid'}" data-route="${E(s.id)}"><title>${E(s.name)}: ${issues.length ? issues.join('; ') : state.state === 'unknown' ? 'Physical cable length unknown' : 'Cable length valid'}</title><path class="route-hit" d="${d}" data-route-path="${E(s.id)}"/><path class="route-line" d="${d}" stroke="${colour}" data-route-path="${E(s.id)}"/>${issues.length ? `<text class="route-alert" x="${g.points.at(-1).x * 100 + 8}" y="${g.points.at(-1).y * 100 - 8}">!<title>${E(issues.join('; '))}</title></text>` : ''}${p.installation.animate ? `<circle r="4" fill="${colour}" class="route-pulse"><animateMotion dur="4s" repeatCount="indefinite" path="${d}"/></circle>` : ''}${handles.map((q, i) => (i === 0 || i === handles.length - 1 ? `<circle class="route-handle endpoint" data-route-endpoint="${E(s.id)}:${i === 0 ? 'start' : 'end'}" cx="${q.x * 100}" cy="${q.y * 100}" r="7" tabindex="0" role="button" aria-label="Move ${i === 0 ? 'start' : 'end'} of ${E(s.name)}"/>` : `<circle class="route-handle pivot ${i - 1 === pivotIndex ? 'active' : ''}" data-route-pivot="${E(s.id)}:${i - 1}" cx="${q.x * 100}" cy="${q.y * 100}" r="7" tabindex="0" role="button" aria-label="Move pivot ${i} of ${E(s.name)}"/>`)).join('')}</g>`;
+      return `<g class="physical-route ${s.kind} ${chosen ? 'selected' : ''} ${issues.length ? 'has-issues' : state.state === 'unknown' ? 'unknown' : 'valid'}" data-route="${E(s.id)}"><title>${E(s.name)}: ${issues.length ? issues.join('; ') : state.state === 'unknown' ? 'Physical cable length unknown' : 'Cable length valid'}</title><path class="route-hit" d="${d}" data-route-path="${E(s.id)}"/><path class="route-line" d="${d}" stroke="${colour}" data-route-path="${E(s.id)}"/>${label}${issues.length ? `<text class="route-alert" x="${g.points.at(-1).x * 100 + 8}" y="${g.points.at(-1).y * 100 - 8}">!<title>${E(issues.join('; '))}</title></text>` : ''}${p.installation.animate ? `<circle r="4" fill="${colour}" class="route-pulse"><animateMotion dur="4s" repeatCount="indefinite" path="${d}"/></circle>` : ''}${handles.map((q, i) => (i === 0 || i === handles.length - 1 ? `<circle class="route-handle endpoint" data-route-endpoint="${E(s.id)}:${i === 0 ? 'start' : 'end'}" cx="${q.x * 100}" cy="${q.y * 100}" r="7" tabindex="0" role="button" aria-label="Move ${i === 0 ? 'start' : 'end'} of ${E(s.name)}"/>` : `<circle class="route-handle pivot ${i - 1 === pivotIndex ? 'active' : ''}" data-route-pivot="${E(s.id)}:${i - 1}" cx="${q.x * 100}" cy="${q.y * 100}" r="7" tabindex="0" role="button" aria-label="Move pivot ${i} of ${E(s.name)}"/>`)).join('')}</g>`;
     })
     .join('');
 }
@@ -132,6 +158,7 @@ function refresh() {
       r = routeRecord(p, s.id);
     group.querySelectorAll('[data-route-path]').forEach(el => el.setAttribute('d', d));
     group.querySelector('animateMotion')?.setAttribute('path', d);
+    refreshRouteLabel(group, g.points);
     group.querySelectorAll('[data-route-pivot]').forEach((el, i) => {
       el.setAttribute('cx', r.points[i].x * 100);
       el.setAttribute('cy', r.points[i].y * 100);
@@ -169,6 +196,7 @@ function refreshDrag() {
   const d = path(g.points);
   group.querySelectorAll('[data-route-path]').forEach(el => el.setAttribute('d', d));
   group.querySelector('animateMotion')?.setAttribute('path', d);
+  refreshRouteLabel(group, g.points);
   group.querySelectorAll('[data-route-pivot]').forEach((el, i) => {
     const q = routeRecord(p, drag.id).points[i];
     el.setAttribute('cx', q.x * 100);
