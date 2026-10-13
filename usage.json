@@ -31,7 +31,13 @@
    "issue": 50,
    "credits": 14.65,
    "outcome": "shipped"
+  },
+  {
+   "at": "2026-10-13T07:20:40Z",
+   "issue": 51,
+   "credits": 28.82,
+   "outcome": "maintainer-needed"
   }
  ],
- "updated": "2026-10-13T07:10:45Z"
+ "updated": "2026-10-13T07:20:41Z"
 }
