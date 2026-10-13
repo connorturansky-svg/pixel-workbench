@@ -5,7 +5,7 @@ import {
   makeProp,
   PALETTE,
   clampPosition
-} from './layout-model.mjs?v=0.83.0';
+} from './layout-model.mjs?v=0.84.0';
 import {
   ensureInstallation,
   BUTTON_COLOURS,
@@ -17,7 +17,7 @@ import {
   removePowerSupply,
   portTypeColour,
   connectionProblem
-} from './installation-model.mjs?v=0.83.0';
+} from './installation-model.mjs?v=0.84.0';
 import {
   routeLayer,
   routeControls,
@@ -25,7 +25,7 @@ import {
   installRoutes,
   refreshRoutes,
   refreshRouteInspector
-} from './installation-room.mjs?v=0.83.0';
+} from './installation-room.mjs?v=0.84.0';
 let api,
   chosen = '',
   propId = 'prop-smiley',
@@ -38,6 +38,7 @@ let api,
   suppressPortClick = false,
   portPicker = '',
   viewport = { left: 0, top: 0 },
+  wheelGesture = null,
   detailLevels = new Map();
 const E = s =>
   String(s ?? '').replace(
@@ -75,7 +76,7 @@ function setZoom(next, clientX, clientY) {
     svg = sc?.querySelector('#room-canvas');
   if (!sc || !svg) return;
   const limits = zoomLimits(sc);
-  next = Math.max(limits.min, Math.min(limits.max, Math.round(next * 100) / 100));
+  next = Math.max(limits.min, Math.min(limits.max, next));
   const rect = sc.getBoundingClientRect(),
     x = clientX == null ? sc.clientWidth / 2 : clientX - rect.left,
     y = clientY == null ? sc.clientHeight / 2 : clientY - rect.top,
@@ -105,20 +106,63 @@ function fitSite() {
   });
 }
 function fitSelected() {
+  fitBounds(componentView(true));
+}
+function componentView(selected = false) {
   const p = api.getProject(),
-    placement = p.scene.placements[chosen],
+    sc = document.querySelector('.room-scroll'),
+    placements = entities(p)
+      .filter(item => !selected || item.key === chosen)
+      .map(item => p.scene.placements[item.key])
+      .filter(Boolean);
+  if (!sc || !placements.length) return null;
+  const bounds = placements.map(v => {
+    const angle = (v.rotation * Math.PI) / 180,
+      width = Math.abs(Math.cos(angle)) * v.width + Math.abs(Math.sin(angle)) * v.height,
+      height = Math.abs(Math.sin(angle)) * v.width + Math.abs(Math.cos(angle)) * v.height;
+    return {
+      left: v.x - width / 2,
+      right: v.x + width / 2,
+      top: v.y - height / 2,
+      bottom: v.y + height / 2
+    };
+  });
+  const left = Math.min(...bounds.map(v => v.left)),
+    right = Math.max(...bounds.map(v => v.right)),
+    top = Math.min(...bounds.map(v => v.top)),
+    bottom = Math.max(...bounds.map(v => v.bottom)),
+    padding = selected ? 0.64 : 0.82,
+    limits = zoomLimits(sc),
+    horizontal = (p.scene.width / Math.max(0.01, right - left)) * padding,
+    vertical =
+      ((p.scene.width * sc.clientHeight) / Math.max(0.01, (bottom - top) * sc.clientWidth)) * padding;
+  return {
+    x: (left + right) / 2,
+    y: (top + bottom) / 2,
+    zoom: Math.max(limits.min, Math.min(limits.max, horizontal, vertical))
+  };
+}
+function fitBounds(view) {
+  const p = api.getProject(),
     sc = document.querySelector('.room-scroll'),
     svg = sc?.querySelector('#room-canvas');
-  if (!placement || !sc || !svg) return;
-  const horizontal = (p.scene.width / Math.max(0.01, placement.width)) * 0.64,
-    vertical = ((p.scene.width * sc.clientHeight) / Math.max(0.01, placement.height * sc.clientWidth)) * 0.64;
-  setZoom(Math.min(horizontal, vertical));
+  if (!view || !sc || !svg) return;
+  setZoom(view.zoom);
   requestAnimationFrame(() => {
-    sc.scrollLeft = (placement.x / p.scene.width) * svg.clientWidth - sc.clientWidth / 2;
-    sc.scrollTop = (placement.y / p.scene.depth) * svg.clientHeight - sc.clientHeight / 2;
+    sc.scrollLeft = (view.x / p.scene.width) * svg.clientWidth - sc.clientWidth / 2;
+    sc.scrollTop = (view.y / p.scene.depth) * svg.clientHeight - sc.clientHeight / 2;
     viewport = { left: sc.scrollLeft, top: sc.scrollTop };
     updateVisualScale();
   });
+}
+function zoomStep(next, clientX, clientY, gesture = null) {
+  if (gesture?.blocked) return;
+  const outward = next < zoom,
+    view = componentView(!outward);
+  if (view && (outward ? zoom > view.zoom && next <= view.zoom : zoom < view.zoom && next >= view.zoom)) {
+    fitBounds(view);
+    if (gesture) gesture.blocked = true;
+  } else setZoom(next, clientX, clientY);
 }
 function updateVisualScale() {
   const svg = document.querySelector('#room-canvas'),
@@ -305,6 +349,10 @@ export function roomView(p) {
     restoreViewport();
     updateVisualScale();
     const camera = document.querySelector('.room-camera');
+    if (camera && !camera.querySelector('[data-room="fit-all"]'))
+      camera
+        .querySelector('[data-room="fit-selected"]')
+        .insertAdjacentHTML('beforebegin', b('Fit all', 'fit-all', 'room-fit'));
     if (camera && !camera.querySelector('[data-room="ports"]'))
       camera.insertAdjacentHTML('beforeend', b('Ports', 'ports', 'room-fit'));
     if (portPicker) showPortPicker(portPicker);
@@ -729,16 +777,26 @@ function onClick(ev) {
   if (action === 'grid') showGrid = !showGrid;
   else if (action === 'pixel-lines') showPixelLines = !showPixelLines;
   else if (action === 'zoom-in') {
-    setZoom(zoom * 1.25);
+    wheelGesture = null;
+    zoomStep(zoom * 1.25);
     return;
   } else if (action === 'zoom-out') {
-    setZoom(zoom / 1.25);
+    wheelGesture = null;
+    zoomStep(zoom / 1.25);
     return;
   } else if (action === 'fit-site') {
+    wheelGesture = null;
     fitSite();
     return;
   } else if (action === 'fit-selected') {
+    wheelGesture = null;
     fitSelected();
+    return;
+  } else if (action === 'fit-all') {
+    wheelGesture = null;
+    const view = componentView();
+    if (view) fitBounds(view);
+    else fitSite();
     return;
   } else if (action === 'colour') {
     api.transact(() => (p.scene.placements[chosen].color = id));
@@ -1064,7 +1122,13 @@ function wheel(ev) {
   const sc = ev.target.closest('.room-scroll');
   if (!sc) return;
   ev.preventDefault();
-  setZoom(zoom * (ev.deltaY < 0 ? 1.15 : 1 / 1.15), ev.clientX, ev.clientY);
+  if (!ev.deltaY) return;
+  const now = performance.now(),
+    direction = Math.sign(ev.deltaY);
+  if (!wheelGesture || now - wheelGesture.time > 250 || wheelGesture.direction !== direction)
+    wheelGesture = { time: now, direction, blocked: false };
+  wheelGesture.time = now;
+  zoomStep(zoom * (direction < 0 ? 1.15 : 1 / 1.15), ev.clientX, ev.clientY, wheelGesture);
 }
 function rememberViewport(ev) {
   if (ev.target.matches?.('.room-scroll')) {

@@ -1,7 +1,8 @@
 export const ABOUT =
   'Pixel Workbench is a device-local planner for 12 V pixel systems built on Baldrick controllers and FPP. Use it to lay out a room, size power and injection, design controller boxes and produce a wiring guide, bill of materials and channel CSV. Calculations are planning estimates. Confirm ratings and wiring against the actual equipment.';
-export const APP_VERSION = '0.83.0';
+export const APP_VERSION = '0.84.0';
 export const ARCHITECTURE_NOTES = [
+  'Room camera Fit all frames the rotated footprints of visible room entities, including configured boxes, field devices and pixel groups. Zoom steps pause at the all-object overview when zooming out and the selected-object view when zooming in. Wheel gestures resume after a 250 ms pause or direction change; each zoom-button activation is a new step. Camera changes never alter placements or cable measurements.',
   'Room port symbols, wiring previews and measured cable anchors share roomPortGeometry at the outer node tip, including box rotation. A tip layer keeps extended dots visible and selectable above neighbouring object drawings, forwarding interaction to their original keyboard-accessible exact ports and following movement. Automatic routes check endpoint enclosures and padded obstacles, retain clear direct paths and use outward box departures plus nearby clear grid cells for detours; unavailable paths show warning markers without crossing wires. Manual pivots and the Auto route off setting retain user control.',
   'Room box names remain visible at every detail level when Labels is on. Internal labels use screen-sized text fitted to their cells, retaining full accessible details when abbreviated or too small. The dashed selection outline has a screen-sized gap and does not represent an enclosure or change its measured footprint.',
   'installation-room shows the selected route’s assigned cable snapshot name beside its longest segment when Labels is on. Labels follow route and pivot movement with screen-sized text; they do not change geometry, measurements or saved cable assignments.',
@@ -19,6 +20,13 @@ export const ARCHITECTURE_NOTES = [
   'version.mjs is the single source for the version, changelog, help text and shortcuts. info.mjs renders the i dialog.'
 ];
 export const CHANGELOG = [
+  {
+    version: '0.84.0',
+    date: '13/10/2026',
+    items: [
+      'Added Fit all to the room camera and zoom stops at the all-object overview and selected-object detail view; pause the wheel gesture or press zoom again to continue past a stop (suggested in #56).'
+    ]
+  },
   {
     version: '0.83.0',
     date: '13/10/2026',
@@ -690,6 +698,10 @@ export const HOW_TO_USE = [
     'Keep Labels on to see box names at all zoom levels. Internal component labels stay screen-sized where their cells have room; long names are shortened and very small internal labels give way to the box name. Zoom in or use Fit selected for more detail; hover a component or port for its full description. The dashed outline identifies the selected or keyboard-focused object, not a physical enclosure or clearance. Zoom and selection do not change measured footprints or cable lengths.'
   ],
   [
+    'Frame all room components',
+    'Use Fit all beside Fit site and Fit selected to frame every placed room object, including rotated equipment and pixel groups. With no objects it fits the site. Zooming out pauses at this overview; zooming in pauses at the selected object’s detail view. Pause scrolling for more than a quarter-second, reverse direction, or activate a zoom button again to continue past the stop. Fit controls remain available by keyboard, and camera changes do not change physical measurements.'
+  ],
+  [
     'Choose physical cables',
     'In Standards, edit your cable colours, connectors and actual lengths. Assign a standard to a room route. With Labels on, the selected route shows its assigned cable standard name beside the wire; unassigned routes have no cable name label. The label follows endpoint and pivot movement. Route length, optional slack and spare/shortfall are shown separately.'
   ],
@@ -728,7 +740,10 @@ export const SHORTCUTS = [
   ['← ↑ → ↓', 'Move the focused room object by the snap grid'],
   ['Shift + ← ↑ → ↓', 'Move the focused room object by 1 m'],
   ['Mouse wheel', 'Zoom the room layout or box schematic around the pointer'],
-  ['Fit site / Fit selected', 'Frame the whole measured site or the selected room object'],
+  [
+    'Fit site / Fit all / Fit selected',
+    'Frame the measured site, all placed room objects or the selected object'
+  ],
   ['Drag empty room', 'Pan around the room layout'],
   ['Delete', 'Remove the focused cable-route pivot']
 ];
