@@ -77,6 +77,7 @@
   {"issue":53,"version":"0.82.0","title":"wire labels","outcome":"declined","at":"2026-10-13T07:34:30Z","runs":1,"model":"gpt-6.1-sol","credits":5.82,"tokensIn":57300,"tokensCached":37500,"tokensOut":512,"seconds":33},
   {"issue":54,"version":"0.82.0","title":"room builder zoom levels","outcome":"shipped","at":"2026-10-13T07:45:32Z","runs":1,"model":"gpt-6.1-sol","credits":16.72,"tokensIn":270800,"tokensCached":237200,"tokensOut":5900,"seconds":304},
   {"issue":55,"version":"0.83.0","title":"wire routing on room layout","outcome":"shipped","at":"2026-10-13T08:10:02Z","runs":1,"model":"gpt-6.1-sol","credits":68.54,"tokensIn":2100000,"tokensCached":2000000,"tokensOut":28800,"seconds":1140},
-  {"issue":56,"version":"0.84.0","title":"fit all components","outcome":"shipped","at":"2026-10-13T08:20:27Z","runs":1,"model":"gpt-6.1-sol","credits":17.78,"tokensIn":282900,"tokensCached":250300,"tokensOut":7100,"seconds":286}
+  {"issue":56,"version":"0.84.0","title":"fit all components","outcome":"shipped","at":"2026-10-13T08:20:27Z","runs":1,"model":"gpt-6.1-sol","credits":17.78,"tokensIn":282900,"tokensCached":250300,"tokensOut":7100,"seconds":286},
+  {"issue":57,"version":"0.85.0","title":"add control box to room view","outcome":"shipped","at":"2026-10-13T08:31:08Z","runs":1,"model":"gpt-6.1-sol","credits":20.42,"tokensIn":358900,"tokensCached":319900,"tokensOut":7500,"seconds":288}
  ]
 }

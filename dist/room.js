@@ -5,9 +5,11 @@ import {
   makeProp,
   PALETTE,
   clampPosition
-} from './layout-model.mjs?v=0.84.0';
+} from './layout-model.mjs?v=0.85.0';
 import {
   ensureInstallation,
+  makeBox,
+  addBoxFromTemplate,
   BUTTON_COLOURS,
   exposedPorts,
   roomPortGeometry,
@@ -17,7 +19,7 @@ import {
   removePowerSupply,
   portTypeColour,
   connectionProblem
-} from './installation-model.mjs?v=0.84.0';
+} from './installation-model.mjs?v=0.85.0';
 import {
   routeLayer,
   routeControls,
@@ -25,7 +27,7 @@ import {
   installRoutes,
   refreshRoutes,
   refreshRouteInspector
-} from './installation-room.mjs?v=0.84.0';
+} from './installation-room.mjs?v=0.85.0';
 let api,
   chosen = '',
   propId = 'prop-smiley',
@@ -361,7 +363,7 @@ export function roomView(p) {
   if (!es.some(e => e.key === chosen)) chosen = es[0]?.key;
   const e = es.find(e => e.key === chosen),
     v = p.scene.placements[chosen];
-  return `<div class="room-toolbar"><div><strong>Room layout</strong><span>Bird’s-eye · drag objects to position · drag empty space to pan</span></div><div>${b('+ Pixels / flood', 'add-pixels', 'btn')}${b('+ Field device', 'field-library', 'btn')}${b(showGrid ? 'Grid on' : 'Grid off', 'grid', 'btn ' + (showGrid ? 'pressed' : ''))}</div></div>${routeControls(p)}<div class="room-workspace"><div class="room-panel panel"><div class="room-dimensions"><span>${p.scene.width} m × ${p.scene.depth} m</span><span>${p.scene.snap ? 'Snap ' + p.scene.snap + ' m' : 'Free positioning'}</span></div><div class="room-stage"><div class="room-scroll"><svg id="room-canvas" viewBox="0 0 ${p.scene.width * 100} ${p.scene.depth * 100}" style="width:${zoom * 100}%;min-width:${zoom * 100}%" role="img" aria-label="Bird’s-eye room layout. Drag objects to position, drag empty space to pan, or use the mouse wheel to zoom."><defs><pattern id="room-grid" width="100" height="100" patternUnits="userSpaceOnUse"><path d="M100 0H0V100" fill="none" stroke="#dce5e4" stroke-width="1"/></pattern></defs><rect width="100%" height="100%" fill="#f9fbfa"/>${showGrid ? '<rect width="100%" height="100%" fill="url(#room-grid)"/>' : ''}<rect class="room-boundary" x="3" y="3" width="${p.scene.width * 100 - 6}" height="${p.scene.depth * 100 - 6}" fill="none" stroke="#9cafad"/><g id="room-routes">${routeLayer(p)}</g><path id="room-wire-preview" aria-hidden="true"/>${es.map(en => node(p, en)).join('')}${boxPorts(p)}</svg></div><div class="room-camera" role="group" aria-label="Room view controls"><button type="button" data-room="zoom-out" aria-label="Zoom out" title="Zoom out">−</button><span data-room-zoom aria-live="polite">${Math.round(zoom * 100)}%</span><button type="button" data-room="zoom-in" aria-label="Zoom in" title="Zoom in">+</button><button class="room-fit" type="button" data-room="fit-site" title="Fit the whole site">Fit site</button><button class="room-fit" type="button" data-room="fit-selected" title="Fit the selected object">Fit selected</button></div></div><div class="room-key"><span><i></i> Data <i class="room-power-key"></i> Power <i class="room-inject-key"></i> Injection</span><span>Mouse wheel zooms · drag empty space to pan</span></div></div><aside class="panel room-inspector"><div class="inspector-title"><h3>Layout inspector</h3><span class="pill">2D</span></div><div class="inspector-body">${
+  return `<div class="room-toolbar"><div><strong>Room layout</strong><span>Bird’s-eye · drag objects to position · drag empty space to pan</span></div><div>${b('+ Controller box', 'add-box', 'btn')}${b('+ Pixels / flood', 'add-pixels', 'btn')}${b('+ Field device', 'field-library', 'btn')}${b(showGrid ? 'Grid on' : 'Grid off', 'grid', 'btn ' + (showGrid ? 'pressed' : ''))}</div></div>${routeControls(p)}<div class="room-workspace"><div class="room-panel panel"><div class="room-dimensions"><span>${p.scene.width} m × ${p.scene.depth} m</span><span>${p.scene.snap ? 'Snap ' + p.scene.snap + ' m' : 'Free positioning'}</span></div><div class="room-stage"><div class="room-scroll"><svg id="room-canvas" viewBox="0 0 ${p.scene.width * 100} ${p.scene.depth * 100}" style="width:${zoom * 100}%;min-width:${zoom * 100}%" role="img" aria-label="Bird’s-eye room layout. Drag objects to position, drag empty space to pan, or use the mouse wheel to zoom."><defs><pattern id="room-grid" width="100" height="100" patternUnits="userSpaceOnUse"><path d="M100 0H0V100" fill="none" stroke="#dce5e4" stroke-width="1"/></pattern></defs><rect width="100%" height="100%" fill="#f9fbfa"/>${showGrid ? '<rect width="100%" height="100%" fill="url(#room-grid)"/>' : ''}<rect class="room-boundary" x="3" y="3" width="${p.scene.width * 100 - 6}" height="${p.scene.depth * 100 - 6}" fill="none" stroke="#9cafad"/><g id="room-routes">${routeLayer(p)}</g><path id="room-wire-preview" aria-hidden="true"/>${es.map(en => node(p, en)).join('')}${boxPorts(p)}</svg></div><div class="room-camera" role="group" aria-label="Room view controls"><button type="button" data-room="zoom-out" aria-label="Zoom out" title="Zoom out">−</button><span data-room-zoom aria-live="polite">${Math.round(zoom * 100)}%</span><button type="button" data-room="zoom-in" aria-label="Zoom in" title="Zoom in">+</button><button class="room-fit" type="button" data-room="fit-site" title="Fit the whole site">Fit site</button><button class="room-fit" type="button" data-room="fit-selected" title="Fit the selected object">Fit selected</button></div></div><div class="room-key"><span><i></i> Data <i class="room-power-key"></i> Power <i class="room-inject-key"></i> Injection</span><span>Mouse wheel zooms · drag empty space to pan</span></div></div><aside class="panel room-inspector"><div class="inspector-title"><h3>Layout inspector</h3><span class="pill">2D</span></div><div class="inspector-body">${
     e
       ? `<details class="room-inspector-section"><summary>Selected object</summary><div class="room-inspector-section-body"><span class="room-type">${e.type === 'segment' ? 'PIXEL GROUP' : e.type.toUpperCase()}</span><h3>${E(e.name)}</h3>${pick(
           'Selected object',
@@ -768,6 +770,10 @@ function onClick(ev) {
   }
   if (action === 'add-pixels') {
     addPixels(p);
+    return;
+  }
+  if (action === 'add-box') {
+    addControllerBox(p);
     return;
   }
   if (action === 'delete-object') {
@@ -1224,6 +1230,33 @@ function outputOptions(p) {
       .map(ch => `<option value="append|${ch.id}">Append to ${E(ch.name)} · P${ch.port}</option>`),
     '<option value="unconnected||0">Not connected yet · show warning</option>'
   ];
+}
+function addControllerBox(p) {
+  const templates = api.getLibrary().boxTemplates;
+  api.modal(
+    'Add controller box',
+    `<label>Box / template<select name="template"><option value="">New empty controller box</option>${templates.length ? `<optgroup label="Saved box templates">${templates.map(t => `<option value="${E(t.id)}">${E(t.name)} · v${t.version}</option>`).join('')}</optgroup>` : ''}</select></label><p class="micro">Save reusable boxes with Save as template in Box builder. The new box is placed in the centre of the room. Drag it to its installed position, or choose Edit box internals to configure its hardware.</p>`,
+    f => {
+      const templateId = f.get('template'),
+        template = api.getLibrary().boxTemplates.find(t => t.id === templateId);
+      if (templateId && !template) {
+        api.toast('This box template is no longer available. Choose a template again.');
+        return;
+      }
+      api.transact(() => {
+        const box = template
+          ? addBoxFromTemplate(p, template)
+          : makeBox('Controller box ' + (p.installation.boxes.filter(b => b.kind !== 'button').length + 1));
+        if (!template) p.installation.boxes.push(box);
+        ensureScene(p);
+        chosen = 'box:' + box.id;
+        Object.assign(p.scene.placements[chosen], {
+          x: p.scene.width / 2,
+          y: p.scene.depth / 2
+        });
+      });
+    }
+  );
 }
 function addPixels(p) {
   const targets = outputOptions(p);

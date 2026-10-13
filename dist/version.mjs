@@ -1,7 +1,8 @@
 export const ABOUT =
   'Pixel Workbench is a device-local planner for 12 V pixel systems built on Baldrick controllers and FPP. Use it to lay out a room, size power and injection, design controller boxes and produce a wiring guide, bill of materials and channel CSV. Calculations are planning estimates. Confirm ratings and wiring against the actual equipment.';
-export const APP_VERSION = '0.84.0';
+export const APP_VERSION = '0.85.0';
 export const ARCHITECTURE_NOTES = [
+  'Room layout adds blank controller boxes or saved box templates through the existing project transaction. Template instances reuse installation-model copying of hardware, exact ports and internal links; ensureScene keeps measured enclosure sizes, and the new box is selected at the room centre. Templates remain in the shared device-local library.',
   'Room camera Fit all frames the rotated footprints of visible room entities, including configured boxes, field devices and pixel groups. Zoom steps pause at the all-object overview when zooming out and the selected-object view when zooming in. Wheel gestures resume after a 250 ms pause or direction change; each zoom-button activation is a new step. Camera changes never alter placements or cable measurements.',
   'Room port symbols, wiring previews and measured cable anchors share roomPortGeometry at the outer node tip, including box rotation. A tip layer keeps extended dots visible and selectable above neighbouring object drawings, forwarding interaction to their original keyboard-accessible exact ports and following movement. Automatic routes check endpoint enclosures and padded obstacles, retain clear direct paths and use outward box departures plus nearby clear grid cells for detours; unavailable paths show warning markers without crossing wires. Manual pivots and the Auto route off setting retain user control.',
   'Room box names remain visible at every detail level when Labels is on. Internal labels use screen-sized text fitted to their cells, retaining full accessible details when abbreviated or too small. The dashed selection outline has a screen-sized gap and does not represent an enclosure or change its measured footprint.',
@@ -20,6 +21,13 @@ export const ARCHITECTURE_NOTES = [
   'version.mjs is the single source for the version, changelog, help text and shortcuts. info.mjs renders the i dialog.'
 ];
 export const CHANGELOG = [
+  {
+    version: '0.85.0',
+    date: '13/10/2026',
+    items: [
+      'Added a Controller box button in Room layout with a dropdown for an empty box or saved box template, placing and selecting the new enclosure at the room centre (suggested in #57).'
+    ]
+  },
   {
     version: '0.84.0',
     date: '13/10/2026',
@@ -667,7 +675,7 @@ export const HOW_TO_USE = [
   ],
   [
     'Start with a box',
-    'Create a Controller box, then add internal hardware in its editor or choose the destination box in Hardware & power. Older loose components are placed in an Unassigned infrastructure box for review.'
+    'In Room layout, choose + Controller box, then select a new empty box or a saved box template from the dropdown. The box is placed and selected at the room centre; drag it into position and use Edit box internals to configure its hardware. Save as template in Box builder makes reusable boxes available in this dropdown. You can also create boxes in Box builder or choose the destination box in Hardware & power. Older loose components are placed in an Unassigned infrastructure box for review.'
   ],
   [
     'Connect field devices',
