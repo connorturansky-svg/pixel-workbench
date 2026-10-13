@@ -1,0 +1,26 @@
+{
+ "version": "v0.81.0",
+ "date": "13/10/2026",
+ "commit": "f670a0c60e04443d76f301dbb5aa064f76917305",
+ "issue": 52,
+ "changelog": "Added the assigned physical cable standard name beside the selected room route, following route edits and respecting the Labels toggle (suggested in #52).",
+ "status": "ok",
+ "shots": [
+  "01-workspace.png",
+  "02-hardware.png",
+  "03-presets.png",
+  "04-props.png",
+  "05-guide.png",
+  "06-boxes.png",
+  "07-standards.png",
+  "08-bom.png",
+  "09-suggest.png",
+  "info-arch.png",
+  "info-how.png",
+  "info-keys.png",
+  "info-new.png",
+  "info-suggest.png",
+  "mobile.png"
+ ],
+ "error": ""
+}

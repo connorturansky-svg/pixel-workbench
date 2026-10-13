@@ -2,6 +2,16 @@
 
 Every release is captured by the builder's release smoke test (`automation/smoke.py --shots`): every page, every info tab and a mobile view. This branch is never deployed by Pages. Newest first.
 
+## [v0.81.0](v0.81.0/)
+
+13/10/2026 · [commit f670a0c](https://github.com/connorturansky-svg/pixel-workbench/commit/f670a0c60e04443d76f301dbb5aa064f76917305) · [issue #52](https://github.com/connorturansky-svg/pixel-workbench/issues/52)
+
+> Added the assigned physical cable standard name beside the selected room route, following route edits and respecting the Labels toggle (suggested in #52).
+
+<a href="v0.81.0/01-workspace.png"><img src="v0.81.0/01-workspace.png" width="420" alt="v0.81.0 workspace"></a> <a href="v0.81.0/mobile.png"><img src="v0.81.0/mobile.png" width="240" alt="v0.81.0 mobile"></a>
+
+All shots: [workspace](v0.81.0/01-workspace.png) · [hardware](v0.81.0/02-hardware.png) · [presets](v0.81.0/03-presets.png) · [props](v0.81.0/04-props.png) · [guide](v0.81.0/05-guide.png) · [boxes](v0.81.0/06-boxes.png) · [standards](v0.81.0/07-standards.png) · [bom](v0.81.0/08-bom.png) · [suggest](v0.81.0/09-suggest.png) · [info arch](v0.81.0/info-arch.png) · [info how](v0.81.0/info-how.png) · [info keys](v0.81.0/info-keys.png) · [info new](v0.81.0/info-new.png) · [info suggest](v0.81.0/info-suggest.png) · [mobile](v0.81.0/mobile.png)
+
 ## [v0.80.0](v0.80.0/)
 
 13/10/2026 · [commit 471a3d0](https://github.com/connorturansky-svg/pixel-workbench/commit/471a3d0b44b782fddeaf8a20d6b7606d228b7859) · [issue #50](https://github.com/connorturansky-svg/pixel-workbench/issues/50)
