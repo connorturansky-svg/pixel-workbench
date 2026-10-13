@@ -2,6 +2,16 @@
 
 Every release is captured by the builder's release smoke test (`automation/smoke.py --shots`): every page, every info tab and a mobile view. This branch is never deployed by Pages. Newest first.
 
+## [v0.84.0](v0.84.0/)
+
+13/10/2026 · [commit d7b8422](https://github.com/connorturansky-svg/pixel-workbench/commit/d7b842285128e9b57f55767587db12916b20d6d0) · [issue #56](https://github.com/connorturansky-svg/pixel-workbench/issues/56)
+
+> Added Fit all to the room camera and zoom stops at the all-object overview and selected-object detail view; pause the wheel gesture or press zoom again to continue past a stop (suggested in #56).
+
+<a href="v0.84.0/01-workspace.png"><img src="v0.84.0/01-workspace.png" width="420" alt="v0.84.0 workspace"></a> <a href="v0.84.0/mobile.png"><img src="v0.84.0/mobile.png" width="240" alt="v0.84.0 mobile"></a>
+
+All shots: [workspace](v0.84.0/01-workspace.png) · [hardware](v0.84.0/02-hardware.png) · [presets](v0.84.0/03-presets.png) · [props](v0.84.0/04-props.png) · [guide](v0.84.0/05-guide.png) · [boxes](v0.84.0/06-boxes.png) · [standards](v0.84.0/07-standards.png) · [bom](v0.84.0/08-bom.png) · [suggest](v0.84.0/09-suggest.png) · [info arch](v0.84.0/info-arch.png) · [info how](v0.84.0/info-how.png) · [info keys](v0.84.0/info-keys.png) · [info new](v0.84.0/info-new.png) · [info suggest](v0.84.0/info-suggest.png) · [mobile](v0.84.0/mobile.png)
+
 ## [v0.83.0](v0.83.0/)
 
 13/10/2026 · [commit e8d7202](https://github.com/connorturansky-svg/pixel-workbench/commit/e8d7202caad5c001e07a4e04a2e8f3e7df01b5a6) · [issue #55](https://github.com/connorturansky-svg/pixel-workbench/issues/55)
