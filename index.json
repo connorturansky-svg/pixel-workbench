@@ -1894,5 +1894,31 @@
    "mobile.png"
   ],
   "error": ""
+ },
+ {
+  "version": "v0.82.0",
+  "date": "13/10/2026",
+  "commit": "541c9385b0d5f7822de8834ccf409d26f53b0c25",
+  "issue": 54,
+  "changelog": "Improved room box label readability across zoom levels, kept box names visible in overview and detail, and replaced the oversized rounded selection outline with a compact dashed indicator (suggested in #54).",
+  "status": "ok",
+  "shots": [
+   "01-workspace.png",
+   "02-hardware.png",
+   "03-presets.png",
+   "04-props.png",
+   "05-guide.png",
+   "06-boxes.png",
+   "07-standards.png",
+   "08-bom.png",
+   "09-suggest.png",
+   "info-arch.png",
+   "info-how.png",
+   "info-keys.png",
+   "info-new.png",
+   "info-suggest.png",
+   "mobile.png"
+  ],
+  "error": ""
  }
 ]
