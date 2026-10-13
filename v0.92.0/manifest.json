@@ -1,0 +1,26 @@
+{
+ "version": "v0.92.0",
+ "date": "13/10/2026",
+ "commit": "c17ead26cf541a914c7a158767251d635627db1d",
+ "issue": 64,
+ "changelog": "Replaced tiny room-box mosaics with enclosure symbols and compact equipment summaries, revealing configured components only when projected space is readable. Added stable detail thresholds and exact-port group cues while retaining physical cable anchors (suggested in #64).",
+ "status": "ok",
+ "shots": [
+  "01-workspace.png",
+  "02-hardware.png",
+  "03-presets.png",
+  "04-props.png",
+  "05-guide.png",
+  "06-boxes.png",
+  "07-standards.png",
+  "08-bom.png",
+  "09-suggest.png",
+  "info-arch.png",
+  "info-how.png",
+  "info-keys.png",
+  "info-new.png",
+  "info-suggest.png",
+  "mobile.png"
+ ],
+ "error": ""
+}
