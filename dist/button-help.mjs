@@ -75,7 +75,7 @@ const HELP = {
     'update-template': 'Review and apply the latest version of this box template.',
     'sync-standards': 'Review and apply current library standards to this box.',
     'delete-box': 'Delete this box after confirmation.',
-    'box-mode': 'Switch between logical wiring and measured physical placement.',
+    'box-mode': 'Switch between Schematic, Port list and measured Physical layout.',
     'box-zoom': 'Adjust the schematic zoom; the percentage button resets it.',
     'auto-layout': 'Arrange the schematic parts automatically.',
     'save-size': 'Save this component footprint to its shared library definition.',

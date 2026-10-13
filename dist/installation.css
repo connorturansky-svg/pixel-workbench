@@ -822,6 +822,57 @@
 .interface-row > span {
   font-size: 11px;
 }
+.port-list {
+  margin-top: 12px;
+}
+.port-list label,
+.port-list .micro,
+.port-list-group summary small {
+  color: var(--ink);
+}
+.port-list-group > summary::before {
+  content: '+';
+}
+.port-list-group[open] > summary::before {
+  content: '-';
+}
+.port-list-group > summary strong {
+  flex: 1;
+}
+.port-list-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 8px;
+  padding: 10px;
+  margin-bottom: 6px;
+  border-left: 4px solid var(--orange);
+  color: var(--ink);
+  background: #fff;
+}
+.port-list-row.complete {
+  border-color: var(--green);
+  background: var(--mint);
+}
+.port-list-row > label {
+  flex: 1 1 220px;
+  min-width: 0;
+  margin: 0;
+}
+.port-list-row select {
+  width: 100%;
+  min-width: 0;
+  color: var(--ink);
+}
+.port-list-row select:disabled {
+  opacity: 1;
+}
+.port-list-status {
+  font-size: 11px;
+}
+.port-list-row .interface-row {
+  width: 100%;
+}
 .external-targets strong {
   font-size: 12px;
 }
@@ -878,6 +929,7 @@
 }
 .box-view-tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
   margin: 14px 0 0;
   border-bottom: 1px solid #d6e4da;

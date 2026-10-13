@@ -17,6 +17,7 @@ import {
   templateConnectionChanges,
   affectedConnections,
   connectionProblem,
+  routeSpecs,
   externalConnectionProblem,
   connectionWarnings,
   boxCapacity,
@@ -28,7 +29,7 @@ import {
   deleteRoute,
   removePowerSupply,
   portTypeColour
-} from './installation-model.mjs?v=0.88.0';
+} from './installation-model.mjs?v=0.89.0';
 
 const SCHEMATIC_MIN_WIDTH = 1400,
   SCHEMATIC_MIN_HEIGHT = 700;
@@ -52,6 +53,7 @@ let api,
   boxDetailsOpen = false,
   builderMode = 'controller';
 const openStandards = new Set();
+const openPortGroups = new Set();
 const E = s =>
   String(s ?? '').replace(
     /[&<>"']/g,
@@ -67,8 +69,8 @@ const F = (label, value, key, type = 'text', extra = '') => {
   }
   return `<label>${E(label)}<input data-install-field="${key}" type="${type}" value="${E(value ?? '')}" ${extra}></label>`;
 };
-const S = (label, value, key, opts) =>
-  `<label>${E(label)}<select data-install-field="${key}">${opts.map(([v, t]) => `<option value="${E(v)}" ${String(v) === String(value) ? 'selected' : ''}>${E(t)}</option>`).join('')}</select></label>`;
+const S = (label, value, key, opts, extra = '') =>
+  `<label>${E(label)}<select data-install-field="${E(key)}" ${extra}>${opts.map(([v, t]) => `<option value="${E(v)}" ${String(v) === String(value) ? 'selected' : ''}>${E(t)}</option>`).join('')}</select></label>`;
 const catalogBar = (scope, items) =>
   `<div class="catalog-tools"><input type="search" data-catalog-search="${scope}" placeholder="Search name, model, type or tag" aria-label="Search ${scope}"><select data-catalog-category="${scope}" aria-label="Filter category"><option value="">All categories</option>${[
     ...new Set(items.map(d => d.category))
@@ -318,7 +320,203 @@ const interfaceEditor = box => {
       : ''
   }</div>`;
 };
-function connectEndpoints(box, from, to) {
+function portListState(p, box, component, port, specs = routeSpecs(p)) {
+  const links = p.installation.connections.filter(link =>
+      ['from', 'to'].some(end => link[end + 'Component'] === component && link[end + 'Port'] === port)
+    ),
+    internal =
+      links.length === 1 &&
+      !links[0].fromKey &&
+      !links[0].toKey &&
+      links[0].boxId === box.id &&
+      box.components.some(c => c.id === links[0].fromComponent) &&
+      box.components.some(c => c.id === links[0].toComponent)
+        ? links[0]
+        : null,
+    routes = specs.filter(route =>
+      ['from', 'to'].some(
+        end =>
+          route[end] === 'box:' + box.id &&
+          (route[end + 'Component'] || route.connection?.[end + 'Component']) === component &&
+          route[end + 'Port'] === port
+      )
+    );
+  return {
+    internal,
+    locked: routes.length > 0 || links.length > (internal ? 1 : 0),
+    description: routes.map(route => route.name).join('; ') || 'Connection outside this box'
+  };
+}
+function withoutPortLink(p, link) {
+  return link
+    ? {
+        ...p,
+        installation: {
+          ...p.installation,
+          connections: p.installation.connections.filter(x => x.id !== link.id)
+        }
+      }
+    : p;
+}
+function portListView(p, box) {
+  const specs = routeSpecs(p),
+    endpoint = (component, port) => ({ boxId: box.id, componentId: component, portId: port }),
+    label = (component, port) => {
+      const part = box.components.find(c => c.id === component);
+      return `${part?.snapshot.name || 'Missing component'}${part?.subname ? ' · ' + part.subname : ''} · ${part?.snapshot.ports.find(v => v.id === port)?.label || port}`;
+    },
+    group = (id, title, rows, complete) =>
+      `<details class="interface-group port-list-group" data-port-group="${E(box.id + ':' + id)}" ${openPortGroups.has(box.id + ':' + id) ? 'open' : ''}><summary><strong>${E(title)}</strong><small>${complete} of ${rows.length} connected / active</small></summary>${rows.join('') || '<p class="micro">No ports.</p>'}</details>`,
+    row = (control, complete, status, extra = '') =>
+      `<div class="port-list-row ${complete ? 'complete' : 'outstanding'}">${control}<span class="port-list-status">${E(status)}</span>${extra}</div>`;
+  const components = box.components
+    .map(component => {
+      let complete = 0;
+      const rows = component.snapshot.ports.map(port => {
+        const state = portListState(p, box, component.id, port.id, specs),
+          link = state.internal,
+          edges = box.interfacePorts.filter(
+            edge => edge.componentId === component.id && edge.portId === port.id
+          ),
+          active = edges.find(edge => edge.visible),
+          peer = link
+            ? link.fromComponent === component.id && link.fromPort === port.id
+              ? [link.toComponent, link.toPort]
+              : [link.fromComponent, link.fromPort]
+            : null,
+          value = state.locked ? '@locked' : peer ? peer.join(':') : active ? '@interface:' + active.id : '',
+          working = withoutPortLink(p, link),
+          options = state.locked
+            ? [['@locked', state.description]]
+            : [
+                ['', 'Not connected'],
+                ...box.components.flatMap(part =>
+                  part.snapshot.ports
+                    .filter(
+                      candidate =>
+                        !connectionProblem(
+                          working,
+                          endpoint(component.id, port.id),
+                          endpoint(part.id, candidate.id)
+                        )
+                    )
+                    .map(candidate => [part.id + ':' + candidate.id, label(part.id, candidate.id)])
+                ),
+                ...edges.map(edge => ['@interface:' + edge.id, `Box edge · ${edge.label} · ${edge.edge}`])
+              ],
+          done = Boolean(link || active || state.locked);
+        if (peer && !options.some(([key]) => key === value)) options.push([value, label(...peer)]);
+        if (done) complete++;
+        return row(
+          S(
+            `${port.label} · ${port.type.replaceAll('_', ' ')}`,
+            value,
+            `port-link:${component.id}:${port.id}`,
+            options,
+            state.locked ? 'disabled' : ''
+          ),
+          done,
+          state.locked
+            ? 'Connected · edit in Room layout or Connections'
+            : link
+              ? 'Connected'
+              : active
+                ? 'Edge active'
+                : 'Outstanding'
+        );
+      });
+      return group(
+        component.id,
+        component.snapshot.name + (component.subname ? ' · ' + component.subname : ''),
+        rows,
+        complete
+      );
+    })
+    .join('');
+  const edgeRows = box.interfacePorts.map(edge => {
+    const linked = box.components.some(
+        c => c.id === edge.componentId && c.snapshot.ports.some(port => port.id === edge.portId)
+      ),
+      locked = linked && portListState(p, box, edge.componentId, edge.portId, specs).locked,
+      value = linked ? edge.componentId + ':' + edge.portId : '',
+      options =
+        edge.generated || locked
+          ? [[value, linked ? label(edge.componentId, edge.portId) : 'Missing connector']]
+          : [
+              ['', 'Not connected'],
+              ...box.components.flatMap(c =>
+                c.snapshot.ports.map(port => [c.id + ':' + port.id, label(c.id, port.id)])
+              )
+            ];
+    return row(
+      S(
+        `${edge.label} · ${edge.edge} edge`,
+        value,
+        `edge-link:${edge.id}`,
+        options,
+        edge.generated || locked ? 'disabled' : ''
+      ),
+      Boolean(linked && edge.visible),
+      edge.generated
+        ? edge.visible
+          ? 'Active · fixed matching connector'
+          : 'Inactive · fixed matching connector'
+        : linked && edge.visible
+          ? 'Active'
+          : 'Outstanding / inactive',
+      interfaceRow(edge)
+    );
+  });
+  return `<div class="port-list"><p class="micro">Expand a component and choose a compatible free destination. Both ends update together with Schematic. Choose Not connected to remove an internal link. Box edge ports keep their matching connectors; activate them here or from a component dropdown. Green means connected or active, not electrically safe. Room connections are read-only here.</p>${components}${group('@edges', 'Box edge ports', edgeRows, box.interfacePorts.filter(edge => edge.visible && edge.componentId && edge.portId).length)}</div>`;
+}
+function changePortLink(box, component, port, value) {
+  const p = api.getProject(),
+    state = portListState(p, box, component, port),
+    edges = box.interfacePorts.filter(edge => edge.componentId === component && edge.portId === port),
+    [targetComponent, targetPort] = value.split(':'),
+    edge = targetComponent === '@interface' ? edges.find(item => item.id === targetPort) : null;
+  if (
+    state.locked ||
+    !box.components.some(c => c.id === component && c.snapshot.ports.some(v => v.id === port)) ||
+    (targetComponent === '@interface' && !edge)
+  ) {
+    api.toast('This port cannot be changed here. Review its connection in Room layout or Connections.');
+    api.render();
+    return;
+  }
+  if (value && !edge) {
+    const link = state.internal;
+    if (
+      link &&
+      ((link.fromComponent === component &&
+        link.fromPort === port &&
+        link.toComponent === targetComponent &&
+        link.toPort === targetPort) ||
+        (link.toComponent === component &&
+          link.toPort === port &&
+          link.fromComponent === targetComponent &&
+          link.fromPort === targetPort))
+    ) {
+      api.render();
+      return;
+    }
+    connectEndpoints(
+      box,
+      { component, id: port },
+      { component: targetComponent, id: targetPort },
+      state.internal?.id
+    );
+    return;
+  }
+  api.transact(() => {
+    if (state.internal) {
+      p.installation.connections = p.installation.connections.filter(link => link.id !== state.internal.id);
+      delete p.installation.routes['custom:' + state.internal.id];
+    }
+    for (const item of edges) item.visible = item === edge;
+  });
+}
+function connectEndpoints(box, from, to, replaceId = '') {
   const edge = from.component === '@interface' ? from : to.component === '@interface' ? to : null,
     component = edge === from ? to : from;
   if (edge) {
@@ -340,11 +538,13 @@ function connectEndpoints(box, from, to) {
     });
     return;
   }
-  const problem = connectionProblem(
-    api.getProject(),
-    { boxId: box.id, componentId: from.component, portId: from.id },
-    { boxId: box.id, componentId: to.component, portId: to.id }
-  );
+  const p = api.getProject(),
+    replaced = replaceId ? p.installation.connections.find(link => link.id === replaceId) : null,
+    problem = connectionProblem(
+      withoutPortLink(p, replaced),
+      { boxId: box.id, componentId: from.component, portId: from.id },
+      { boxId: box.id, componentId: to.component, portId: to.id }
+    );
   if (problem) {
     api.toast(problem);
     api.render();
@@ -354,8 +554,12 @@ function connectEndpoints(box, from, to) {
     .find(c => c.id === from.component)
     ?.snapshot.ports.find(p => p.id === from.id);
   if (source?.direction === 'in') [from, to] = [to, from];
-  api.transact(() =>
-    api.getProject().installation.connections.push({
+  api.transact(() => {
+    if (replaced) {
+      p.installation.connections = p.installation.connections.filter(link => link.id !== replaced.id);
+      delete p.installation.routes['custom:' + replaced.id];
+    }
+    p.installation.connections.push({
       id: 'link-' + Math.random().toString(36).slice(2, 10),
       boxId: box.id,
       fromComponent: from.component,
@@ -363,8 +567,8 @@ function connectEndpoints(box, from, to) {
       toComponent: to.component,
       toPort: to.id,
       acknowledged: false
-    })
-  );
+    });
+  });
 }
 export function boxBuilderView(p, lib) {
   return `<div class="box-builder-tabs box-view-tabs" role="group" aria-label="Box builder type">${B('Controller boxes', 'builder-mode:controller', builderMode === 'controller' ? 'active' : '')}${B('Button boxes', 'builder-mode:button', builderMode === 'button' ? 'active' : '')}</div>${
@@ -465,13 +669,15 @@ function boxesView(p, lib) {
           )
           .join(
             ''
-          )}</aside><section class="panel box-editor"><div class="box-heading"><div><h2>${E(box.name)}</h2><p>${E(box.description || 'Drag parts to arrange them. Click one to edit.')}</p></div><div>${B('Sync standards', 'sync-standards', 'text-btn')}${B('Delete box', 'delete-box', 'text-btn danger')}</div></div><div class="box-view-tabs" role="group" aria-label="Box view">${B('Schematic', 'box-mode:schematic', boxMode === 'schematic' ? 'active' : '')}${B('Physical layout', 'box-mode:physical', boxMode === 'physical' ? 'active' : '')}</div>${
-          boxMode === 'physical'
-            ? `<div class="physical-status"><span>${box.physicalWidthMm / 10 || 40} × ${box.physicalDepthMm / 10 || 25} cm enclosure</span><span class="${issues.length ? 'warn' : ''}">${issues.length ? `${issues.length} layout issue${issues.length === 1 ? '' : 's'}` : 'Layout fits'}</span></div><div class="box-stage physical-stage" id="box-stage" style="aspect-ratio:${box.physicalWidthMm || 400}/${box.physicalDepthMm || 250}">${box.components.map(c => physicalPart(c, box)).join('')}</div>${issues
-                .filter(x => x.type !== 'size')
-                .map(x => `<p class="layout-warning">⚠ ${E(x.text)}</p>`)
-                .join('')}`
-            : `<div class="box-canvas-toolbar"><div>${B('−', 'box-zoom:out', 'btn box-zoom-button')}${B(`${Math.round(schematicZoom * 100)}%`, 'box-zoom:home', 'btn box-zoom-readout')}${B('+', 'box-zoom:in', 'btn box-zoom-button')}</div>${B('Auto layout', 'auto-layout')}</div><div class="box-stage-scroll" tabindex="0" aria-label="Scrollable box schematic"><div class="box-stage" id="box-stage" style="width:${Math.max(1, schematicCanvasWidth * schematicZoom) * 100}%;min-width:${SCHEMATIC_MIN_WIDTH * schematicZoom}px;min-height:${Math.max(SCHEMATIC_MIN_HEIGHT, schematicCanvasHeight * schematicZoom)}px;--schematic-zoom:${schematicZoom}"><svg id="box-wires" aria-hidden="true"></svg>${box.components.map(c => schematicPart(c, linkedPorts)).join('')}${interfacePorts(box)}</div></div>${interfaceEditor(box)}<div class="external-targets"><strong>Room route targets</strong><p>Choose an internal port, then click or drag it to a target.</p><div>${[...p.chains.flatMap(ch => ch.segments.map(v => ['segment:' + v.id, ch.name + ' · ' + v.kind])), ...p.installation.fieldDevices.map(v => ['field:' + v.id, v.name + ' · field'])].map(([key, label]) => `<button type="button" data-box-target="${E(key)}">${E(label)}</button>`).join('')}</div></div><div class="box-wire-help">Drag between exact hardware ports for internal connections. Activated edge ports become route targets in Room layout; hover a port or wire to trace its connection.</div>`
+          )}</aside><section class="panel box-editor"><div class="box-heading"><div><h2>${E(box.name)}</h2><p>${E(box.description || 'Drag parts to arrange them. Click one to edit.')}</p></div><div>${B('Sync standards', 'sync-standards', 'text-btn')}${B('Delete box', 'delete-box', 'text-btn danger')}</div></div><div class="box-view-tabs" role="group" aria-label="Box view">${B('Schematic', 'box-mode:schematic', boxMode === 'schematic' ? 'active' : '')}${B('Port list', 'box-mode:ports', boxMode === 'ports' ? 'active' : '')}${B('Physical layout', 'box-mode:physical', boxMode === 'physical' ? 'active' : '')}</div>${
+          boxMode === 'ports'
+            ? portListView(p, box)
+            : boxMode === 'physical'
+              ? `<div class="physical-status"><span>${box.physicalWidthMm / 10 || 40} × ${box.physicalDepthMm / 10 || 25} cm enclosure</span><span class="${issues.length ? 'warn' : ''}">${issues.length ? `${issues.length} layout issue${issues.length === 1 ? '' : 's'}` : 'Layout fits'}</span></div><div class="box-stage physical-stage" id="box-stage" style="aspect-ratio:${box.physicalWidthMm || 400}/${box.physicalDepthMm || 250}">${box.components.map(c => physicalPart(c, box)).join('')}</div>${issues
+                  .filter(x => x.type !== 'size')
+                  .map(x => `<p class="layout-warning">⚠ ${E(x.text)}</p>`)
+                  .join('')}`
+              : `<div class="box-canvas-toolbar"><div>${B('−', 'box-zoom:out', 'btn box-zoom-button')}${B(`${Math.round(schematicZoom * 100)}%`, 'box-zoom:home', 'btn box-zoom-readout')}${B('+', 'box-zoom:in', 'btn box-zoom-button')}</div>${B('Auto layout', 'auto-layout')}</div><div class="box-stage-scroll" tabindex="0" aria-label="Scrollable box schematic"><div class="box-stage" id="box-stage" style="width:${Math.max(1, schematicCanvasWidth * schematicZoom) * 100}%;min-width:${SCHEMATIC_MIN_WIDTH * schematicZoom}px;min-height:${Math.max(SCHEMATIC_MIN_HEIGHT, schematicCanvasHeight * schematicZoom)}px;--schematic-zoom:${schematicZoom}"><svg id="box-wires" aria-hidden="true"></svg>${box.components.map(c => schematicPart(c, linkedPorts)).join('')}${interfacePorts(box)}</div></div>${interfaceEditor(box)}<div class="external-targets"><strong>Room route targets</strong><p>Choose an internal port, then click or drag it to a target.</p><div>${[...p.chains.flatMap(ch => ch.segments.map(v => ['segment:' + v.id, ch.name + ' · ' + v.kind])), ...p.installation.fieldDevices.map(v => ['field:' + v.id, v.name + ' · field'])].map(([key, label]) => `<button type="button" data-box-target="${E(key)}">${E(label)}</button>`).join('')}</div></div><div class="box-wire-help">Drag between exact hardware ports for internal connections. Activated edge ports become route targets in Room layout; hover a port or wire to trace its connection.</div>`
         }<details class="box-text-section" open><summary>Connections</summary><div class="install-scroll-list">${
           p.installation.connections
             .filter(x => x.boxId === box.id)
@@ -1064,6 +1270,11 @@ export function installInstallation(a) {
     'toggle',
     e => {
       const disclosure = e.target;
+      if (disclosure.matches('[data-port-group]') && disclosure.isConnected) {
+        if (disclosure.open) openPortGroups.add(disclosure.dataset.portGroup);
+        else openPortGroups.delete(disclosure.dataset.portGroup);
+        return;
+      }
       if (!disclosure.matches('[data-standard-disclosure]') || !disclosure.isConnected) return;
       if (disclosure.open) openStandards.add(disclosure.dataset.standardDisclosure);
       else openStandards.delete(disclosure.dataset.standardDisclosure);
@@ -1185,6 +1396,9 @@ export function installInstallation(a) {
       api.render();
     } else if (action === 'box-mode') {
       boxMode = id;
+      wireFrom = null;
+      wirePoint = null;
+      wireGesture = null;
       api.render();
     } else if (action === 'box-zoom') {
       if (id === 'home') setSchematicZoom(1);
@@ -1469,6 +1683,36 @@ export function installInstallation(a) {
     const t = e.target,
       key = t.dataset.installField;
     if (!key) return;
+    if (key.startsWith('port-link:')) {
+      const [, component, port] = key.split(':');
+      changePortLink(current(api.getProject()), component, port, t.value);
+      return;
+    }
+    if (key.startsWith('edge-link:')) {
+      const box = current(api.getProject()),
+        edge = box.interfacePorts.find(port => port.id === key.slice(10)),
+        [component, id] = t.value.split(':');
+      if (
+        !edge ||
+        edge.generated ||
+        (edge.componentId && portListState(api.getProject(), box, edge.componentId, edge.portId).locked)
+      ) {
+        api.toast('This edge port keeps its existing connector.');
+        api.render();
+      } else if (
+        t.value &&
+        !box.components.some(c => c.id === component && c.snapshot.ports.some(port => port.id === id))
+      ) {
+        api.toast('The selected component connector no longer exists.');
+        api.render();
+      } else if (t.value) connectEndpoints(box, { component: '@interface', id: edge.id }, { component, id });
+      else
+        api.transact(() => {
+          edge.componentId = '';
+          edge.portId = '';
+        });
+      return;
+    }
     if (key === 'box-select') {
       boxId = t.value;
       partId = '';
