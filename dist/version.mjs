@@ -1,7 +1,8 @@
 export const ABOUT =
   'Pixel Workbench is a device-local planner for 12 V pixel systems built on Baldrick controllers and FPP. Use it to lay out a room, size power and injection, design controller boxes and produce a wiring guide, bill of materials and channel CSV. Calculations are planning estimates. Confirm ratings and wiring against the actual equipment.';
-export const APP_VERSION = '0.85.0';
+export const APP_VERSION = '0.86.0';
 export const ARCHITECTURE_NOTES = [
+  'Standards uses native disclosures, initially closed, with session-only expansion state. Field edits persist through libraryTransact without rebuilding the app; card headings, versions and search metadata update in place with inline pending/saved feedback. Structural library changes still render the views, and persistence failures roll back visibly. Project snapshots remain unchanged until explicit Sync/Update.',
   'Room layout adds blank controller boxes or saved box templates through the existing project transaction. Template instances reuse installation-model copying of hardware, exact ports and internal links; ensureScene keeps measured enclosure sizes, and the new box is selected at the room centre. Templates remain in the shared device-local library.',
   'Room camera Fit all frames the rotated footprints of visible room entities, including configured boxes, field devices and pixel groups. Zoom steps pause at the all-object overview when zooming out and the selected-object view when zooming in. Wheel gestures resume after a 250 ms pause or direction change; each zoom-button activation is a new step. Camera changes never alter placements or cable measurements.',
   'Room port symbols, wiring previews and measured cable anchors share roomPortGeometry at the outer node tip, including box rotation. A tip layer keeps extended dots visible and selectable above neighbouring object drawings, forwarding interaction to their original keyboard-accessible exact ports and following movement. Automatic routes check endpoint enclosures and padded obstacles, retain clear direct paths and use outward box departures plus nearby clear grid cells for detours; unavailable paths show warning markers without crossing wires. Manual pivots and the Auto route off setting retain user control.',
@@ -21,6 +22,13 @@ export const ARCHITECTURE_NOTES = [
   'version.mjs is the single source for the version, changelog, help text and shortcuts. info.mjs renders the i dialog.'
 ];
 export const CHANGELOG = [
+  {
+    version: '0.86.0',
+    date: '13/10/2026',
+    items: [
+      'Grouped Standards into initially closed expandable sections. Edits now save in place without refreshing the page, keep focus and expanded cards, and show inline pending, saved or invalid-field feedback.'
+    ]
+  },
   {
     version: '0.85.0',
     date: '13/10/2026',
@@ -665,6 +673,10 @@ export const CHANGELOG = [
   }
 ];
 export const HOW_TO_USE = [
+  [
+    'Edit shared standards',
+    'Open Standards and expand Enclosure sizes, Physical cable standards or Hardware & accessories. All sections start closed on a fresh load; expanded sections and hardware cards stay open during this session. Leave an edited field to save it on this device and check its inline saved confirmation. Invalid fields show Not saved. Editing does not refresh the page or move focus; existing project snapshots still require explicit Sync/Update. Demo edits are not saved to your library.'
+  ],
   [
     'Show project statistics',
     'Expand Project summary above any planning page to see device capacity, estimated load, PSU budget, input/audio ports and plan-check counts. It starts closed to save space; your choice is kept while moving between pages until you reload. Coloured bars distinguish statistics only, not status or limits. Review Plan checks and project notifications for warnings; notifications stay visible when the summary is closed.'

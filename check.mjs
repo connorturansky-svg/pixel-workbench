@@ -9,6 +9,7 @@ const steps = [
   ['node', ['tests/repair-model.mjs']],
   [process.platform === 'win32' ? 'python' : 'python3', ['-m', 'unittest', 'automation.test_builder']],
   [process.platform === 'win32' ? 'python' : 'python3', ['tests/workflows.py']],
+  [process.platform === 'win32' ? 'python' : 'python3', ['tests/standards.py']],
   [process.platform === 'win32' ? 'python' : 'python3', ['tests/performance.py', '--wired']],
   [process.platform === 'win32' ? 'python' : 'python3', ['automation/smoke.py', 'dist']]
 ];

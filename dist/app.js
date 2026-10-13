@@ -1,6 +1,6 @@
-import { ensureScene } from './layout-model.mjs?v=0.85.0';
-import { roomView, propsView, installRoom } from './room.js?v=0.85.0';
-import { wiringGraph, installGraph, drawGraph } from './wiring-graph.mjs?v=0.85.0';
+import { ensureScene } from './layout-model.mjs?v=0.86.0';
+import { roomView, propsView, installRoom } from './room.js?v=0.86.0';
+import { wiringGraph, installGraph, drawGraph } from './wiring-graph.mjs?v=0.86.0';
 import {
   defaultLibrary,
   ensureLibrary,
@@ -17,7 +17,7 @@ import {
   projectCapacity,
   connectionProblem,
   externalConnectionProblem
-} from './installation-model.mjs?v=0.85.0';
+} from './installation-model.mjs?v=0.86.0';
 import {
   boxBuilderView,
   standardsView,
@@ -26,11 +26,11 @@ import {
   drawBoxConnections,
   openBox,
   physicalIssues
-} from './installation-ui.mjs?v=0.85.0';
-import { APP_VERSION } from './version.mjs?v=0.85.0';
-import { installInfo } from './info.mjs?v=0.85.0';
-import { suggestView, installSuggest, afterSuggestRender, bellHtml } from './suggest.mjs?v=0.85.0';
-import { createDemoProject } from './demo-project.mjs?v=0.85.0';
+} from './installation-ui.mjs?v=0.86.0';
+import { APP_VERSION } from './version.mjs?v=0.86.0';
+import { installInfo } from './info.mjs?v=0.86.0';
+import { suggestView, installSuggest, afterSuggestRender, bellHtml } from './suggest.mjs?v=0.86.0';
+import { createDemoProject } from './demo-project.mjs?v=0.86.0';
 import {
   tailoredInitial,
   calculate,
@@ -41,7 +41,7 @@ import {
   PSU_MODELS,
   newSegment,
   uid
-} from './model.mjs?v=0.85.0';
+} from './model.mjs?v=0.86.0';
 const testing = new URLSearchParams(location.search).has('test');
 let project = tailoredInitial(),
   view = 'room',
@@ -169,6 +169,12 @@ function notifications(r) {
 }
 function render() {
   summaryOpen = $('.project-summary')?.open ?? summaryOpen;
+  const standardDisclosures = new Map(
+    [...document.querySelectorAll('[data-standard-disclosure]')].map(el => [
+      el.dataset.standardDisclosure,
+      el.open
+    ])
+  );
   const roomSections = new Map(
     [...document.querySelectorAll('.room-inspector-section')].map(section => [
       section.querySelector('summary').textContent.trim(),
@@ -211,6 +217,10 @@ function render() {
   for (const section of document.querySelectorAll('.room-inspector-section')) {
     const key = section.querySelector('summary').textContent.trim();
     if (roomSections.has(key)) section.open = roomSections.get(key);
+  }
+  for (const disclosure of document.querySelectorAll('[data-standard-disclosure]')) {
+    if (standardDisclosures.has(disclosure.dataset.standardDisclosure))
+      disclosure.open = standardDisclosures.get(disclosure.dataset.standardDisclosure);
   }
   if (view === 'visual' && page === 'workspace') requestAnimationFrame(drawGraph);
   if (page === 'boxes') requestAnimationFrame(drawBoxConnections);
@@ -1352,17 +1362,17 @@ if (document.modelContext?.registerTool) {
   window.addEventListener('pagehide', () => life.abort(), { once: true });
 }
 
-function libraryTransact(fn) {
+function libraryTransact(fn, redraw = true) {
   const before = structuredClone(library);
   try {
     fn();
-    render();
+    if (redraw) render();
     if (!demo) localStorage.setItem('pixel-workbench-library-v1', JSON.stringify(library));
     return true;
   } catch (e) {
     library = before;
     render();
-    toast(e.message);
+    toast('Library update not saved: ' + e.message);
     return false;
   }
 }
@@ -1390,6 +1400,7 @@ function filterCatalog(scope) {
 installInstallation({
   getProject: () => project,
   getLibrary: () => library,
+  isDemo: () => demo,
   render,
   transact,
   libraryTransact,

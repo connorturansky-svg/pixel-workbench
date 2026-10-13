@@ -497,8 +497,9 @@ def run(base, out):
         select("box-select", "four")
         definition = next(d for d in lib()["components"] if d["name"] == "Network switch")
         navigate("standards")
+        page.locator('[data-standard-disclosure="hardware"] > summary').click()
         field = page.locator(f'[data-install-field="def:{definition["id"]}:name"]')
-        field.locator("xpath=ancestor::details").locator("summary").click()
+        field.locator("xpath=ancestor::details[contains(@class, 'definition-card')]").locator("summary").click()
         fill(f'def:{definition["id"]}:name', "Network switch revised")
         assert boxes()[0]["components"][2]["snapshot"]["name"] == "Network switch"
         navigate("boxes")

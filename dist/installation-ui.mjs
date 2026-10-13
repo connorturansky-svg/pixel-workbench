@@ -28,7 +28,7 @@ import {
   deleteRoute,
   removePowerSupply,
   portTypeColour
-} from './installation-model.mjs?v=0.85.0';
+} from './installation-model.mjs?v=0.86.0';
 
 const SCHEMATIC_MIN_WIDTH = 1400,
   SCHEMATIC_MIN_HEIGHT = 700;
@@ -51,6 +51,7 @@ let api,
   showTickets = false,
   boxDetailsOpen = false,
   builderMode = 'controller';
+const openStandards = new Set();
 const E = s =>
   String(s ?? '').replace(
     /[&<>"']/g,
@@ -508,10 +509,12 @@ export function standardsView(lib) {
   );
 }
 function standardsContent(lib) {
-  return `<div class="install-intro">These standards are saved on this device and available to all projects. A cable, enclosure size or part already used in a project keeps its own measurements until explicitly updated.</div><div class="section-heading"><h2>Enclosure sizes</h2>${B('+ New size', 'new-box-size')}</div><p class="micro">Define reusable box dimensions in centimetres, then apply them from Box details.</p><div class="standards-grid">${lib.boxSizes.map(s => `<section class="panel standard-card"><div class="card-heading"><h3>${E(s.name)}</h3>${B('Delete', 'delete-box-size:' + s.id, 'text-btn danger')}</div>${F('Name', s.name, 'boxsize:' + s.id + ':name')}<div class="two">${F('Width (cm)', s.widthCm, 'boxsize:' + s.id + ':widthCm', 'number', 'min="2" max="1000" step="0.1"')}${F('Depth (cm)', s.depthCm, 'boxsize:' + s.id + ':depthCm', 'number', 'min="2" max="1000" step="0.1"')}</div></section>`).join('')}</div><div class="section-heading"><h2>Physical cable standards</h2>${B('+ New cable', 'new-cable')}</div><div class="standards-grid">${lib.cables
+  const section = (key, title, count) =>
+    `<details class="standards-section" data-standard-disclosure="${key}" ${openStandards.has(key) ? 'open' : ''}><summary><h2>${title}</h2><span>${count} saved</span></summary><div class="standards-section-body">`;
+  return `<div class="install-intro">These standards are saved on this device and available to all projects. Expand a section to edit. Changes save when you leave a field; look for the saved confirmation. A cable, enclosure size or part already used in a project keeps its own measurements until explicitly updated.</div>${section('sizes', 'Enclosure sizes', lib.boxSizes.length)}<div class="install-toolbar">${B('+ New size', 'new-box-size')}</div><p class="micro">Define reusable box dimensions in centimetres, then apply them from Box details.</p><div class="standards-grid">${lib.boxSizes.map(s => `<section class="panel standard-card"><div class="card-heading"><h3>${E(s.name)}</h3>${B('Delete', 'delete-box-size:' + s.id, 'text-btn danger')}</div><span class="standard-save-status" role="status" aria-live="polite"></span>${F('Name', s.name, 'boxsize:' + s.id + ':name')}<div class="two">${F('Width (cm)', s.widthCm, 'boxsize:' + s.id + ':widthCm', 'number', 'min="2" max="1000" step="0.1"')}${F('Depth (cm)', s.depthCm, 'boxsize:' + s.id + ':depthCm', 'number', 'min="2" max="1000" step="0.1"')}</div></section>`).join('')}</div></div></details>${section('cables', 'Physical cable standards', lib.cables.length)}<div class="install-toolbar">${B('+ New cable', 'new-cable')}</div><div class="standards-grid">${lib.cables
     .map(
       c =>
-        `<section class="panel standard-card" style="border-top:4px solid ${E(c.color)}"><div class="card-heading"><h3>${E(c.name)} · v${c.version}</h3>${B('Delete', 'delete-cable:' + c.id, 'text-btn danger')}</div>${F('Name', c.name, 'cable:' + c.id + ':name')}${S(
+        `<section class="panel standard-card" style="border-top:4px solid ${E(c.color)}"><div class="card-heading"><h3>${E(c.name)} · v${c.version}</h3>${B('Delete', 'delete-cable:' + c.id, 'text-btn danger')}</div><span class="standard-save-status" role="status" aria-live="polite"></span>${F('Name', c.name, 'cable:' + c.id + ':name')}${S(
           'Type',
           c.type,
           'cable:' + c.id + ':type',
@@ -520,12 +523,12 @@ function standardsContent(lib) {
     )
     .join(
       ''
-    )}</div><div class="section-heading"><h2>Hardware & accessories</h2>${B('+ Custom component', 'new-component')}</div><p class="micro">Includes Baldrick boards, Pi, audio, switches, sensors, and effects. Dimensions are device-local standards used by the scale box layout.</p>${catalogBar('definitions', lib.components)}<div class="hardware-defs">${lib.components
+    )}</div></div></details>${section('hardware', 'Hardware & accessories', lib.components.length)}<div class="install-toolbar">${B('+ Custom component', 'new-component')}</div><p class="micro">Includes Baldrick boards, Pi, audio, switches, sensors, and effects. Dimensions are device-local standards used by the scale box layout.</p>${catalogBar('definitions', lib.components)}<div class="hardware-defs">${lib.components
     .slice()
     .sort((a, b) => a.category.localeCompare(b.category) || a.name.localeCompare(b.name))
     .map(
       d =>
-        `<details class="panel definition-card" data-catalog-item="definitions" data-category="${E(d.category)}" data-search="${E(componentSearch(d))}"><summary><span style="color:${E(d.color)}">${E(d.icon)}</span> ${E(d.name)} <small>${E(d.category)} · v${d.version}</small></summary><div class="definition-edit">${F('Name', d.name, 'def:' + d.id + ':name')}${F('Category', d.category, 'def:' + d.id + ':category')}${F('Manufacturer', d.manufacturer, 'def:' + d.id + ':manufacturer')}${F('Model', d.model, 'def:' + d.id + ':model')}${F('Colour', d.color, 'def:' + d.id + ':color', 'color')}${F('Icon', d.icon, 'def:' + d.id + ':icon')}${F('Notes', d.notes, 'def:' + d.id + ':notes')}<h4>Physical size</h4><div class="three">${F('Width (mm)', d.physical?.widthMm ?? '', 'physical:' + d.id + ':widthMm', 'number', 'min="1" max="5000" step="1"')}${F('Depth (mm)', d.physical?.depthMm ?? '', 'physical:' + d.id + ':depthMm', 'number', 'min="1" max="5000" step="1"')}${F('Height (mm)', d.physical?.heightMm ?? '', 'physical:' + d.id + ':heightMm', 'number', 'min="1" max="5000" step="1"')}</div><h4>Ports</h4>${d.ports
+        `<details class="panel definition-card" data-standard-disclosure="def:${E(d.id)}" ${openStandards.has('def:' + d.id) ? 'open' : ''} data-catalog-item="definitions" data-category="${E(d.category)}" data-search="${E(componentSearch(d))}"><summary><span style="color:${E(d.color)}">${E(d.icon)}</span> ${E(d.name)} <small>${E(d.category)} · v${d.version}</small></summary><div class="definition-edit"><span class="standard-save-status" role="status" aria-live="polite"></span>${F('Name', d.name, 'def:' + d.id + ':name')}${F('Category', d.category, 'def:' + d.id + ':category')}${F('Manufacturer', d.manufacturer, 'def:' + d.id + ':manufacturer')}${F('Model', d.model, 'def:' + d.id + ':model')}${F('Colour', d.color, 'def:' + d.id + ':color', 'color')}${F('Icon', d.icon, 'def:' + d.id + ':icon')}${F('Notes', d.notes, 'def:' + d.id + ':notes')}<h4>Physical size</h4><div class="three">${F('Width (mm)', d.physical?.widthMm ?? '', 'physical:' + d.id + ':widthMm', 'number', 'min="1" max="5000" step="1"')}${F('Depth (mm)', d.physical?.depthMm ?? '', 'physical:' + d.id + ':depthMm', 'number', 'min="1" max="5000" step="1"')}${F('Height (mm)', d.physical?.heightMm ?? '', 'physical:' + d.id + ':heightMm', 'number', 'min="1" max="5000" step="1"')}</div><h4>Ports</h4>${d.ports
           .map(
             port =>
               `<div class="def-port">${F('Label', port.label, 'port:' + d.id + ':' + port.id + ':label')}${S(
@@ -562,7 +565,7 @@ function standardsContent(lib) {
             ''
           )}${B('+ Custom resource', 'new-resource:' + d.id, 'text-btn')}${B('Delete definition', 'delete-def:' + d.id, 'text-btn danger')}</div></details>`
     )
-    .join('')}</div>`;
+    .join('')}</div></div></details>`;
 }
 export function bomView(p) {
   const boxes = p.installation.boxes,
@@ -1057,6 +1060,24 @@ function addExternal(box, from, toKey) {
 }
 export function installInstallation(a) {
   api = a;
+  document.addEventListener(
+    'toggle',
+    e => {
+      const disclosure = e.target;
+      if (!disclosure.matches('[data-standard-disclosure]') || !disclosure.isConnected) return;
+      if (disclosure.open) openStandards.add(disclosure.dataset.standardDisclosure);
+      else openStandards.delete(disclosure.dataset.standardDisclosure);
+    },
+    true
+  );
+  document.addEventListener('input', e => {
+    const card = e.target.closest('.standard-card, .definition-card');
+    if (!card || !e.target.matches('[data-install-field]')) return;
+    const status = card.querySelector('.standard-save-status');
+    if (!status) return;
+    status.textContent = 'Not saved yet - leave this field to save.';
+    status.dataset.state = 'pending';
+  });
   const libraryFile = document.createElement('input');
   libraryFile.type = 'file';
   libraryFile.accept = '.json,application/json';
@@ -1492,6 +1513,11 @@ export function installInstallation(a) {
       return;
     }
     if (!t.checkValidity()) {
+      const status = t.closest('.standard-card, .definition-card')?.querySelector('.standard-save-status');
+      if (status) {
+        status.textContent = 'Not saved - ' + t.validationMessage;
+        status.dataset.state = 'error';
+      }
       t.reportValidity();
       return;
     }
@@ -1600,15 +1626,20 @@ export function installInstallation(a) {
       kind === 'operating' ||
       kind === 'port' ||
       kind === 'physical'
-    )
-      api.libraryTransact(() => {
-        const obj =
+    ) {
+      const card = t.closest('.standard-card, .definition-card'),
+        status = card?.querySelector('.standard-save-status'),
+        obj =
           kind === 'cable'
             ? lib.cables.find(x => x.id === id)
             : kind === 'boxsize'
               ? lib.boxSizes.find(x => x.id === id)
               : lib.components.find(x => x.id === id);
-        if (!obj) return;
+      if (!obj) {
+        api.toast('This standard no longer exists. Reopen Standards and try again.');
+        return;
+      }
+      const saved = api.libraryTransact(() => {
         if (kind === 'resource') obj.resources[field] = +t.value;
         else if (kind === 'port') obj.ports.find(x => x.id === field)[sub] = t.value;
         else if (kind === 'physical') {
@@ -1616,7 +1647,37 @@ export function installInstallation(a) {
           obj.physical[field] = +t.value;
         } else obj[field] = t.type === 'number' ? +t.value : t.value;
         if (kind !== 'boxsize') obj.version++;
-      });
+      }, false);
+      if (!saved) return;
+      if (card?.matches('.definition-card')) {
+        card.querySelector('summary').innerHTML =
+          `<span style="color:${E(obj.color)}">${E(obj.icon)}</span> ${E(obj.name)} <small>${E(obj.category)} · v${obj.version}</small>`;
+        card.dataset.category = obj.category;
+        card.dataset.search = componentSearch(obj);
+        const category = document.querySelector('[data-catalog-category="definitions"]');
+        if (category) {
+          const selected = category.value,
+            categories = new Set(lib.components.map(d => d.category));
+          if (selected) categories.add(selected);
+          category.innerHTML =
+            '<option value="">All categories</option>' +
+            [...categories]
+              .sort()
+              .map(value => `<option value="${E(value)}">${E(value)}</option>`)
+              .join('');
+          category.value = selected;
+        }
+      } else if (card) {
+        card.querySelector('h3').textContent = obj.name + (kind === 'cable' ? ' · v' + obj.version : '');
+        if (kind === 'cable') card.style.borderTopColor = obj.color;
+      }
+      if (status) {
+        status.textContent = api.isDemo()
+          ? 'Updated in demo - not saved to your library.'
+          : 'Saved on this device at ' + new Date().toLocaleTimeString();
+        status.dataset.state = 'saved';
+      }
+    }
   });
   document.addEventListener('dragstart', e => {
     const palette = e.target.closest('[data-palette]'),
