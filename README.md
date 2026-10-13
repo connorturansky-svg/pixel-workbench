@@ -2,6 +2,16 @@
 
 Every release is captured by the builder's release smoke test (`automation/smoke.py --shots`): every page, every info tab and a mobile view. This branch is never deployed by Pages. Newest first.
 
+## [v0.90.0](v0.90.0/)
+
+13/10/2026 · [commit b13a90e](https://github.com/connorturansky-svg/pixel-workbench/commit/b13a90e0793c2e0192931c822359c1f0ab5d12a5) · [issue #62](https://github.com/connorturansky-svg/pixel-workbench/issues/62)
+
+> Added independent menu buttons to hide and restore the hardware library and box/component details, giving the box editor more room across its views (suggested in #62).
+
+<a href="v0.90.0/01-workspace.png"><img src="v0.90.0/01-workspace.png" width="420" alt="v0.90.0 workspace"></a> <a href="v0.90.0/mobile.png"><img src="v0.90.0/mobile.png" width="240" alt="v0.90.0 mobile"></a>
+
+All shots: [workspace](v0.90.0/01-workspace.png) · [hardware](v0.90.0/02-hardware.png) · [presets](v0.90.0/03-presets.png) · [props](v0.90.0/04-props.png) · [guide](v0.90.0/05-guide.png) · [boxes](v0.90.0/06-boxes.png) · [standards](v0.90.0/07-standards.png) · [bom](v0.90.0/08-bom.png) · [suggest](v0.90.0/09-suggest.png) · [info arch](v0.90.0/info-arch.png) · [info how](v0.90.0/info-how.png) · [info keys](v0.90.0/info-keys.png) · [info new](v0.90.0/info-new.png) · [info suggest](v0.90.0/info-suggest.png) · [mobile](v0.90.0/mobile.png)
+
 ## [v0.89.0](v0.89.0/)
 
 13/10/2026 · [commit b3ca3b6](https://github.com/connorturansky-svg/pixel-workbench/commit/b3ca3b6c944af09ed6bc627161a2b756db6a42b7) · [issue #61](https://github.com/connorturansky-svg/pixel-workbench/issues/61)

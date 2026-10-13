@@ -2076,5 +2076,31 @@
    "mobile.png"
   ],
   "error": ""
+ },
+ {
+  "version": "v0.90.0",
+  "date": "13/10/2026",
+  "commit": "b13a90e0793c2e0192931c822359c1f0ab5d12a5",
+  "issue": 62,
+  "changelog": "Added independent menu buttons to hide and restore the hardware library and box/component details, giving the box editor more room across its views (suggested in #62).",
+  "status": "ok",
+  "shots": [
+   "01-workspace.png",
+   "02-hardware.png",
+   "03-presets.png",
+   "04-props.png",
+   "05-guide.png",
+   "06-boxes.png",
+   "07-standards.png",
+   "08-bom.png",
+   "09-suggest.png",
+   "info-arch.png",
+   "info-how.png",
+   "info-keys.png",
+   "info-new.png",
+   "info-suggest.png",
+   "mobile.png"
+  ],
+  "error": ""
  }
 ]
