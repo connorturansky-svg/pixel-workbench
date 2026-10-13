@@ -1842,5 +1842,31 @@
    "mobile.png"
   ],
   "error": ""
+ },
+ {
+  "version": "v0.80.0",
+  "date": "13/10/2026",
+  "commit": "471a3d0b44b782fddeaf8a20d6b7606d228b7859",
+  "issue": 50,
+  "changelog": "Made the project statistics collapsible and closed by default, explained the decorative category colours, and added space between the bars and readable labels. Notifications remain visible when the summary is closed (suggested in #50).",
+  "status": "ok",
+  "shots": [
+   "01-workspace.png",
+   "02-hardware.png",
+   "03-presets.png",
+   "04-props.png",
+   "05-guide.png",
+   "06-boxes.png",
+   "07-standards.png",
+   "08-bom.png",
+   "09-suggest.png",
+   "info-arch.png",
+   "info-how.png",
+   "info-keys.png",
+   "info-new.png",
+   "info-suggest.png",
+   "mobile.png"
+  ],
+  "error": ""
  }
 ]
