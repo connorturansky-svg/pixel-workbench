@@ -5,7 +5,7 @@ import {
   makeProp,
   PALETTE,
   clampPosition
-} from './layout-model.mjs?v=0.81.0';
+} from './layout-model.mjs?v=0.82.0';
 import {
   ensureInstallation,
   BUTTON_COLOURS,
@@ -16,7 +16,7 @@ import {
   removePowerSupply,
   portTypeColour,
   connectionProblem
-} from './installation-model.mjs?v=0.81.0';
+} from './installation-model.mjs?v=0.82.0';
 import {
   routeLayer,
   routeControls,
@@ -24,7 +24,7 @@ import {
   installRoutes,
   refreshRoutes,
   refreshRouteInspector
-} from './installation-room.mjs?v=0.81.0';
+} from './installation-room.mjs?v=0.82.0';
 let api,
   chosen = '',
   propId = 'prop-smiley',
@@ -141,6 +141,17 @@ function updateVisualScale() {
   });
   svg.style.setProperty('--room-unit', 1 / rootScale);
   for (const el of svg.querySelectorAll('[data-room-node]')) {
+    const ring = el.querySelector('.selection-ring'),
+      gap = 4 / rootScale;
+    ring.dataset.footprintWidth ??= +ring.getAttribute('width') - 12;
+    ring.dataset.footprintHeight ??= +ring.getAttribute('height') - 12;
+    const width = +ring.dataset.footprintWidth,
+      height = +ring.dataset.footprintHeight;
+    ring.setAttribute('x', -width / 2 - gap);
+    ring.setAttribute('y', -height / 2 - gap);
+    ring.setAttribute('width', width + gap * 2);
+    ring.setAttribute('height', height + gap * 2);
+    ring.setAttribute('rx', gap);
     const pixels = +el.dataset.roomSize * rootScale,
       previous = detailLevels.get(el.dataset.roomNode) || 'overview';
     let level =
@@ -156,7 +167,7 @@ function updateVisualScale() {
   for (const { box, boxScale, visible } of boxMetrics) {
     if (!visible) box.closest('[data-room-node]').dataset.roomDetail = 'overview';
     box.style.setProperty('--room-unit', 1 / (boxScale || 1));
-    box.style.setProperty('--room-label-size', Math.min(14 / boxScale, 14) + 'px');
+    box.style.setProperty('--room-label-size', 14 / boxScale + 'px');
     for (const port of box.querySelectorAll('[data-room-port]')) {
       const gap = +port.dataset.portSpacing * boxScale;
       port.dataset.dense = gap < 20 ? 'true' : 'false';
@@ -168,9 +179,23 @@ function updateVisualScale() {
     for (const text of visible ? box.querySelectorAll('[data-max-width]') : []) {
       text.dataset.fullText ??= text.textContent;
       const full = text.dataset.fullText,
-        font = Math.min(14 / boxScale, 14),
+        lines = text.querySelectorAll('tspan'),
+        card = text.closest('.room-component-card')?.querySelector('rect'),
+        maxHeight = card
+          ? (+card.getAttribute('height') -
+              (text.closest('.room-component-card').querySelector('.room-component-icon') ? 32 : 8)) /
+            (Math.max(1, lines.length) * 1.2)
+          : text.classList.contains('room-box-name') || text.classList.contains('room-port-label')
+            ? 16
+            : 14,
+        font = Math.min(14 / boxScale, maxHeight),
         characters = Math.max(1, Math.floor(+text.dataset.maxWidth / (font * 0.62)));
-      const lines = text.querySelectorAll('tspan');
+      if (card) {
+        text.setAttribute('y', +card.getAttribute('y') + font + 3);
+        for (const [index, line] of [...lines].entries()) {
+          line.setAttribute('dy', index ? font * 1.2 : 0);
+        }
+      }
       for (const line of lines.length ? lines : [text]) {
         line.dataset.fullText ??= line.textContent;
         const value = line.dataset.fullText;

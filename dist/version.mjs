@@ -1,7 +1,8 @@
 export const ABOUT =
   'Pixel Workbench is a device-local planner for 12 V pixel systems built on Baldrick controllers and FPP. Use it to lay out a room, size power and injection, design controller boxes and produce a wiring guide, bill of materials and channel CSV. Calculations are planning estimates. Confirm ratings and wiring against the actual equipment.';
-export const APP_VERSION = '0.81.0';
+export const APP_VERSION = '0.82.0';
 export const ARCHITECTURE_NOTES = [
+  'Room box names remain visible at every detail level when Labels is on. Internal labels use screen-sized text fitted to their cells, retaining full accessible details when abbreviated or too small. The dashed selection outline has a screen-sized gap and does not represent an enclosure or change its measured footprint.',
   'installation-room shows the selected route’s assigned cable snapshot name beside its longest segment when Labels is on. Labels follow route and pivot movement with screen-sized text; they do not change geometry, measurements or saved cable assignments.',
   'The native Project summary disclosure starts closed on each load and keeps its open/closed state across page renders in the current session. Its coloured bars distinguish statistics, not warning severity; project notifications remain separate and visible.',
   'A static, no-build web app: plain ES modules, HTML and CSS served from dist/. Pushing to main publishes dist/ to GitHub Pages through the Actions workflow.',
@@ -17,6 +18,13 @@ export const ARCHITECTURE_NOTES = [
   'version.mjs is the single source for the version, changelog, help text and shortcuts. info.mjs renders the i dialog.'
 ];
 export const CHANGELOG = [
+  {
+    version: '0.82.0',
+    date: '13/10/2026',
+    items: [
+      'Improved room box label readability across zoom levels, kept box names visible in overview and detail, and replaced the oversized rounded selection outline with a compact dashed indicator (suggested in #54).'
+    ]
+  },
   {
     version: '0.81.0',
     date: '13/10/2026',
@@ -664,6 +672,10 @@ export const HOW_TO_USE = [
   [
     'Lay out the room',
     'Set room dimensions in metres, drag equipment, wheel-zoom around the pointer and drag empty space to pan. Fit site frames the measured site; Fit selected reveals the actual configured box without changing its footprint. Detail responds to projected size with stable thresholds. Labels are bounded; long compact names retain full accessible details. All active exact ports remain available; disabled ports stay disabled. Drag or click real endpoints, or use Tab and Enter/Space. Crowded targets open an anchored chooser rather than silently selecting the wrong port. Inputs are blue, pixels green, audio yellow, mains red and Ethernet/DMX/relay outputs white. Add floods, strings, presets or props before connecting them; a visible ! marks an unconnected item. Supported box-contained pixel outputs can connect them later. Inspector edits and deletion preserve unrelated work, with confirmation for affected links. Automatic 45-degree paths avoid physical objects and report unavailable paths; Labels, zoom and selection do not alter physical measurements. Add pivot retains automatic detours as editable manual points. Assign physical cables and service slack separately from electrical wire-drop inputs.'
+  ],
+  [
+    'Read room labels',
+    'Keep Labels on to see box names at all zoom levels. Internal component labels stay screen-sized where their cells have room; long names are shortened and very small internal labels give way to the box name. Zoom in or use Fit selected for more detail; hover a component or port for its full description. The dashed outline identifies the selected or keyboard-focused object, not a physical enclosure or clearance. Zoom and selection do not change measured footprints or cable lengths.'
   ],
   [
     'Choose physical cables',

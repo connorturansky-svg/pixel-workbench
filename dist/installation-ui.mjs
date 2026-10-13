@@ -28,7 +28,7 @@ import {
   deleteRoute,
   removePowerSupply,
   portTypeColour
-} from './installation-model.mjs?v=0.81.0';
+} from './installation-model.mjs?v=0.82.0';
 
 const SCHEMATIC_MIN_WIDTH = 1400,
   SCHEMATIC_MIN_HEIGHT = 700;

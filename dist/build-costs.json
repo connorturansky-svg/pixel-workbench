@@ -73,6 +73,8 @@
   {"issue":49,"version":"0.79.0","title":"allow wires to start from either side","outcome":"shipped","at":"2026-10-13T07:00:39Z","runs":1,"model":"gpt-6.1-sol","credits":13.3,"tokensIn":185800,"tokensCached":158300,"tokensOut":4800,"seconds":242},
   {"issue":50,"version":"0.80.0","title":"improve stat tool","outcome":"shipped","at":"2026-10-13T07:09:20Z","runs":1,"model":"gpt-6.1-sol","credits":14.65,"tokensIn":269800,"tokensCached":240000,"tokensOut":4800,"seconds":224},
   {"issue":51,"version":"0.81.0","title":"standards page tabs","outcome":"maintainer-needed","at":"2026-10-13T07:20:40Z","runs":1,"model":"gpt-6.1-sol","credits":28.82,"tokensIn":511200,"tokensCached":467700,"tokensOut":13300,"seconds":403},
-  {"issue":52,"version":"0.81.0","title":"wire type labels","outcome":"shipped","at":"2026-10-13T07:29:33Z","runs":1,"model":"gpt-6.1-sol","credits":14.81,"tokensIn":180200,"tokensCached":151400,"tokensOut":6100,"seconds":244}
+  {"issue":52,"version":"0.81.0","title":"wire type labels","outcome":"shipped","at":"2026-10-13T07:29:33Z","runs":1,"model":"gpt-6.1-sol","credits":14.81,"tokensIn":180200,"tokensCached":151400,"tokensOut":6100,"seconds":244},
+  {"issue":53,"version":"0.82.0","title":"wire labels","outcome":"declined","at":"2026-10-13T07:34:30Z","runs":1,"model":"gpt-6.1-sol","credits":5.82,"tokensIn":57300,"tokensCached":37500,"tokensOut":512,"seconds":33},
+  {"issue":54,"version":"0.82.0","title":"room builder zoom levels","outcome":"shipped","at":"2026-10-13T07:45:32Z","runs":1,"model":"gpt-6.1-sol","credits":16.72,"tokensIn":270800,"tokensCached":237200,"tokensOut":5900,"seconds":304}
  ]
 }

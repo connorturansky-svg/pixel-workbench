@@ -384,6 +384,7 @@
 }
 .selection-ring {
   stroke-width: 2;
+  stroke-dasharray: 4 3;
 }
 .room-port-symbol {
   stroke-width: 2;
@@ -451,7 +452,7 @@
   font-size: min(22px, calc(22px * var(--room-unit, 1)));
 }
 .room-overview-label {
-  display: none;
+  display: block;
 }
 .room-overview-label path {
   fill: none;
@@ -803,9 +804,6 @@
 .room-overview-label,
 .room-box-internals {
   pointer-events: none;
-}
-.room-object[data-room-detail='overview']:not(.chosen):not(:hover):not(:focus-within) .room-overview-label {
-  display: none;
 }
 .room-button-symbol :is(rect, ellipse) {
   vector-effect: non-scaling-stroke;
