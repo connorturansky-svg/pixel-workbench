@@ -2,6 +2,16 @@
 
 Every release is captured by the builder's release smoke test (`automation/smoke.py --shots`): every page, every info tab and a mobile view. This branch is never deployed by Pages. Newest first.
 
+## [v0.93.0](v0.93.0/)
+
+13/10/2026 · [commit 44826e4](https://github.com/connorturansky-svg/pixel-workbench/commit/44826e4d04e70ab8df92161f40233bdae4bf71f3) · [issue #65](https://github.com/connorturansky-svg/pixel-workbench/issues/65)
+
+> Made room names readable without shrinking text, wrapped component names at detail scale, added meaningful compact port identifiers and keyboard-accessible full names in the inspector, and kept cable metadata quiet until highlighted (suggested in #65).
+
+<a href="v0.93.0/01-workspace.png"><img src="v0.93.0/01-workspace.png" width="420" alt="v0.93.0 workspace"></a> <a href="v0.93.0/mobile.png"><img src="v0.93.0/mobile.png" width="240" alt="v0.93.0 mobile"></a>
+
+All shots: [workspace](v0.93.0/01-workspace.png) · [hardware](v0.93.0/02-hardware.png) · [presets](v0.93.0/03-presets.png) · [props](v0.93.0/04-props.png) · [guide](v0.93.0/05-guide.png) · [boxes](v0.93.0/06-boxes.png) · [standards](v0.93.0/07-standards.png) · [bom](v0.93.0/08-bom.png) · [suggest](v0.93.0/09-suggest.png) · [info arch](v0.93.0/info-arch.png) · [info how](v0.93.0/info-how.png) · [info keys](v0.93.0/info-keys.png) · [info new](v0.93.0/info-new.png) · [info suggest](v0.93.0/info-suggest.png) · [mobile](v0.93.0/mobile.png)
+
 ## [v0.92.0](v0.92.0/)
 
 13/10/2026 · [commit c17ead2](https://github.com/connorturansky-svg/pixel-workbench/commit/c17ead26cf541a914c7a158767251d635627db1d) · [issue #64](https://github.com/connorturansky-svg/pixel-workbench/issues/64)

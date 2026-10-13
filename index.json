@@ -2154,5 +2154,31 @@
    "mobile.png"
   ],
   "error": ""
+ },
+ {
+  "version": "v0.93.0",
+  "date": "13/10/2026",
+  "commit": "44826e4d04e70ab8df92161f40233bdae4bf71f3",
+  "issue": 65,
+  "changelog": "Made room names readable without shrinking text, wrapped component names at detail scale, added meaningful compact port identifiers and keyboard-accessible full names in the inspector, and kept cable metadata quiet until highlighted (suggested in #65).",
+  "status": "ok",
+  "shots": [
+   "01-workspace.png",
+   "02-hardware.png",
+   "03-presets.png",
+   "04-props.png",
+   "05-guide.png",
+   "06-boxes.png",
+   "07-standards.png",
+   "08-bom.png",
+   "09-suggest.png",
+   "info-arch.png",
+   "info-how.png",
+   "info-keys.png",
+   "info-new.png",
+   "info-suggest.png",
+   "mobile.png"
+  ],
+  "error": ""
  }
 ]
