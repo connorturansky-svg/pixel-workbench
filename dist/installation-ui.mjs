@@ -28,7 +28,7 @@ import {
   deleteRoute,
   removePowerSupply,
   portTypeColour
-} from './installation-model.mjs?v=0.78.0';
+} from './installation-model.mjs?v=0.79.0';
 
 const SCHEMATIC_MIN_WIDTH = 1400,
   SCHEMATIC_MIN_HEIGHT = 700;
@@ -813,7 +813,7 @@ const routePath = (a, b, obstacles, bounds) => {
   if (finishNode && distance.has(nodeKey(finishNode)))
     for (let point = finishNode; point !== startNode; point = previous.get(nodeKey(point)))
       middle.unshift(point);
-  if (!middle.length && startNode !== finishNode && !clear(start, finish)) return '';
+  if (!startNode || !finishNode || !distance.has(nodeKey(finishNode))) return null;
   const raw = [a, start, ...middle.slice(0, -1), finish, b],
     points = raw.filter(
       (point, i, values) =>
@@ -821,7 +821,23 @@ const routePath = (a, b, obstacles, bounds) => {
         i === values.length - 1 ||
         (values[i - 1].x !== values[i + 1].x && values[i - 1].y !== values[i + 1].y)
     );
-  return points.map((point, i) => `${i ? 'L' : 'M'}${point.x} ${point.y}`).join(' ');
+  return {
+    d: points.map((point, i) => `${i ? 'L' : 'M'}${point.x} ${point.y}`).join(' '),
+    length: raw.reduce(
+      (length, point, i) =>
+        length + (i ? Math.abs(point.x - raw[i - 1].x) + Math.abs(point.y - raw[i - 1].y) : 0),
+      0
+    )
+  };
+};
+const shortestBoxRoute = (fromAnchors, toAnchors, obstacles, bounds) => {
+  let shortest = null;
+  for (const from of fromAnchors)
+    for (const to of toAnchors) {
+      const path = routePath(from, to, obstacles, bounds);
+      if (path && (!shortest || path.length < shortest.length)) shortest = { ...path, from, to };
+    }
+  return shortest;
 };
 function scheduleBoxConnections() {
   if (connectionFrame) return;
@@ -915,21 +931,22 @@ export function drawBoxConnections() {
     },
     parts = [...stage.querySelectorAll('.box-part')];
   if (separateSchematicParts(stage, parts, box)) return;
-  const anchor = (port, other) => {
+  const anchors = port => {
       const part = port.closest('.box-part');
       if (!part) {
         const r = port.getBoundingClientRect(),
           point = center(port);
-        if (port.classList.contains('left')) return { x: r.right - rs.left, y: point.y, direction: 1 };
-        if (port.classList.contains('right')) return { x: r.left - rs.left, y: point.y, direction: -1 };
-        return { x: point.x, y: (port.classList.contains('top') ? r.bottom : r.top) - rs.top };
+        if (port.classList.contains('left')) return [{ x: r.right - rs.left, y: point.y, direction: 1 }];
+        if (port.classList.contains('right')) return [{ x: r.left - rs.left, y: point.y, direction: -1 }];
+        return [{ x: point.x, y: (port.classList.contains('top') ? r.bottom : r.top) - rs.top }];
       }
       const portRect = port.getBoundingClientRect(),
         partRect = part.getBoundingClientRect(),
         output = port.classList.contains('out'),
-        x = (output ? partRect.right : partRect.left) - rs.left,
         y = portRect.top + portRect.height / 2 - rs.top;
-      return { x, y, direction: output ? 1 : -1, other };
+      const left = { x: partRect.left - rs.left, y, direction: -1 },
+        right = { x: partRect.right - rs.left, y, direction: 1 };
+      return output ? [right, left] : [left, right];
     },
     portType = (componentId, portId) =>
       box?.components
@@ -958,19 +975,19 @@ export function drawBoxConnections() {
             .filter(port => port !== a && port !== b)
             .map(rectFor)
         ],
-        aCenter = center(a),
-        bCenter = center(b),
-        from = anchor(a, bCenter),
-        to = anchor(b, aCenter),
         warning = x.boxId && connectionWarnings(p, x).length,
         colour = portTypeColour(
           portType(x.fromComponent, x.fromPort) || portType(x.toComponent, x.toPort) || 'generic'
         );
-      const d = routePath(from, to, obstacles, { width: stage.clientWidth, height: stage.clientHeight });
-      if (!d) {
+      const route = shortestBoxRoute(anchors(a), anchors(b), obstacles, {
+        width: stage.clientWidth,
+        height: stage.clientHeight
+      });
+      if (!route) {
         blockedRoutes.push(`${x.fromPort} → ${x.toPort}`);
         return `<title>No clear route: ${E(x.fromPort)} to ${E(x.toPort)}. Move components or use Auto layout.</title>`;
       }
+      const { d, from, to } = route;
       return `<path class="box-wire ${warning ? 'warning' : ''}" data-wire-from="${E(x.fromComponent + ':' + x.fromPort)}" data-wire-to="${E(x.toComponent + ':' + x.toPort)}" d="${d}" stroke="${colour}"/><circle class="box-wire-node" cx="${from.x}" cy="${from.y}" r="5" fill="${colour}"/><circle class="box-wire-node" cx="${to.x}" cy="${to.y}" r="5" fill="${colour}"/>`;
     })
     .join('');
@@ -978,15 +995,13 @@ export function drawBoxConnections() {
   if (wireFrom && wirePoint) {
     const a = stage.querySelector(`[data-box-port="${CSS.escape(wireFrom.component + ':' + wireFrom.id)}"]`);
     if (a) {
-      const sourcePart = a.closest('.box-part'),
-        obstacles = parts.filter(part => part !== sourcePart).map(rectFor),
-        from = anchor(a, wirePoint),
+      const obstacles = parts.map(rectFor),
         colour = portTypeColour(portType(wireFrom.component, wireFrom.id) || 'generic');
-      const path = routePath(from, wirePoint, obstacles, {
+      const path = shortestBoxRoute(anchors(a), [wirePoint], obstacles, {
         width: stage.clientWidth,
         height: stage.clientHeight
       });
-      if (path) preview = `<path class="box-wire preview" d="${path}" stroke="${colour}"/>`;
+      if (path) preview = `<path class="box-wire preview" d="${path.d}" stroke="${colour}"/>`;
     }
   }
   svg.innerHTML = paths + preview;
