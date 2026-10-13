@@ -1002,6 +1002,24 @@ export function exposedPorts(box) {
 export function boxVisualScale(width, height) {
   return Math.max(0.01, Math.min(1, width / 1, height / 0.7));
 }
+export function roomPortGeometry(width, height, { edge, t }, ports) {
+  const scale = width / 400,
+    horizontal = edge === 'left' || edge === 'right',
+    spacing = (horizontal ? height : width) / (ports.filter(p => p.edge === edge).length + 1),
+    pillW = horizontal ? 96 * scale : Math.min(90 * scale, spacing * 0.86),
+    pillH = 20 * scale,
+    shellX = edge === 'left' ? -width / 2 : edge === 'right' ? width / 2 : (t - 0.5) * width,
+    shellY = edge === 'top' ? -height / 2 : edge === 'bottom' ? height / 2 : (t - 0.5) * height;
+  return {
+    x: shellX + (edge === 'left' ? -pillW : edge === 'right' ? pillW : 0),
+    y: shellY + (edge === 'top' ? -pillH : edge === 'bottom' ? pillH : 0),
+    pillX: edge === 'left' ? shellX - pillW : edge === 'right' ? shellX : shellX - pillW / 2,
+    pillY: edge === 'top' ? shellY - pillH : edge === 'bottom' ? shellY : shellY - pillH / 2,
+    pillW,
+    pillH,
+    spacing
+  };
+}
 export function perimeterAnchor(p, boxId, componentId, portId) {
   const box = p.installation?.boxes.find(b => b.id === boxId),
     v = p.scene?.placements?.['box:' + boxId],
@@ -1025,9 +1043,7 @@ export function perimeterAnchor(p, boxId, componentId, portId) {
             t: (same.indexOf(explicit) + 1) / (same.length + 1)
           }));
   if (!v || !node) return null;
-  const { edge, t } = node,
-    dx = edge === 'left' ? -v.width / 2 : edge === 'right' ? v.width / 2 : (t - 0.5) * v.width,
-    dy = edge === 'top' ? -v.height / 2 : edge === 'bottom' ? v.height / 2 : (t - 0.5) * v.height,
+  const { x: dx, y: dy } = roomPortGeometry(v.width, v.height, node, exposedPorts(box)),
     angle = ((v.rotation || 0) * Math.PI) / 180;
   return {
     x: v.x + dx * Math.cos(angle) - dy * Math.sin(angle),
@@ -1597,8 +1613,6 @@ function calculateAutomaticRoute(p, spec, a, b) {
   const width = p.scene?.width || 10,
     depth = p.scene?.depth || 10,
     step = Math.max(0.2, Math.max(width, depth) / 80),
-    cols = Math.ceil(width / step) + 1,
-    rows = Math.ceil(depth / step) + 1,
     from = spec.from,
     to = spec.to,
     hidden = key => /^(controller|psu|distro|aux):/.test(key) && boxForSource(p, key),
@@ -1606,11 +1620,10 @@ function calculateAutomaticRoute(p, spec, a, b) {
       .filter(([key]) => !hidden(key))
       .flatMap(([placementKey, v]) => {
         const endpoint = placementKey === from || placementKey === to;
-        if (endpoint && !placementKey.startsWith('box:')) return [];
         return [
           {
             key: placementKey,
-            ...placementBounds(v)
+            ...placementBounds(v, endpoint ? 0 : 0.04)
           }
         ];
       }),
@@ -1645,6 +1658,30 @@ function calculateAutomaticRoute(p, spec, a, b) {
     lead = (point, key, other) => {
       const obstacle = obstacles.find(o => o.key === key);
       if (!obstacle) return point;
+      if (key.startsWith('box:')) {
+        const box = p.installation.boxes.find(box => 'box:' + box.id === key),
+          start = key === from,
+          component = start
+            ? spec.fromComponent || spec.connection?.fromComponent
+            : spec.toComponent || spec.connection?.toComponent,
+          port = start ? spec.fromPort : spec.toPort,
+          node = box && exposedPorts(box).find(v => v.component.id === component && v.port.id === port);
+        if (node) {
+          const angle = ((p.scene.placements[key].rotation || 0) * Math.PI) / 180,
+            normal = { left: [-1, 0], right: [1, 0], top: [0, -1], bottom: [0, 1] }[node.edge],
+            dx = normal[0] * Math.cos(angle) - normal[1] * Math.sin(angle),
+            dy = normal[0] * Math.sin(angle) + normal[1] * Math.cos(angle),
+            distance = Math.max(
+              step,
+              Math.min(
+                Math.abs(dx) > 0.00001 ? ((dx > 0 ? obstacle.r : obstacle.l) - point.x) / dx : Infinity,
+                Math.abs(dy) > 0.00001 ? ((dy > 0 ? obstacle.b : obstacle.t) - point.y) / dy : Infinity
+              ) + step
+            ),
+            q = { x: point.x + dx * distance, y: point.y + dy * distance };
+          return q.x >= 0 && q.y >= 0 && q.x <= width && q.y <= depth && clear(point, q, key) ? q : null;
+        }
+      }
       const choices = [
         { x: obstacle.l - step, y: point.y },
         { x: obstacle.r + step, y: point.y },
@@ -1661,16 +1698,36 @@ function calculateAutomaticRoute(p, spec, a, b) {
     first = lead(a, from, b),
     last = lead(b, to, a),
     blocked = (x, y) => obstacles.some(o => x > o.l && x < o.r && y > o.t && y < o.b),
-    cell = q => ({
-      x: Math.max(0, Math.min(cols - 1, Math.round(q.x / step))),
-      y: Math.max(0, Math.min(rows - 1, Math.round(q.y / step)))
-    }),
+    cell = q => {
+      const x = Math.round(q.x / step),
+        y = Math.round(q.y / step),
+        choices = [];
+      for (let dx = -2; dx <= 2; dx++)
+        for (let dy = -2; dy <= 2; dy++) {
+          const next = { x: x + dx, y: y + dy },
+            point = { x: next.x * step, y: next.y * step };
+          if (
+            point.x >= 0 &&
+            point.y >= 0 &&
+            point.x <= width &&
+            point.y <= depth &&
+            !blocked(point.x, point.y) &&
+            clear(q, point)
+          )
+            choices.push(next);
+        }
+      choices.sort(
+        (u, v) =>
+          Math.hypot(u.x * step - q.x, u.y * step - q.y) - Math.hypot(v.x * step - q.x, v.y * step - q.y)
+      );
+      return choices[0] || null;
+    },
     start = cell(first || a),
     goal = cell(last || b),
     key = q => q.x + ',' + q.y,
-    open = [{ ...start, g: 0, f: Math.hypot(goal.x - start.x, goal.y - start.y) }],
+    open = [],
     came = new Map(),
-    cost = new Map([[key(start), 0]]),
+    cost = new Map(),
     dirs = [
       [-1, -1],
       [0, -1],
@@ -1682,12 +1739,12 @@ function calculateAutomaticRoute(p, spec, a, b) {
       [1, 1]
     ];
   let found = null;
-  const actualObstacles = Object.entries(p.scene?.placements || {})
-    .filter(([key]) => !hidden(key))
-    .map(([, v]) => placementBounds(v, 0));
-  if (!actualObstacles.some(o => intersects(a, b, o))) return [a, b];
+  if (clear(a, b)) return [a, b];
   if (!first || !last) return null;
   if (clear(first, last)) return [first, last];
+  if (!start || !goal) return null;
+  open.push({ ...start, g: 0, f: Math.hypot(goal.x - start.x, goal.y - start.y) });
+  cost.set(key(start), 0);
   const startPoint = { x: start.x * step, y: start.y * step },
     goalPoint = { x: goal.x * step, y: goal.y * step };
   if (!clear(first, startPoint) || !clear(last, goalPoint)) return null;
@@ -1727,8 +1784,8 @@ function calculateAutomaticRoute(p, spec, a, b) {
       if (
         next.x < 0 ||
         next.y < 0 ||
-        next.x >= cols ||
-        next.y >= rows ||
+        next.x * step > width ||
+        next.y * step > depth ||
         blocked(next.x * step, next.y * step) ||
         !clear({ x: cur.x * step, y: cur.y * step }, { x: next.x * step, y: next.y * step })
       )

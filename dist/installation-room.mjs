@@ -8,7 +8,7 @@ import {
   routeIssues,
   deleteRoute,
   portTypeColour
-} from './installation-model.mjs?v=0.82.0';
+} from './installation-model.mjs?v=0.83.0';
 
 let api,
   selected = '',
@@ -78,7 +78,11 @@ export function routeLayer(p) {
     .map(s => {
       const state = routeIssues(p, s),
         g = state.geometry;
-      if (!g) return '';
+      if (!g) {
+        const anchor = routeAnchor(p, s, 'start') || routeAnchor(p, s, 'end');
+        if (!anchor) return '';
+        return `<g class="physical-route unrouted has-issues" data-route="${E(s.id)}" tabindex="0" role="button" aria-label="${E(s.name)}: ${E(state.issues.join('; '))}"><title>${E(s.name)}: ${E(state.issues.join('; '))}</title><text class="route-alert" x="${anchor.x * 100 + 8}" y="${anchor.y * 100 - 8}">!<title>${E(state.issues.join('; '))}</title></text></g>`;
+      }
       const r = routeRecord(p, s.id),
         portType = routePortType(p, s),
         colour =
@@ -147,10 +151,21 @@ function refresh() {
       g = state.geometry,
       group = layer.querySelector(`[data-route="${CSS.escape(s.id)}"]`);
     if (!g) {
-      group?.remove();
+      if (!group?.classList.contains('unrouted')) rebuild = true;
+      else {
+        const anchor = routeAnchor(p, s, 'start') || routeAnchor(p, s, 'end'),
+          alert = group.querySelector('.route-alert');
+        if (anchor) {
+          alert.setAttribute('x', anchor.x * 100 + 8);
+          alert.setAttribute('y', anchor.y * 100 - 8);
+        }
+        group.querySelector('title').textContent = `${s.name}: ${state.issues.join('; ')}`;
+        alert.querySelector('title').textContent = state.issues.join('; ');
+        group.setAttribute('aria-label', `${s.name}: ${state.issues.join('; ')}`);
+      }
       continue;
     }
-    if (!group) {
+    if (!group || group.classList.contains('unrouted')) {
       rebuild = true;
       continue;
     }
@@ -243,9 +258,9 @@ function nearestIndex(points, q) {
 export function installRoutes(a) {
   api = a;
   document.addEventListener('click', e => {
-    const pathEl = e.target.closest('[data-route-path]');
+    const pathEl = e.target.closest('[data-route-path], .unrouted[data-route]');
     if (pathEl) {
-      selected = pathEl.dataset.routePath;
+      selected = pathEl.dataset.routePath || pathEl.dataset.route;
       pivotIndex = -1;
       api.render();
       return;
@@ -419,6 +434,11 @@ export function installRoutes(a) {
     }
   });
   document.addEventListener('keydown', e => {
+    if (['Enter', ' '].includes(e.key) && e.target.matches('.unrouted[data-route]')) {
+      e.preventDefault();
+      e.target.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      return;
+    }
     if (e.key === 'Delete' && e.target.matches('[data-route-pivot]') && pivotIndex >= 0) {
       api.transact(() => {
         routeRecord(api.getProject(), selected).points.splice(pivotIndex, 1);

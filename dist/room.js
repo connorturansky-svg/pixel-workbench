@@ -5,18 +5,19 @@ import {
   makeProp,
   PALETTE,
   clampPosition
-} from './layout-model.mjs?v=0.82.0';
+} from './layout-model.mjs?v=0.83.0';
 import {
   ensureInstallation,
   BUTTON_COLOURS,
   exposedPorts,
+  roomPortGeometry,
   boxVisualScale,
   perimeterAnchor,
   deleteRoute,
   removePowerSupply,
   portTypeColour,
   connectionProblem
-} from './installation-model.mjs?v=0.82.0';
+} from './installation-model.mjs?v=0.83.0';
 import {
   routeLayer,
   routeControls,
@@ -24,7 +25,7 @@ import {
   installRoutes,
   refreshRoutes,
   refreshRouteInspector
-} from './installation-room.mjs?v=0.82.0';
+} from './installation-room.mjs?v=0.83.0';
 let api,
   chosen = '',
   propId = 'prop-smiley',
@@ -312,7 +313,7 @@ export function roomView(p) {
   if (!es.some(e => e.key === chosen)) chosen = es[0]?.key;
   const e = es.find(e => e.key === chosen),
     v = p.scene.placements[chosen];
-  return `<div class="room-toolbar"><div><strong>Room layout</strong><span>Bird’s-eye · drag objects to position · drag empty space to pan</span></div><div>${b('+ Pixels / flood', 'add-pixels', 'btn')}${b('+ Field device', 'field-library', 'btn')}${b(showGrid ? 'Grid on' : 'Grid off', 'grid', 'btn ' + (showGrid ? 'pressed' : ''))}</div></div>${routeControls(p)}<div class="room-workspace"><div class="room-panel panel"><div class="room-dimensions"><span>${p.scene.width} m × ${p.scene.depth} m</span><span>${p.scene.snap ? 'Snap ' + p.scene.snap + ' m' : 'Free positioning'}</span></div><div class="room-stage"><div class="room-scroll"><svg id="room-canvas" viewBox="0 0 ${p.scene.width * 100} ${p.scene.depth * 100}" style="width:${zoom * 100}%;min-width:${zoom * 100}%" role="img" aria-label="Bird’s-eye room layout. Drag objects to position, drag empty space to pan, or use the mouse wheel to zoom."><defs><pattern id="room-grid" width="100" height="100" patternUnits="userSpaceOnUse"><path d="M100 0H0V100" fill="none" stroke="#dce5e4" stroke-width="1"/></pattern></defs><rect width="100%" height="100%" fill="#f9fbfa"/>${showGrid ? '<rect width="100%" height="100%" fill="url(#room-grid)"/>' : ''}<rect class="room-boundary" x="3" y="3" width="${p.scene.width * 100 - 6}" height="${p.scene.depth * 100 - 6}" fill="none" stroke="#9cafad"/><g id="room-routes">${routeLayer(p)}</g><path id="room-wire-preview" aria-hidden="true"/>${es.map(en => node(p, en)).join('')}</svg></div><div class="room-camera" role="group" aria-label="Room view controls"><button type="button" data-room="zoom-out" aria-label="Zoom out" title="Zoom out">−</button><span data-room-zoom aria-live="polite">${Math.round(zoom * 100)}%</span><button type="button" data-room="zoom-in" aria-label="Zoom in" title="Zoom in">+</button><button class="room-fit" type="button" data-room="fit-site" title="Fit the whole site">Fit site</button><button class="room-fit" type="button" data-room="fit-selected" title="Fit the selected object">Fit selected</button></div></div><div class="room-key"><span><i></i> Data <i class="room-power-key"></i> Power <i class="room-inject-key"></i> Injection</span><span>Mouse wheel zooms · drag empty space to pan</span></div></div><aside class="panel room-inspector"><div class="inspector-title"><h3>Layout inspector</h3><span class="pill">2D</span></div><div class="inspector-body">${
+  return `<div class="room-toolbar"><div><strong>Room layout</strong><span>Bird’s-eye · drag objects to position · drag empty space to pan</span></div><div>${b('+ Pixels / flood', 'add-pixels', 'btn')}${b('+ Field device', 'field-library', 'btn')}${b(showGrid ? 'Grid on' : 'Grid off', 'grid', 'btn ' + (showGrid ? 'pressed' : ''))}</div></div>${routeControls(p)}<div class="room-workspace"><div class="room-panel panel"><div class="room-dimensions"><span>${p.scene.width} m × ${p.scene.depth} m</span><span>${p.scene.snap ? 'Snap ' + p.scene.snap + ' m' : 'Free positioning'}</span></div><div class="room-stage"><div class="room-scroll"><svg id="room-canvas" viewBox="0 0 ${p.scene.width * 100} ${p.scene.depth * 100}" style="width:${zoom * 100}%;min-width:${zoom * 100}%" role="img" aria-label="Bird’s-eye room layout. Drag objects to position, drag empty space to pan, or use the mouse wheel to zoom."><defs><pattern id="room-grid" width="100" height="100" patternUnits="userSpaceOnUse"><path d="M100 0H0V100" fill="none" stroke="#dce5e4" stroke-width="1"/></pattern></defs><rect width="100%" height="100%" fill="#f9fbfa"/>${showGrid ? '<rect width="100%" height="100%" fill="url(#room-grid)"/>' : ''}<rect class="room-boundary" x="3" y="3" width="${p.scene.width * 100 - 6}" height="${p.scene.depth * 100 - 6}" fill="none" stroke="#9cafad"/><g id="room-routes">${routeLayer(p)}</g><path id="room-wire-preview" aria-hidden="true"/>${es.map(en => node(p, en)).join('')}${boxPorts(p)}</svg></div><div class="room-camera" role="group" aria-label="Room view controls"><button type="button" data-room="zoom-out" aria-label="Zoom out" title="Zoom out">−</button><span data-room-zoom aria-live="polite">${Math.round(zoom * 100)}%</span><button type="button" data-room="zoom-in" aria-label="Zoom in" title="Zoom in">+</button><button class="room-fit" type="button" data-room="fit-site" title="Fit the whole site">Fit site</button><button class="room-fit" type="button" data-room="fit-selected" title="Fit the selected object">Fit selected</button></div></div><div class="room-key"><span><i></i> Data <i class="room-power-key"></i> Power <i class="room-inject-key"></i> Injection</span><span>Mouse wheel zooms · drag empty space to pan</span></div></div><aside class="panel room-inspector"><div class="inspector-title"><h3>Layout inspector</h3><span class="pill">2D</span></div><div class="inspector-body">${
     e
       ? `<details class="room-inspector-section"><summary>Selected object</summary><div class="room-inspector-section-body"><span class="room-type">${e.type === 'segment' ? 'PIXEL GROUP' : e.type.toUpperCase()}</span><h3>${E(e.name)}</h3>${pick(
           'Selected object',
@@ -414,7 +415,7 @@ function boxVisual(box, w, h) {
       : box.interfacePorts?.length
         ? 'NO ACTIVE EDGE PORTS'
         : `${n} COMPONENT${n === 1 ? '' : 'S'}`;
-  return `<g class="room-box-visual" transform="scale(${scale})"><rect class="room-box-shell" x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="4" fill="#193f39" stroke="#4f806a"/><circle class="room-overview-marker" cx="0" cy="0"/><g class="room-box-internals">${labels ? `<text class="room-box-name" data-max-width="${w - 16}" data-characters="${box.name.length}" x="${-w / 2 + 8}" y="${-h / 2 + 15}" fill="white" font-weight="700">${E(box.name)}</text><text class="room-box-configuration" x="${-w / 2 + 8}" y="${-h / 2 + 29}" fill="#d7ebe4">${E(configuration)}</text>` : ''}${items
+  const internals = `<rect class="room-box-shell" x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="4" fill="#193f39" stroke="#4f806a"/><circle class="room-overview-marker" cx="0" cy="0"/><g class="room-box-internals">${labels ? `<text class="room-box-name" data-max-width="${w - 16}" data-characters="${box.name.length}" x="${-w / 2 + 8}" y="${-h / 2 + 15}" fill="white" font-weight="700">${E(box.name)}</text><text class="room-box-configuration" x="${-w / 2 + 8}" y="${-h / 2 + 29}" fill="#d7ebe4">${E(configuration)}</text>` : ''}${items
     .map((part, i) => {
       const x = -w / 2 + (i % cols) * cellW,
         y = -h / 2 + header + Math.floor(i / cols) * cellH,
@@ -434,21 +435,38 @@ function boxVisual(box, w, h) {
     })
     .join(
       ''
-    )}${n || !labels ? '' : '<text text-anchor="middle" y="5" fill="white" font-size="11">EMPTY BOX</text>'}</g>${ports
+    )}${n || !labels ? '' : '<text text-anchor="middle" y="5" fill="white" font-size="11">EMPTY BOX</text>'}</g>`;
+  const nodes = ports
     .map(({ component, port, edge, t }) => {
-      const x = edge === 'left' ? -w / 2 : edge === 'right' ? w / 2 : (t - 0.5) * w,
-        y = edge === 'top' ? -h / 2 : edge === 'bottom' ? h / 2 : (t - 0.5) * h,
-        horizontal = edge === 'left' || edge === 'right',
-        spacing = (horizontal ? h : w) / (ports.filter(p => p.edge === edge).length + 1),
+      const { x, y, spacing, pillW, pillX, pillY } = roomPortGeometry(w, h, { edge, t }, ports),
         label = port.label.slice(0, 28),
-        pillW = horizontal ? 96 : Math.min(90, spacing * 0.86),
-        pillX = edge === 'left' ? x - pillW : edge === 'right' ? x : x - pillW / 2,
-        pillY = edge === 'top' ? y - 20 : edge === 'bottom' ? y : y - 10,
         textX = pillX + pillW / 2,
         textY = pillY + 14;
       return `<g class="room-external-node" style="--label-colour:${contrastingText(component.snapshot.color || '#4b8a76')}" data-room-port="${E(box.id)}:${E(component.id)}:${E(port.id)}" data-port-spacing="${spacing}" data-anchor-x="${x}" data-anchor-y="${y}" tabindex="0" role="button" aria-label="${E(box.name)} ${E(component.snapshot.name)} ${E(port.label)} ${E(port.type)} port"><rect class="room-port-symbol" x="${pillX}" y="${pillY}" width="${pillW}" height="20" rx="5" fill="${E(component.snapshot.color || '#4b8a76')}" stroke="${portTypeColour(port.type)}"/><circle class="room-port-dot" cx="${x}" cy="${y}" fill="${E(component.snapshot.color || '#4b8a76')}" stroke="${portTypeColour(port.type)}"/><title>${E(box.name)} → ${E(component.snapshot.name)}${component.subname ? ` (${E(component.subname)})` : ''} → ${E(port.label)} (${E(port.type)})</title>${labels ? `<text class="room-port-label" data-max-width="${pillW - 8}" data-characters="${label.length}" x="${textX}" y="${textY}" text-anchor="middle">${E(label)}</text>` : ''}</g>`;
     })
-    .join('')}</g>`;
+    .join('');
+  return `<g class="room-box-visual" transform="scale(${scale})">${internals}${nodes}</g>`;
+}
+function boxPorts(p) {
+  return p.installation.boxes
+    .map(box => {
+      const v = p.scene.placements['box:' + box.id];
+      if (!v) return '';
+      const ports = exposedPorts(box);
+      return `<g data-room-port-tips="${E('box:' + box.id)}" transform="translate(${v.x * 100} ${v.y * 100})" style="--port-scale:${v.width / 4}" aria-hidden="true"><g transform="rotate(${v.rotation})">${ports
+        .map(node => {
+          const { x, y } = roomPortGeometry(v.width * 100, v.height * 100, node, ports);
+          return `<circle class="room-port-tip" data-room-port-proxy="${E(box.id)}:${E(node.component.id)}:${E(node.port.id)}" cx="${x}" cy="${y}" fill="${E(node.component.snapshot.color || '#4b8a76')}" stroke="${portTypeColour(node.port.type)}"/>`;
+        })
+        .join('')}</g></g>`;
+    })
+    .join('');
+}
+function roomPortTarget(element) {
+  const proxy = element?.closest('[data-room-port-proxy]');
+  return proxy
+    ? document.querySelector(`[data-room-port="${CSS.escape(proxy.dataset.roomPortProxy)}"]`)
+    : element?.closest('[data-room-port]');
 }
 function node(p, e) {
   const v = p.scene.placements[e.key],
@@ -513,9 +531,7 @@ export function installRoom(a) {
   document.addEventListener('change', onChange);
   document.addEventListener('pointerdown', down);
   document.addEventListener('pointermove', move);
-  document.addEventListener('pointerover', e =>
-    tracePort(e.target.closest('[data-room-port]')?.dataset.roomPort)
-  );
+  document.addEventListener('pointerover', e => tracePort(roomPortTarget(e.target)?.dataset.roomPort));
   document.addEventListener('focusin', e =>
     tracePort(e.target.closest('[data-room-port]')?.dataset.roomPort)
   );
@@ -565,7 +581,7 @@ function showPortPicker(boxId, candidates) {
   );
 }
 function overlappingPorts(ev) {
-  if (ev.target.closest('.room-port-dot')) return [];
+  if (ev.target.closest('.room-port-dot, .room-port-tip')) return [];
   return [...document.querySelectorAll('[data-room-port]')]
     .filter(el => {
       const r = el.querySelector('.room-port-symbol').getBoundingClientRect();
@@ -634,7 +650,7 @@ function onClick(ev) {
     }
     return;
   }
-  const external = ev.target.closest('[data-room-port]');
+  const external = roomPortTarget(ev.target);
   if (external) {
     if (suppressPortClick) {
       suppressPortClick = false;
@@ -883,7 +899,7 @@ function refreshRoomWire(ev) {
     target = document.elementFromPoint(ev.clientX, ev.clientY)?.closest('[data-room-node]'),
     key = target?.dataset.roomNode;
   if (key?.startsWith('field:') || key?.startsWith('segment:')) target.classList.add('wire-target');
-  const port = document.elementFromPoint(ev.clientX, ev.clientY)?.closest('[data-room-port]');
+  const port = roomPortTarget(document.elementFromPoint(ev.clientX, ev.clientY));
   if (port) {
     const [boxId, componentId, portId] = port.dataset.roomPort.split(':');
     port.classList.add(
@@ -916,8 +932,8 @@ function tracePort(value) {
 }
 function down(ev) {
   if (ev.target.closest('.room-port-picker')) return;
-  if (ev.target.closest('[data-room-port]')) {
-    const element = ev.target.closest('[data-room-port]');
+  const element = roomPortTarget(ev.target);
+  if (element) {
     if (element.dataset.dense === 'true' || overlappingPorts(ev).length > 1 || roomWire) return;
     const [boxId, componentId, portId] = element.dataset.roomPort.split(':');
     roomWire = { boxId, componentId, portId, pointer: ev.pointerId, startX: ev.clientX, startY: ev.clientY };
@@ -991,6 +1007,9 @@ function move(ev) {
   v.x = x;
   v.y = y;
   drag.el.setAttribute('transform', `translate(${v.x * 100} ${v.y * 100})`);
+  document
+    .querySelector(`[data-room-port-tips="${CSS.escape(drag.key)}"]`)
+    ?.setAttribute('transform', `translate(${v.x * 100} ${v.y * 100})`);
   refreshRoutes();
 }
 function up(ev) {
@@ -1006,7 +1025,7 @@ function up(ev) {
   }
   if (roomWire?.pointer === ev.pointerId && !drag) {
     const element = document.elementFromPoint(ev.clientX, ev.clientY),
-      targetPort = element?.closest('[data-room-port]'),
+      targetPort = roomPortTarget(element),
       target = element?.closest('[data-room-node]');
     const moved = Math.hypot(ev.clientX - roomWire.startX, ev.clientY - roomWire.startY) > 4;
     roomWire.pointer = null;

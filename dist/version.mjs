@@ -1,7 +1,8 @@
 export const ABOUT =
   'Pixel Workbench is a device-local planner for 12 V pixel systems built on Baldrick controllers and FPP. Use it to lay out a room, size power and injection, design controller boxes and produce a wiring guide, bill of materials and channel CSV. Calculations are planning estimates. Confirm ratings and wiring against the actual equipment.';
-export const APP_VERSION = '0.82.0';
+export const APP_VERSION = '0.83.0';
 export const ARCHITECTURE_NOTES = [
+  'Room port symbols, wiring previews and measured cable anchors share roomPortGeometry at the outer node tip, including box rotation. A tip layer keeps extended dots visible and selectable above neighbouring object drawings, forwarding interaction to their original keyboard-accessible exact ports and following movement. Automatic routes check endpoint enclosures and padded obstacles, retain clear direct paths and use outward box departures plus nearby clear grid cells for detours; unavailable paths show warning markers without crossing wires. Manual pivots and the Auto route off setting retain user control.',
   'Room box names remain visible at every detail level when Labels is on. Internal labels use screen-sized text fitted to their cells, retaining full accessible details when abbreviated or too small. The dashed selection outline has a screen-sized gap and does not represent an enclosure or change its measured footprint.',
   'installation-room shows the selected route’s assigned cable snapshot name beside its longest segment when Labels is on. Labels follow route and pivot movement with screen-sized text; they do not change geometry, measurements or saved cable assignments.',
   'The native Project summary disclosure starts closed on each load and keeps its open/closed state across page renders in the current session. Its coloured bars distinguish statistics, not warning severity; project notifications remain separate and visible.',
@@ -18,6 +19,13 @@ export const ARCHITECTURE_NOTES = [
   'version.mjs is the single source for the version, changelog, help text and shortcuts. info.mjs renders the i dialog.'
 ];
 export const CHANGELOG = [
+  {
+    version: '0.83.0',
+    date: '13/10/2026',
+    items: [
+      'Moved room wires to the outer tips of their exact box nodes and improved automatic detours around objects, including rotated boxes and blocked grid points near endpoints. Unavailable paths show a warning marker instead of a crossing wire; manual pivots remain editable (suggested in #55).'
+    ]
+  },
   {
     version: '0.82.0',
     date: '13/10/2026',
@@ -660,6 +668,10 @@ export const HOW_TO_USE = [
   [
     'Inspect cable warnings',
     'Select a route for cable length, slack, pivots and the full issue list. A highlighted line and ! indicate short or incompatible wiring; an unassigned physical length is neutral. Delete a custom cable or injection from the route inspector.'
+  ],
+  [
+    'Route around room objects',
+    'Room wires and wiring previews connect at the outer tip of the exact box port node, not the enclosure edge. Keep Auto route on for automatic detours around equipment; moving an object recalculates affected routes. Select Add pivot to keep a detour as editable manual points. Existing manual pivots and Auto route off remain intentional overrides. If no clear route is available, a ! marker replaces the wire: select it to review the warning and move equipment rather than treating it as a valid cable path.'
   ],
   [
     'Start a plan',

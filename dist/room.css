@@ -793,6 +793,13 @@
   stroke-width: 1.5;
   vector-effect: non-scaling-stroke;
 }
+.room-port-tip {
+  r: min(calc(4px * var(--port-scale)), calc(4px * var(--room-unit, 1)));
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+  pointer-events: all;
+  cursor: crosshair;
+}
 .room-object[data-room-detail='overview'] .room-port-symbol,
 .room-object[data-room-detail='equipment'] .room-port-symbol,
 .room-external-node[data-dense='true'] .room-port-symbol,
