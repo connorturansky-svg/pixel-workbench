@@ -1998,5 +1998,31 @@
    "mobile.png"
   ],
   "error": ""
+ },
+ {
+  "version": "v0.87.0",
+  "date": "13/10/2026",
+  "commit": "708fc61e7f70f2e08ae3e04f825262d76ef4339f",
+  "issue": 60,
+  "changelog": "Reduced room wire-flow markers to a fixed 5 px screen diameter so they stay small when zooming in (suggested in #60).",
+  "status": "ok",
+  "shots": [
+   "01-workspace.png",
+   "02-hardware.png",
+   "03-presets.png",
+   "04-props.png",
+   "05-guide.png",
+   "06-boxes.png",
+   "07-standards.png",
+   "08-bom.png",
+   "09-suggest.png",
+   "info-arch.png",
+   "info-how.png",
+   "info-keys.png",
+   "info-new.png",
+   "info-suggest.png",
+   "mobile.png"
+  ],
+  "error": ""
  }
 ]
