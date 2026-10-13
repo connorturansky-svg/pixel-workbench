@@ -1920,5 +1920,31 @@
    "mobile.png"
   ],
   "error": ""
+ },
+ {
+  "version": "v0.83.0",
+  "date": "13/10/2026",
+  "commit": "e8d7202caad5c001e07a4e04a2e8f3e7df01b5a6",
+  "issue": 55,
+  "changelog": "Moved room wires to the outer tips of their exact box nodes and improved automatic detours around objects, including rotated boxes and blocked grid points near endpoints. Unavailable paths show a warning marker instead of a crossing wire; manual pivots remain editable (suggested in #55).",
+  "status": "ok",
+  "shots": [
+   "01-workspace.png",
+   "02-hardware.png",
+   "03-presets.png",
+   "04-props.png",
+   "05-guide.png",
+   "06-boxes.png",
+   "07-standards.png",
+   "08-bom.png",
+   "09-suggest.png",
+   "info-arch.png",
+   "info-how.png",
+   "info-keys.png",
+   "info-new.png",
+   "info-suggest.png",
+   "mobile.png"
+  ],
+  "error": ""
  }
 ]
