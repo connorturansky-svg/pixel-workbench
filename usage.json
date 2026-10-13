@@ -79,7 +79,19 @@
    "issue": 58,
    "credits": 4.63,
    "outcome": "declined"
+  },
+  {
+   "at": "2026-10-13T08:52:47Z",
+   "issue": 59,
+   "credits": 25.71,
+   "outcome": "shipped"
+  },
+  {
+   "at": "2026-10-13T08:52:53Z",
+   "issue": 59,
+   "credits": 25.71,
+   "outcome": "failed"
   }
  ],
- "updated": "2026-10-13T08:39:13Z"
+ "updated": "2026-10-13T08:52:54Z"
 }
