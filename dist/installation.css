@@ -704,6 +704,7 @@
   text-align: center;
 }
 .route-pulse {
+  r: calc(2.5px * var(--room-unit, 1));
   pointer-events: none;
 }
 @media (prefers-reduced-motion: reduce) {

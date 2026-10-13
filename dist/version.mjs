@@ -1,7 +1,8 @@
 export const ABOUT =
   'Pixel Workbench is a device-local planner for 12 V pixel systems built on Baldrick controllers and FPP. Use it to lay out a room, size power and injection, design controller boxes and produce a wiring guide, bill of materials and channel CSV. Calculations are planning estimates. Confirm ratings and wiring against the actual equipment.';
-export const APP_VERSION = '0.86.0';
+export const APP_VERSION = '0.87.0';
 export const ARCHITECTURE_NOTES = [
+  'Room wire-flow markers use the existing inverse camera scale (--room-unit) for a constant 5 px screen diameter. Animation paths, route geometry, colours and reduced-motion handling are unchanged.',
   'Standards uses native disclosures, initially closed, with session-only expansion state. Field edits persist through libraryTransact without rebuilding the app; card headings, versions and search metadata update in place with inline pending/saved feedback. Structural library changes still render the views, and persistence failures roll back visibly. Project snapshots remain unchanged until explicit Sync/Update.',
   'Room layout adds blank controller boxes or saved box templates through the existing project transaction. Template instances reuse installation-model copying of hardware, exact ports and internal links; ensureScene keeps measured enclosure sizes, and the new box is selected at the room centre. Templates remain in the shared device-local library.',
   'Room camera Fit all frames the rotated footprints of visible room entities, including configured boxes, field devices and pixel groups. Zoom steps pause at the all-object overview when zooming out and the selected-object view when zooming in. Wheel gestures resume after a 250 ms pause or direction change; each zoom-button activation is a new step. Camera changes never alter placements or cable measurements.',
@@ -22,6 +23,13 @@ export const ARCHITECTURE_NOTES = [
   'version.mjs is the single source for the version, changelog, help text and shortcuts. info.mjs renders the i dialog.'
 ];
 export const CHANGELOG = [
+  {
+    version: '0.87.0',
+    date: '13/10/2026',
+    items: [
+      'Reduced room wire-flow markers to a fixed 5 px screen diameter so they stay small when zooming in (suggested in #60).'
+    ]
+  },
   {
     version: '0.86.0',
     date: '13/10/2026',
@@ -695,7 +703,7 @@ export const HOW_TO_USE = [
   ],
   [
     'Inspect cable warnings',
-    'Select a route for cable length, slack, pivots and the full issue list. A highlighted line and ! indicate short or incompatible wiring; an unassigned physical length is neutral. Delete a custom cable or injection from the route inspector.'
+    'Select a route for cable length, slack, pivots and the full issue list. A highlighted line and ! indicate short or incompatible wiring; an unassigned physical length is neutral. Delete a custom cable or injection from the route inspector. Wire flow shows small moving markers that stay the same screen size when zooming; turn it off to hide them.'
   ],
   [
     'Route around room objects',
