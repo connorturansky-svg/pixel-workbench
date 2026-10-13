@@ -1,7 +1,8 @@
 export const ABOUT =
   'Pixel Workbench is a device-local planner for 12 V pixel systems built on Baldrick controllers and FPP. Use it to lay out a room, size power and injection, design controller boxes and produce a wiring guide, bill of materials and channel CSV. Calculations are planning estimates. Confirm ratings and wiring against the actual equipment.';
-export const APP_VERSION = '0.87.0';
+export const APP_VERSION = '0.88.0';
 export const ARCHITECTURE_NOTES = [
+  'button-help.mjs adds short native hover titles using the existing button action hooks. Delegated pointer and focus events cover page renders, dialogs and in-place controls without observing room drawing mutations; authored titles and all actions remain unchanged. Help is device-local and does not alter saved data.',
   'Room wire-flow markers use the existing inverse camera scale (--room-unit) for a constant 5 px screen diameter. Animation paths, route geometry, colours and reduced-motion handling are unchanged.',
   'Standards uses native disclosures, initially closed, with session-only expansion state. Field edits persist through libraryTransact without rebuilding the app; card headings, versions and search metadata update in place with inline pending/saved feedback. Structural library changes still render the views, and persistence failures roll back visibly. Project snapshots remain unchanged until explicit Sync/Update.',
   'Room layout adds blank controller boxes or saved box templates through the existing project transaction. Template instances reuse installation-model copying of hardware, exact ports and internal links; ensureScene keeps measured enclosure sizes, and the new box is selected at the room centre. Templates remain in the shared device-local library.',
@@ -23,6 +24,13 @@ export const ARCHITECTURE_NOTES = [
   'version.mjs is the single source for the version, changelog, help text and shortcuts. info.mjs renders the i dialog.'
 ];
 export const CHANGELOG = [
+  {
+    version: '0.88.0',
+    date: '13/10/2026',
+    items: [
+      'Added short hover explanations to buttons across planning views, dialogs and feature requests while keeping existing port details (suggested in #59).'
+    ]
+  },
   {
     version: '0.87.0',
     date: '13/10/2026',
@@ -681,6 +689,10 @@ export const CHANGELOG = [
   }
 ];
 export const HOW_TO_USE = [
+  [
+    'Read button help',
+    'Pause the pointer over a button to see a short explanation of its action. Existing detailed port tooltips are preserved. Buttons still work with Tab and Enter or Space; hovering does not activate them.'
+  ],
   [
     'Edit shared standards',
     'Open Standards and expand Enclosure sizes, Physical cable standards or Hardware & accessories. All sections start closed on a fresh load; expanded sections and hardware cards stay open during this session. Leave an edited field to save it on this device and check its inline saved confirmation. Invalid fields show Not saved. Editing does not refresh the page or move focus; existing project snapshots still require explicit Sync/Update. Demo edits are not saved to your library.'
