@@ -1,0 +1,26 @@
+{
+ "version": "v0.88.0",
+ "date": "13/10/2026",
+ "commit": "4ae7b4e7586fc31e7f315a083fde751832a1ca3e",
+ "issue": 59,
+ "changelog": "Added short hover explanations to buttons across planning views, dialogs and feature requests while keeping existing port details (suggested in #59).",
+ "status": "ok",
+ "shots": [
+  "01-workspace.png",
+  "02-hardware.png",
+  "03-presets.png",
+  "04-props.png",
+  "05-guide.png",
+  "06-boxes.png",
+  "07-standards.png",
+  "08-bom.png",
+  "09-suggest.png",
+  "info-arch.png",
+  "info-how.png",
+  "info-keys.png",
+  "info-new.png",
+  "info-suggest.png",
+  "mobile.png"
+ ],
+ "error": ""
+}

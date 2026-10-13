@@ -2,6 +2,16 @@
 
 Every release is captured by the builder's release smoke test (`automation/smoke.py --shots`): every page, every info tab and a mobile view. This branch is never deployed by Pages. Newest first.
 
+## [v0.88.0](v0.88.0/)
+
+13/10/2026 · [commit 4ae7b4e](https://github.com/connorturansky-svg/pixel-workbench/commit/4ae7b4e7586fc31e7f315a083fde751832a1ca3e) · [issue #59](https://github.com/connorturansky-svg/pixel-workbench/issues/59)
+
+> Added short hover explanations to buttons across planning views, dialogs and feature requests while keeping existing port details (suggested in #59).
+
+<a href="v0.88.0/01-workspace.png"><img src="v0.88.0/01-workspace.png" width="420" alt="v0.88.0 workspace"></a> <a href="v0.88.0/mobile.png"><img src="v0.88.0/mobile.png" width="240" alt="v0.88.0 mobile"></a>
+
+All shots: [workspace](v0.88.0/01-workspace.png) · [hardware](v0.88.0/02-hardware.png) · [presets](v0.88.0/03-presets.png) · [props](v0.88.0/04-props.png) · [guide](v0.88.0/05-guide.png) · [boxes](v0.88.0/06-boxes.png) · [standards](v0.88.0/07-standards.png) · [bom](v0.88.0/08-bom.png) · [suggest](v0.88.0/09-suggest.png) · [info arch](v0.88.0/info-arch.png) · [info how](v0.88.0/info-how.png) · [info keys](v0.88.0/info-keys.png) · [info new](v0.88.0/info-new.png) · [info suggest](v0.88.0/info-suggest.png) · [mobile](v0.88.0/mobile.png)
+
 ## [v0.87.0](v0.87.0/)
 
 13/10/2026 · [commit 708fc61](https://github.com/connorturansky-svg/pixel-workbench/commit/708fc61e7f70f2e08ae3e04f825262d76ef4339f) · [issue #60](https://github.com/connorturansky-svg/pixel-workbench/issues/60)
