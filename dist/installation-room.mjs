@@ -8,7 +8,7 @@ import {
   routeIssues,
   deleteRoute,
   portTypeColour
-} from './installation-model.mjs?v=0.92.0';
+} from './installation-model.mjs?v=0.93.0';
 
 let api,
   selected = '',
@@ -96,13 +96,13 @@ export function routeLayer(p) {
         chosen = s.id === selected,
         labelPoint = routeLabelPoint(g.points),
         label =
-          chosen && p.installation.showLabels && r.cableSnapshot
+          p.installation.showLabels && r.cableSnapshot
             ? `<text class="route-cable-label" x="${labelPoint.x}" y="${labelPoint.y}">${E(r.cableSnapshot.name)}</text>`
             : '',
         flow = p.installation.animate
           ? `<circle r="2.5" fill="${colour}" class="route-pulse"><animateMotion dur="4s" repeatCount="indefinite" path="${d}"/></circle>`
           : '';
-      return `<g class="physical-route ${s.kind} ${chosen ? 'selected' : ''} ${issues.length ? 'has-issues' : state.state === 'unknown' ? 'unknown' : 'valid'}" data-route="${E(s.id)}"><title>${E(s.name)}: ${issues.length ? issues.join('; ') : state.state === 'unknown' ? 'Physical cable length unknown' : 'Cable length valid'}</title><path class="route-hit" d="${d}" data-route-path="${E(s.id)}"/><path class="route-line" d="${d}" stroke="${colour}" data-route-path="${E(s.id)}"/>${label}${issues.length ? `<text class="route-alert" x="${g.points.at(-1).x * 100 + 8}" y="${g.points.at(-1).y * 100 - 8}">!<title>${E(issues.join('; '))}</title></text>` : ''}${flow}</g>`;
+      return `<g class="physical-route ${s.kind} ${chosen ? 'selected' : ''} ${issues.length ? 'has-issues' : state.state === 'unknown' ? 'unknown' : 'valid'}" data-route="${E(s.id)}" tabindex="0" role="button" aria-label="${E(s.name)}${r.cableSnapshot ? ': ' + E(r.cableSnapshot.name) : ''}"><title>${E(s.name)}: ${issues.length ? issues.join('; ') : state.state === 'unknown' ? 'Physical cable length unknown' : 'Cable length valid'}</title><path class="route-hit" d="${d}" data-route-path="${E(s.id)}"/><path class="route-line" d="${d}" stroke="${colour}" data-route-path="${E(s.id)}"/>${label}${issues.length ? `<text class="route-alert" x="${g.points.at(-1).x * 100 + 8}" y="${g.points.at(-1).y * 100 - 8}">!<title>${E(issues.join('; '))}</title></text>` : ''}${flow}</g>`;
     })
     .join('');
 }
@@ -352,7 +352,7 @@ export function installRoutes(a) {
       document.querySelector('[data-route-field="select"]')?.focus();
       return;
     }
-    const pathEl = e.target.closest('[data-route-path], .unrouted[data-route]');
+    const pathEl = e.target.closest('[data-route-path], .physical-route[data-route]');
     if (pathEl) {
       if (chooseOverlapping(e)) return;
       selected = pathEl.dataset.routePath || pathEl.dataset.route;
@@ -549,7 +549,7 @@ export function installRoutes(a) {
       e.target.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       return;
     }
-    if (['Enter', ' '].includes(e.key) && e.target.matches('.unrouted[data-route]')) {
+    if (['Enter', ' '].includes(e.key) && e.target.matches('.physical-route[data-route]')) {
       e.preventDefault();
       e.target.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       return;

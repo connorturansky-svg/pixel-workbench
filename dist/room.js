@@ -5,7 +5,7 @@ import {
   makeProp,
   PALETTE,
   clampPosition
-} from './layout-model.mjs?v=0.92.0';
+} from './layout-model.mjs?v=0.93.0';
 import {
   ensureInstallation,
   makeBox,
@@ -19,7 +19,7 @@ import {
   removePowerSupply,
   portTypeColour,
   connectionProblem
-} from './installation-model.mjs?v=0.92.0';
+} from './installation-model.mjs?v=0.93.0';
 import {
   routeLayer,
   routeMarkers,
@@ -28,7 +28,7 @@ import {
   installRoutes,
   refreshRoutes,
   refreshRouteInspector
-} from './installation-room.mjs?v=0.92.0';
+} from './installation-room.mjs?v=0.93.0';
 let api,
   chosen = '',
   propId = 'prop-smiley',
@@ -289,8 +289,12 @@ function updateVisualScale() {
         pillHeight = Math.min(18, horizontal ? gap * 0.8 : 18) / heightScale,
         x = +port.dataset.anchorX,
         y = +port.dataset.anchorY,
-        pillX = x - (port.dataset.edge === 'right' ? pillWidth : horizontal ? 0 : pillWidth / 2),
-        pillY = y - (port.dataset.edge === 'bottom' ? pillHeight : horizontal ? pillHeight / 2 : 0),
+        pillX = horizontal
+          ? x + (port.dataset.edge === 'right' ? 6 / boxScale : -pillWidth - 6 / boxScale)
+          : x - pillWidth / 2,
+        pillY = horizontal
+          ? y - pillHeight / 2
+          : y + (port.dataset.edge === 'bottom' ? 6 / heightScale : -pillHeight - 6 / heightScale),
         rect = port.querySelector('.room-port-symbol'),
         label = port.querySelector('.room-port-label');
       rect.setAttribute('x', pillX);
@@ -318,35 +322,49 @@ function updateVisualScale() {
     for (const text of visible ? box.querySelectorAll('[data-max-width]') : []) {
       text.dataset.fullText ??= text.textContent;
       const full = text.dataset.fullText,
-        lines = text.querySelectorAll('tspan'),
         card = text.classList.contains('room-component-label')
           ? text.closest('.room-component-card')?.querySelector('rect')
           : null,
-        maxHeight = card
-          ? (+card.getAttribute('height') -
-              (text.closest('.room-component-card').querySelector('.room-component-icon') ? 32 : 8)) /
-            (Math.max(1, lines.length) * 1.2)
-          : text.closest('.room-box-equipment') || text.classList.contains('room-port-label')
-            ? 14 / boxScale
-            : text.classList.contains('room-box-name')
-              ? 16
-              : 14,
-        font = Math.min(14 / boxScale, maxHeight),
+        primary = text.classList.contains('room-box-name'),
+        portLabel = text.classList.contains('room-port-label'),
+        font = (primary ? 15 : text.classList.contains('room-component-label') ? 14 : 12) / boxScale,
         characters = Math.max(1, Math.floor(+text.dataset.maxWidth / (font * 0.62)));
-      if (card) {
-        text.setAttribute('y', +card.getAttribute('y') + font + 3);
-        for (const [index, line] of [...lines].entries()) {
-          line.setAttribute('dy', index ? font * 1.2 : 0);
-        }
-      }
-      for (const line of lines.length ? lines : [text]) {
-        line.dataset.fullText ??= line.textContent;
-        const value = line.dataset.fullText;
-        line.textContent =
-          value.length > characters ? value.slice(0, Math.max(1, characters - 1)) + '…' : value;
-      }
       text.style.fontSize = font + 'px';
-      text.style.visibility = font * boxScale < 10 ? 'hidden' : 'visible';
+      if (card || primary) {
+        if (card) text.setAttribute('y', +card.getAttribute('y') + font + 3);
+        const count = card
+          ? Math.min(3, Math.floor((+card.getAttribute('height') - 6) / (font * 1.2)))
+          : (text.closest('.room-box-equipment') ? height * heightScale >= 112 : 36 * heightScale >= 40)
+            ? 2
+            : 1;
+        text.replaceChildren(
+          ...componentLines(full, characters, Math.max(1, count)).map((value, index) => {
+            const line = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+            line.setAttribute('x', text.getAttribute('x'));
+            line.setAttribute('dy', index ? font * 1.2 : 0);
+            line.textContent = value;
+            return line;
+          })
+        );
+        text.style.visibility = count > 0 && characters >= 4 ? 'visible' : 'hidden';
+      } else {
+        const value = portLabel && full.length > characters ? text.dataset.compact : full;
+        text.textContent =
+          value.length > characters ? value.slice(0, Math.max(1, characters - 1)) + '…' : value;
+        if (portLabel && value.length > characters) text.textContent = text.dataset.portId;
+        text.style.visibility = text.getComputedTextLength() <= +text.dataset.maxWidth ? 'visible' : 'hidden';
+      }
+      const buttonSurface = text.closest('[data-room-button]')?.querySelector('.room-button-label-surface');
+      if (buttonSurface) {
+        buttonSurface.setAttribute('x', +text.getAttribute('x') - +text.dataset.maxWidth / 2 - 2 / boxScale);
+        buttonSurface.setAttribute('y', +text.getAttribute('y') - 16 / heightScale);
+        buttonSurface.setAttribute('width', +text.dataset.maxWidth + 4 / boxScale);
+        buttonSurface.setAttribute('height', 20 / heightScale);
+        buttonSurface.setAttribute('rx', 2 / boxScale);
+        buttonSurface.style.visibility = text.style.visibility;
+      }
+      if (primary && !text.closest('.room-box-equipment'))
+        text.setAttribute('y', -height / 2 + 18 / heightScale);
       text.setAttribute('aria-label', full);
     }
   }
@@ -509,7 +527,7 @@ const componentShortName = name =>
     .replace(/\bDistribution\b/gi, 'DIST')
     .replace(/\bAmplifier\b/gi, 'AMP')
     .replace(/\bTransformer\b/gi, 'XFMR');
-function componentLines(name, limit) {
+export function componentLines(name, limit, maxLines = 2) {
   const words = name.split(/\s+/),
     lines = [];
   for (const word of words) {
@@ -517,26 +535,22 @@ function componentLines(name, limit) {
     if (!current || current.length + word.length + 1 > limit) lines.push(word);
     else lines[lines.length - 1] += ' ' + word;
   }
-  if (lines.length > 2) {
-    lines[1] = lines.slice(1).join(' ');
-    lines.length = 2;
+  if (lines.length > maxLines) {
+    lines[maxLines - 1] = lines.slice(maxLines - 1).join(' ');
+    lines.length = maxLines;
   }
   return lines.map(line => (line.length > limit ? line.slice(0, Math.max(2, limit - 1)) + '…' : line));
 }
-function contrastingText(colour, opacity = 1) {
-  const hex = colour.match(/^#([\da-f]{6})$/i)?.[1];
-  if (!hex) return '#ffffff';
-  const background = [25, 63, 57];
-  const luminance = [0, 2, 4].reduce((sum, offset, i) => {
-    const channel =
-      (parseInt(hex.slice(offset, offset + 2), 16) * opacity + background[i] * (1 - opacity)) / 255;
-    return (
-      sum +
-      (channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4) *
-        [0.2126, 0.7152, 0.0722][i]
-    );
-  }, 0);
-  return luminance > 0.179 ? '#000000' : '#ffffff';
+export function compactPortLabel(port) {
+  const role = {
+      digital_input: 'DI',
+      relay_output: 'Relay',
+      pixel_output: 'Pixel',
+      ethernet: 'Eth',
+      dmx: 'DMX'
+    }[port.type],
+    number = port.id.match(/(\d+)$/)?.[1] || port.label.match(/\b(\d+)\b/)?.[1];
+  return role && number ? `${role} ${number}` : port.label;
 }
 function boxVisual(box, w, h) {
   const scale = w / 400;
@@ -568,18 +582,18 @@ function boxVisual(box, w, h) {
       const x = -w / 2 + (i % cols) * cellW,
         y = -h / 2 + header + Math.floor(i / cols) * cellH,
         c = part.snapshot.color || '#4b8a76',
-        limit = Math.max(8, Math.floor((cellW - 12) / 6)),
         shortName = componentShortName(part.snapshot.name),
-        lines = componentLines(part.snapshot.name, limit);
+        name = part.snapshot.name + (part.subname ? ` (${part.subname})` : ''),
+        details = `${box.name} → ${name} · ${part.snapshot.ports.length} ports`;
       if (box.kind === 'button') {
         const labelHeight = labels ? 11 : 0,
           size = { small: 0.7, medium: 0.85, large: 1 }[part.buttonSize || 'medium'],
           scale = size * Math.max(0.18, Math.min((cellW - 8) / 62, (cellH - labelHeight - 4) / 62)),
           cx = x + cellW / 2,
           cy = y + (cellH - labelHeight) / 2;
-        return `<g data-room-button="${E(part.id)}" data-button-size="${E(part.buttonSize)}"><g class="room-button-symbol" transform="translate(${cx} ${cy}) scale(${scale}) translate(-50 -51)"><rect x="22" y="38" width="56" height="42" rx="8" fill="#505c58" stroke="#243a34" stroke-width="1.5"/><ellipse cx="50" cy="40" rx="23" ry="18" fill="${E(c)}" stroke="${part.buttonType === 'illuminated' ? '#fff3ad' : '#d7dfdc'}" stroke-width="${part.buttonType === 'illuminated' ? 4 : 2}"/><ellipse cx="50" cy="36" rx="13" ry="8" fill="#ffffff55"/></g>${labels ? `<text class="room-component-label" data-max-width="${cellW - 8}" data-characters="${(part.subname || shortName).length}" x="${cx}" y="${y + cellH - 3}" text-anchor="middle" fill="white">${E(part.subname || shortName)}</text>` : ''}<title>${E(part.snapshot.name)}${part.subname ? ` (${E(part.subname)})` : ''} · ${E(part.buttonColour || 'Custom')} · ${E(part.buttonSize)} · ${E(part.snapshot.ports.length)} ports</title></g>`;
+        return `<g data-room-button="${E(part.id)}" data-button-size="${E(part.buttonSize)}" data-room-label-details="${E(details)}" tabindex="0" role="group" aria-label="${E(details)}"><g class="room-button-symbol" transform="translate(${cx} ${cy}) scale(${scale}) translate(-50 -51)"><rect x="22" y="38" width="56" height="42" rx="8" fill="#505c58" stroke="#243a34" stroke-width="1.5"/><ellipse cx="50" cy="40" rx="23" ry="18" fill="${E(c)}" stroke="${part.buttonType === 'illuminated' ? '#fff3ad' : '#d7dfdc'}" stroke-width="${part.buttonType === 'illuminated' ? 4 : 2}"/><ellipse cx="50" cy="36" rx="13" ry="8" fill="#ffffff55"/></g>${labels ? `<g><rect class="room-button-label-surface" x="${x + 4}" y="${y + cellH - 19}" width="${cellW - 8}" height="20" rx="2" fill="#f9fbfa"/><text class="room-component-label" data-max-width="${cellW - 8}" data-characters="${(part.subname || shortName).length}" x="${cx}" y="${y + cellH - 3}" text-anchor="middle" fill="white">${E(part.subname || shortName)}</text></g>` : ''}<title>${E(details)} · ${E(part.buttonColour || 'Custom')} · ${E(part.buttonSize)}</title></g>`;
       }
-      return `<g class="room-component-card" style="--label-colour:${contrastingText(c, 0.92)}"><rect x="${x + 2}" y="${y + 2}" width="${cellW - 4}" height="${cellH - 4}" rx="2" fill="${E(c)}" fill-opacity=".92" stroke="#f4f8f5" stroke-width=".7"/>${labels ? `<text class="room-component-label" data-max-width="${cellW - 12}" data-characters="${Math.max(...lines.map(line => line.length))}" x="${x + 6}" y="${y + 17}" fill="white">${lines.map((line, lineIndex) => `<tspan x="${x + 6}" dy="${lineIndex ? 15 : 0}">${E(line)}</tspan>`).join('')}</text>${cellH >= 45 ? `<text class="room-component-icon" x="${x + cellW / 2}" y="${y + cellH - 12}" text-anchor="middle" fill="white">${E(part.snapshot.icon)}</text>` : ''}${part.subname && cellH >= 70 ? `<text class="room-component-subname" data-max-width="${cellW - 12}" x="${x + 6}" y="${y + cellH - 4}" fill="white">(${E(part.subname.slice(0, limit))})</text>` : ''}` : ''}<title>${E(part.snapshot.name)}${part.subname ? ` (${E(part.subname)})` : ''} · ${E(part.snapshot.ports.length)} ports</title></g>`;
+      return `<g class="room-component-card" tabindex="0" role="group" data-room-label-details="${E(details)}" aria-label="${E(details)}"><rect x="${x + 2}" y="${y + 2}" width="${cellW - 4}" height="${cellH - 4}" rx="2" fill="#f9fbfa" stroke="${E(c)}" stroke-width="2"/>${labels ? `<text class="room-component-label" data-max-width="${cellW - 12}" x="${x + 6}" y="${y + 17}">${E(name)}</text>` : ''}<title>${E(details)}</title></g>`;
     })
     .join(
       ''
@@ -587,10 +601,10 @@ function boxVisual(box, w, h) {
   const nodes = ports
     .map(({ component, port, edge, t }) => {
       const { x, y, spacing, pillW, pillX, pillY } = roomPortGeometry(w, h, { edge, t }, ports),
-        label = port.label.slice(0, 28),
+        label = port.label,
         textX = pillX + pillW / 2,
         textY = pillY + 14;
-      return `<g class="room-external-node" style="--label-colour:${contrastingText(component.snapshot.color || '#4b8a76')}" data-room-port="${E(box.id)}:${E(component.id)}:${E(port.id)}" data-edge="${E(edge)}" data-port-spacing="${spacing}" data-anchor-x="${x}" data-anchor-y="${y}" tabindex="0" role="button" aria-label="${E(box.name)} ${E(component.snapshot.name)} ${E(port.label)} ${E(port.type)} port"><rect class="room-port-symbol" x="${pillX}" y="${pillY}" width="${pillW}" height="20" rx="5" fill="${E(component.snapshot.color || '#4b8a76')}" stroke="${portTypeColour(port.type)}"/><circle class="room-port-dot" cx="${x}" cy="${y}" fill="${E(component.snapshot.color || '#4b8a76')}" stroke="${portTypeColour(port.type)}"/><title>${E(box.name)} → ${E(component.snapshot.name)}${component.subname ? ` (${E(component.subname)})` : ''} → ${E(port.label)} (${E(port.type)})</title>${labels ? `<text class="room-port-label" data-max-width="${pillW - 8}" data-characters="${label.length}" x="${textX}" y="${textY}" text-anchor="middle">${E(label)}</text>` : ''}</g>`;
+      return `<g class="room-external-node" data-room-port="${E(box.id)}:${E(component.id)}:${E(port.id)}" data-edge="${E(edge)}" data-port-spacing="${spacing}" data-anchor-x="${x}" data-anchor-y="${y}" tabindex="0" role="button" aria-label="${E(box.name)} ${E(component.snapshot.name)} ${E(port.label)} ${E(port.type)} port"><rect class="room-port-symbol" x="${pillX}" y="${pillY}" width="${pillW}" height="20" rx="5" fill="#f9fbfa" stroke="${portTypeColour(port.type)}"/><circle class="room-port-dot" cx="${x}" cy="${y}" fill="${E(component.snapshot.color || '#4b8a76')}" stroke="${portTypeColour(port.type)}"/><title>${E(box.name)} → ${E(component.snapshot.name)}${component.subname ? ` (${E(component.subname)})` : ''} → ${E(port.label)} (${E(port.type)})</title>${labels ? `<text class="room-port-label" data-compact="${E(compactPortLabel(port))}" data-port-id="${E(port.id)}" data-max-width="${pillW - 8}" x="${textX}" y="${textY}" text-anchor="middle">${E(label)}</text>` : ''}</g>`;
     })
     .join('');
   const groups = ['top', 'right', 'bottom', 'left']
@@ -691,10 +705,23 @@ export function installRoom(a) {
   document.addEventListener('change', onChange);
   document.addEventListener('pointerdown', down);
   document.addEventListener('pointermove', move);
-  document.addEventListener('pointerover', e => tracePort(roomPortTarget(e.target)?.dataset.roomPort));
-  document.addEventListener('focusin', e =>
-    tracePort(e.target.closest('[data-room-port]')?.dataset.roomPort)
-  );
+  const inspect = e => {
+    const port = roomPortTarget(e.target),
+      component = e.target.closest('[data-room-label-details]');
+    tracePort(port?.dataset.roomPort);
+    const inspector = document.querySelector('.room-inspector .inspector-body');
+    if (!inspector || (!port && !component)) return;
+    let details = inspector.querySelector('.room-label-details');
+    if (!details) {
+      details = document.createElement('p');
+      details.className = 'room-label-details';
+      details.setAttribute('aria-live', 'polite');
+      inspector.prepend(details);
+    }
+    details.textContent = component?.dataset.roomLabelDetails || port.querySelector('title').textContent;
+  };
+  document.addEventListener('pointerover', inspect);
+  document.addEventListener('focusin', inspect);
   document.addEventListener('pointerup', up);
   document.addEventListener('pointercancel', up);
   document.addEventListener('wheel', wheel, { passive: false });
@@ -734,7 +761,7 @@ function showPortPicker(boxId, candidates) {
       (candidates || exposedPorts(box).map(e => ({ ...e, boxId: box.id })))
         .map(
           ({ component, port, boxId: owner }) =>
-            `<button type="button" data-room-choose-port="${E(owner)}:${E(component.id)}:${E(port.id)}" style="--port-color:${portTypeColour(port.type)}">${candidates ? E(api.getProject().installation.boxes.find(b => b.id === owner)?.name) + ' · ' : ''}${E(component.subname || component.snapshot.name)} · <strong>${E(port.label)}</strong><small>${E(port.type.replaceAll('_', ' '))}</small></button>`
+            `<button type="button" data-room-choose-port="${E(owner)}:${E(component.id)}:${E(port.id)}" style="--port-color:${portTypeColour(port.type)}">${candidates ? E(api.getProject().installation.boxes.find(b => b.id === owner)?.name) + ' · ' : ''}${E(component.snapshot.name)}${component.subname ? ` (${E(component.subname)})` : ''} · <strong>${E(port.label)}</strong><small>${E(port.type.replaceAll('_', ' '))}</small></button>`
         )
         .join('') || '<p>No active edge ports. Activate them in Box builder.</p>'
     }</section>`
@@ -1272,6 +1299,7 @@ function key(ev) {
     refreshRoomWire();
     return;
   }
+  if (ev.target.closest('[data-room-label-details]')) return;
   const port = ev.target.closest('[data-room-port],[data-room-port-group]');
   if (port && ['Enter', ' '].includes(ev.key)) {
     ev.preventDefault();

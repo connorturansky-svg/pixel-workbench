@@ -86,6 +86,7 @@
   {"issue":61,"version":"0.89.0","title":"new view for the controller box builder","outcome":"shipped","at":"2026-10-13T17:48:52Z","runs":1,"model":"gpt-6.1-sol","credits":44.46,"tokensIn":955900,"tokensCached":895600,"tokensOut":20400,"seconds":465},
   {"issue":62,"version":"0.90.0","title":"dynamic resisziing of builder view","outcome":"shipped","at":"2026-10-13T18:00:10Z","runs":1,"model":"gpt-6.1-sol","credits":19.25,"tokensIn":325400,"tokensCached":288200,"tokensOut":7100,"seconds":238},
   {"issue":63,"version":"0.91.0","title":"fix wire markers and visible endpoint attachment","outcome":"shipped","at":"2026-10-13T18:12:40Z","runs":1,"model":"gpt-6.1-sol","credits":32.43,"tokensIn":598900,"tokensCached":545800,"tokensOut":13700,"seconds":390},
-  {"issue":64,"version":"0.92.0","title":"replace tiny component tiles with semantic zoom","outcome":"shipped","at":"2026-10-13T19:08:24Z","runs":1,"model":"gpt-6.1-sol","credits":35.07,"tokensIn":825900,"tokensCached":771800,"tokensOut":13800,"seconds":418}
+  {"issue":64,"version":"0.92.0","title":"replace tiny component tiles with semantic zoom","outcome":"shipped","at":"2026-10-13T19:08:24Z","runs":1,"model":"gpt-6.1-sol","credits":35.07,"tokensIn":825900,"tokensCached":771800,"tokensOut":13800,"seconds":418},
+  {"issue":65,"version":"0.93.0","title":"make labels readable and meaningful","outcome":"shipped","at":"2026-10-13T20:11:46Z","runs":1,"model":"gpt-6.1-sol","credits":50.56,"tokensIn":1500000,"tokensCached":1400000,"tokensOut":19600,"seconds":627}
  ]
 }

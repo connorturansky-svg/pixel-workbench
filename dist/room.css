@@ -354,7 +354,7 @@
 .room-port-label {
   font-size: var(--room-label-size, 12px);
   font-weight: 700;
-  fill: var(--label-colour, #ffffff);
+  fill: #193f39;
   paint-order: stroke;
   stroke: none;
   stroke-width: calc(1px * var(--room-unit, 1));
@@ -362,7 +362,7 @@
 }
 .room-external-node.port-traced .room-port-symbol,
 .room-external-node.wire-target .room-port-symbol {
-  stroke: #ffffff;
+  stroke: #193f39;
   stroke-width: 2;
 }
 .room-external-node.wire-invalid .room-port-symbol {
@@ -447,18 +447,23 @@
 }
 .room-box-name {
   font-size: var(--room-label-size, 14px);
+  fill: #193f39;
+  stroke: #f9fbfa;
+  stroke-width: calc(4px * var(--room-unit, 1));
+  stroke-linejoin: round;
+  paint-order: stroke;
 }
 .room-box-configuration {
-  font-size: min(11px, calc(11px * var(--room-unit, 1)));
+  font-size: calc(12px * var(--room-unit, 1));
   font-weight: 700;
 }
 .room-component-label {
   font-size: var(--room-label-size, 14px);
   font-weight: 700;
   paint-order: stroke;
-  fill: var(--label-colour, #ffffff);
-  stroke: none;
-  stroke-width: calc(1px * var(--room-unit, 1));
+  fill: #193f39;
+  stroke: #f9fbfa;
+  stroke-width: calc(3px * var(--room-unit, 1));
 }
 .room-component-subname {
   fill: var(--label-colour, #ffffff);
@@ -473,11 +478,30 @@
 .room-component-card rect {
   vector-effect: non-scaling-stroke;
 }
+.room-component-card,
+[data-room-button] {
+  pointer-events: all;
+}
+.room-component-card:is(:hover, :focus-visible) {
+  outline: none;
+}
+.room-component-card:is(:hover, :focus-visible) rect {
+  stroke: #193f39;
+  stroke-width: 3;
+}
+.room-label-details {
+  padding: 10px;
+  background: #f9fbfa;
+  color: #193f39;
+  border: 1px solid var(--line);
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
 .room-object[data-room-detail='detail'] .room-box-name {
   font-size: var(--room-label-size, 14px);
 }
 .room-object[data-room-detail='detail'] .room-box-configuration {
-  font-size: min(11px, calc(11px * var(--room-unit, 1)));
+  display: none;
 }
 .room-object[data-room-detail='detail'] .room-component-label {
   font-size: var(--room-label-size, 14px);
@@ -498,7 +522,7 @@
   vector-effect: non-scaling-stroke;
 }
 .room-overview-label text {
-  font-size: calc(12px * var(--room-unit, 1));
+  font-size: calc(15px * var(--room-unit, 1));
   font-weight: 700;
   fill: #284f47;
   paint-order: stroke;
@@ -510,9 +534,6 @@
   display: none;
 }
 .room-object[data-room-detail='overview'] .room-port-label {
-  display: none;
-}
-.room-object[data-room-detail='equipment'] .room-port-label {
   display: none;
 }
 #room-wire-preview {
@@ -694,6 +715,12 @@
   paint-order: stroke;
   pointer-events: none;
 }
+.physical-route .route-cable-label {
+  display: none;
+}
+.physical-route:is(:hover, :focus-visible, .selected) .route-cable-label {
+  display: block;
+}
 .route-handle {
   fill: #fff;
   stroke: #287159;
@@ -858,7 +885,6 @@
   r: calc(4px * var(--room-unit, 1));
 }
 .room-object[data-room-detail='overview'] .room-port-symbol,
-.room-object[data-room-detail='equipment'] .room-port-symbol,
 .room-external-node[data-dense='true'] .room-port-symbol,
 .room-external-node[data-dense='true'] .room-port-label {
   display: none;

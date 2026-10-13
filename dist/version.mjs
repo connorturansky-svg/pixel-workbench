@@ -1,7 +1,8 @@
 export const ABOUT =
   'Pixel Workbench is a device-local planner for 12 V pixel systems built on Baldrick controllers and FPP. Use it to lay out a room, size power and injection, design controller boxes and produce a wiring guide, bill of materials and channel CSV. Calculations are planning estimates. Confirm ratings and wiring against the actual equipment.';
-export const APP_VERSION = '0.92.0';
+export const APP_VERSION = '0.93.0';
 export const ARCHITECTURE_NOTES = [
+  'Room label fitting wraps full component names at a fixed 14 screen pixels, uses 15-pixel box names and 12-pixel port/cable text, and hides secondary text when it cannot fit. Compact port labels derive role and number from real snapshots; stored names and IDs are unchanged. Neutral label surfaces sit outside exact port tips. Focus/hover exposes full identity in the inspector, separately from world-space geometry. Cable names appear only on hover, focus or selection; Labels off retains anchors and inspector details.',
   'Room boxes share a session-only semantic detail policy based on projected enclosure width, height, component-cell space and exact port spacing, with separate enter/leave thresholds. Overview and equipment hide configured internals; detail reveals the same real components and port IDs. Screen-sized group counts on enclosure edges open the exact-port chooser and are not junctions. Cable attachment dots retain real roomPortGeometry anchors in every representation; grouped cable projection is deferred. Camera, selection and representation changes never persist display geometry.',
   'Room cables retain world-space geometry and saved endpoint offsets. Screen-sized endpoint/pivot markers use a separate overlay above equipment; exact port tips remain interactive above it. Transparent hit regions are separate from paint. Screen-space proximity checks offer an exact-connection chooser for overlapping cable targets without moving paths. Nonzero saved endpoint offsets remain deliberate open ends, shown with dashed markers and accessible unconnected descriptions.',
   'Box builder side-panel toggles retain session-only visibility independently for the hardware library and box/component inspector. Hidden panels leave the grid and keyboard navigation; responsive columns give the space to the editor. Toggling updates the existing DOM and redraws schematic wires without changing project data, canvas zoom, selection or panel contents.',
@@ -12,8 +13,8 @@ export const ARCHITECTURE_NOTES = [
   'Room layout adds blank controller boxes or saved box templates through the existing project transaction. Template instances reuse installation-model copying of hardware, exact ports and internal links; ensureScene keeps measured enclosure sizes, and the new box is selected at the room centre. Templates remain in the shared device-local library.',
   'Room camera Fit all frames the rotated footprints of visible room entities, including configured boxes, field devices and pixel groups. Zoom steps pause at the all-object overview when zooming out and the selected-object view when zooming in. Wheel gestures resume after a 250 ms pause or direction change; each zoom-button activation is a new step. Camera changes never alter placements or cable measurements.',
   'Room port symbols, wiring previews and measured cable anchors share roomPortGeometry at the outer node tip, including box rotation. A tip layer keeps extended dots visible and selectable above neighbouring object drawings, forwarding interaction to their original keyboard-accessible exact ports and following movement. Automatic routes check endpoint enclosures and padded obstacles, retain clear direct paths and use outward box departures plus nearby clear grid cells for detours; unavailable paths show warning markers without crossing wires. Manual pivots and the Auto route off setting retain user control.',
-  'Room box names remain visible at every detail level when Labels is on. Internal labels use screen-sized text fitted to their cells, retaining full accessible details when abbreviated or too small. The dashed selection outline has a screen-sized gap and does not represent an enclosure or change its measured footprint.',
-  'installation-room shows the selected route’s assigned cable snapshot name beside its longest segment when Labels is on. Labels follow route and pivot movement with screen-sized text; they do not change geometry, measurements or saved cable assignments.',
+  'Room box names remain visible at every detail level when Labels is on. Full names wrap into available component cells and box headers without shrinking the screen-sized text. Optional internal text hides when space runs out; focus and the inspector retain full identity. The dashed selection outline has a screen-sized gap and does not represent an enclosure or change its measured footprint.',
+  'installation-room shows a hovered, focused or selected route’s assigned cable snapshot name beside its longest segment when Labels is on. Labels follow route and pivot movement with screen-sized text on a light text surface; they do not change geometry, measurements or saved cable assignments.',
   'The native Project summary disclosure starts closed on each load and keeps its open/closed state across page renders in the current session. Its coloured bars distinguish statistics, not warning severity; project notifications remain separate and visible.',
   'A static, no-build web app: plain ES modules, HTML and CSS served from dist/. Pushing to main publishes dist/ to GitHub Pages through the Actions workflow.',
   'Calculation and data modules are UI-free. installation-model separates logical schematic coordinates from measured physical placement, validates exact typed endpoints across boxes and routes around physical obstacles. Camera and Labels changes do not affect cable lengths. Cached routes are invalidated by moved endpoints and intersecting obstacles. Node model checks and real Chromium workflows exercise these contracts.',
@@ -28,6 +29,13 @@ export const ARCHITECTURE_NOTES = [
   'version.mjs is the single source for the version, changelog, help text and shortcuts. info.mjs renders the i dialog.'
 ];
 export const CHANGELOG = [
+  {
+    version: '0.93.0',
+    date: '13/10/2026',
+    items: [
+      'Made room names readable without shrinking text, wrapped component names at detail scale, added meaningful compact port identifiers and keyboard-accessible full names in the inspector, and kept cable metadata quiet until highlighted (suggested in #65).'
+    ]
+  },
   {
     version: '0.92.0',
     date: '13/10/2026',
@@ -767,7 +775,7 @@ export const HOW_TO_USE = [
   ],
   [
     'Read room labels',
-    'Keep Labels on to identify boxes. Overview shows an enclosure symbol and name badge; equipment shows a readable name and real component/port counts when height permits. Detail reveals the configured components only when box width, height, component cells and port spacing allow it; enter/leave thresholds prevent flicker. Zoom in beyond Fit selected if a dense box needs more space. Numbered edge cues represent groups, not junctions: click or press Enter/Space to choose an exact port. Small dots retain the real cable attachment points even in overview; cables are not projected onto group cues. Long labels are shortened; hover a component or port for its full description. The dashed outline identifies selection, not a physical enclosure or clearance. Labels, zoom and selection do not change footprints, connections or cable lengths.'
+    'Keep Labels on to identify boxes. Overview hides internal text; equipment shows the box name and counts when height permits. Detail wraps component names at readable screen sizes. Port labels use actual roles and numbers (for example DI 1 for digital input 1) when full names cannot fit; lower-priority text hides rather than shrinking. Hover or Tab to a component or exact port to read its full name in the Layout inspector, even with Labels off. Ports opens a keyboard-accessible list of full component and port names. Zoom in if a dense box needs more space. Numbered edge cues open the exact-port chooser; they are not junctions. Small dots retain real cable attachment points. Cable names appear on hover, focus or selection with a light background. Label pills sit away from endpoint dots. The dashed outline identifies selection, not physical clearance. Labels, zoom and selection do not change footprints, connections or cable lengths.'
   ],
   [
     'Frame all room components',
@@ -809,7 +817,7 @@ export const HOW_TO_USE = [
 export const SHORTCUTS = [
   ['?', 'Open this dialog on the Shortcuts tab (outside text fields)'],
   ['Esc', 'Cancel pending port wiring or close an open dialog'],
-  ['Tab', 'Move between controls and room objects'],
+  ['Tab', 'Move between controls, room objects, exact ports and detailed components; inspect full names'],
   ['Enter / Space on builder menu buttons', 'Hide or restore the hardware library or box/component details'],
   ['Enter / Space on Port list headings', 'Expand or collapse component and box edge port groups'],
   ['Enter / Space on Project summary', 'Show or hide the project statistics'],
@@ -821,6 +829,7 @@ export const SHORTCUTS = [
   ],
   ['Enter / Space on a numbered port group', 'Open the exact-port chooser; the group is not a junction'],
   ['Enter / Space on a cable endpoint or pivot', 'Select its exact cable and inspect its route'],
+  ['Enter / Space on a cable', 'Select its exact route; focus also reveals assigned cable metadata'],
   ['Esc in Choose connection', 'Close the overlapping-cable chooser'],
   ['← ↑ → ↓', 'Move the focused room object by the snap grid'],
   ['Shift + ← ↑ → ↓', 'Move the focused room object by 1 m'],
