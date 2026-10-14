@@ -369,7 +369,7 @@
   stroke: #bd4038;
   stroke-width: 2;
 }
-.physical-route.port-traced .route-line {
+.physical-route.port-traced :is(.route-line, .route-interface-line) {
   stroke-width: 3;
 }
 .room-boundary,
@@ -681,7 +681,7 @@
   background: #dcefe4;
   color: #205a40;
 }
-.physical-route .route-line {
+.physical-route :is(.route-line, .route-interface-line) {
   fill: none;
   stroke-width: 2.4;
   stroke-linejoin: round;
@@ -689,7 +689,7 @@
   pointer-events: stroke;
   vector-effect: non-scaling-stroke;
 }
-.physical-route.inject .route-line {
+.physical-route.inject :is(.route-line, .route-interface-line) {
   stroke-dasharray: 8 5;
 }
 .physical-route .route-hit {
@@ -700,7 +700,7 @@
   cursor: crosshair;
   vector-effect: non-scaling-stroke;
 }
-.physical-route.selected .route-line {
+.physical-route.selected :is(.route-line, .route-interface-line) {
   stroke-width: 3;
 }
 .route-cable-label {
@@ -963,10 +963,10 @@
   .room-port-label {
   display: block;
 }
-.physical-route.has-issues .route-line {
+.physical-route.has-issues :is(.route-line, .route-interface-line) {
   stroke-dasharray: 9 4;
 }
-.physical-route.unknown .route-line {
+.physical-route.unknown :is(.route-line, .route-interface-line) {
   opacity: 0.65;
 }
 .physical-route.has-issues .route-alert {

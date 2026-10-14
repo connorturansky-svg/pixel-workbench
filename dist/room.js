@@ -5,7 +5,7 @@ import {
   makeProp,
   PALETTE,
   clampPosition
-} from './layout-model.mjs?v=0.93.0';
+} from './layout-model.mjs?v=0.94.0';
 import {
   ensureInstallation,
   makeBox,
@@ -19,7 +19,7 @@ import {
   removePowerSupply,
   portTypeColour,
   connectionProblem
-} from './installation-model.mjs?v=0.93.0';
+} from './installation-model.mjs?v=0.94.0';
 import {
   routeLayer,
   routeMarkers,
@@ -28,7 +28,7 @@ import {
   installRoutes,
   refreshRoutes,
   refreshRouteInspector
-} from './installation-room.mjs?v=0.93.0';
+} from './installation-room.mjs?v=0.94.0';
 let api,
   chosen = '',
   propId = 'prop-smiley',
@@ -285,16 +285,17 @@ function updateVisualScale() {
       port.dataset.dense = level === 'overview' || gap < 20 ? 'true' : 'false';
       port.dataset.grouped = level === 'overview' || gap < 10 ? 'true' : 'false';
       const horizontal = port.dataset.edge === 'left' || port.dataset.edge === 'right',
-        pillWidth = Math.min(96, horizontal ? 96 : gap * 0.86) / boxScale,
+        pillWidth =
+          Math.max(0, Math.min(96, horizontal ? (width * boxScale) / 2 - 12 : gap * 0.86)) / boxScale,
         pillHeight = Math.min(18, horizontal ? gap * 0.8 : 18) / heightScale,
         x = +port.dataset.anchorX,
         y = +port.dataset.anchorY,
         pillX = horizontal
-          ? x + (port.dataset.edge === 'right' ? 6 / boxScale : -pillWidth - 6 / boxScale)
+          ? x + (port.dataset.edge === 'right' ? -pillWidth - 6 / boxScale : 6 / boxScale)
           : x - pillWidth / 2,
         pillY = horizontal
           ? y - pillHeight / 2
-          : y + (port.dataset.edge === 'bottom' ? 6 / heightScale : -pillHeight - 6 / heightScale),
+          : y + (port.dataset.edge === 'bottom' ? -pillHeight - 6 / heightScale : 6 / heightScale),
         rect = port.querySelector('.room-port-symbol'),
         label = port.querySelector('.room-port-label');
       rect.setAttribute('x', pillX);
@@ -600,7 +601,9 @@ function boxVisual(box, w, h) {
     )}${n || !labels ? '' : '<text text-anchor="middle" y="5" fill="white" font-size="11">EMPTY BOX</text>'}</g>`;
   const nodes = ports
     .map(({ component, port, edge, t }) => {
-      const { x, y, spacing, pillW, pillX, pillY } = roomPortGeometry(w, h, { edge, t }, ports),
+      const { x, y, spacing, pillW, pillH } = roomPortGeometry(w, h, { edge, t }, ports, true),
+        pillX = edge === 'left' ? x : edge === 'right' ? x - pillW : x - pillW / 2,
+        pillY = edge === 'top' ? y : edge === 'bottom' ? y - pillH : y - pillH / 2,
         label = port.label,
         textX = pillX + pillW / 2,
         textY = pillY + 14;
@@ -628,7 +631,7 @@ function boxPorts(p) {
         const ports = exposedPorts(box);
         return `<g data-room-port-tips="${E('box:' + box.id)}" transform="translate(${v.x * 100} ${v.y * 100})" aria-hidden="true"><g transform="rotate(${v.rotation})">${ports
           .map(node => {
-            const { x, y } = roomPortGeometry(v.width * 100, v.height * 100, node, ports);
+            const { x, y } = roomPortGeometry(v.width * 100, v.height * 100, node, ports, true);
             return `<circle class="room-port-tip" data-room-port-proxy="${E(box.id)}:${E(node.component.id)}:${E(node.port.id)}" cx="${x}" cy="${y}" fill="${E(node.component.snapshot.color || '#4b8a76')}" stroke="${portTypeColour(node.port.type)}"/>`;
           })
           .join('')}</g></g>`;

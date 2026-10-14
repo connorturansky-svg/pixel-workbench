@@ -1002,7 +1002,7 @@ export function exposedPorts(box) {
 export function boxVisualScale(width, height) {
   return Math.max(0.01, Math.min(1, width / 1, height / 0.7));
 }
-export function roomPortGeometry(width, height, { edge, t }, ports) {
+export function roomPortGeometry(width, height, { edge, t }, ports, presentation = false) {
   const scale = width / 400,
     horizontal = edge === 'left' || edge === 'right',
     spacing = (horizontal ? height : width) / (ports.filter(p => p.edge === edge).length + 1),
@@ -1011,8 +1011,8 @@ export function roomPortGeometry(width, height, { edge, t }, ports) {
     shellX = edge === 'left' ? -width / 2 : edge === 'right' ? width / 2 : (t - 0.5) * width,
     shellY = edge === 'top' ? -height / 2 : edge === 'bottom' ? height / 2 : (t - 0.5) * height;
   return {
-    x: shellX + (edge === 'left' ? -pillW : edge === 'right' ? pillW : 0),
-    y: shellY + (edge === 'top' ? -pillH : edge === 'bottom' ? pillH : 0),
+    x: shellX + (presentation ? 0 : edge === 'left' ? -pillW : edge === 'right' ? pillW : 0),
+    y: shellY + (presentation ? 0 : edge === 'top' ? -pillH : edge === 'bottom' ? pillH : 0),
     pillX: edge === 'left' ? shellX - pillW : edge === 'right' ? shellX : shellX - pillW / 2,
     pillY: edge === 'top' ? shellY - pillH : edge === 'bottom' ? shellY : shellY - pillH / 2,
     pillW,
@@ -1020,7 +1020,7 @@ export function roomPortGeometry(width, height, { edge, t }, ports) {
     spacing
   };
 }
-export function perimeterAnchor(p, boxId, componentId, portId) {
+export function perimeterAnchor(p, boxId, componentId, portId, presentation = false) {
   const box = p.installation?.boxes.find(b => b.id === boxId),
     v = p.scene?.placements?.['box:' + boxId],
     explicit = box?.interfacePorts?.find(port => port.componentId === componentId && port.portId === portId),
@@ -1043,7 +1043,7 @@ export function perimeterAnchor(p, boxId, componentId, portId) {
             t: (same.indexOf(explicit) + 1) / (same.length + 1)
           }));
   if (!v || !node) return null;
-  const { x: dx, y: dy } = roomPortGeometry(v.width, v.height, node, exposedPorts(box)),
+  const { x: dx, y: dy } = roomPortGeometry(v.width, v.height, node, exposedPorts(box), presentation),
     angle = ((v.rotation || 0) * Math.PI) / 180;
   return {
     x: v.x + dx * Math.cos(angle) - dy * Math.sin(angle),

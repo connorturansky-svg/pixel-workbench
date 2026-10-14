@@ -7,8 +7,9 @@ import {
   assignCable,
   routeIssues,
   deleteRoute,
-  portTypeColour
-} from './installation-model.mjs?v=0.93.0';
+  portTypeColour,
+  perimeterAnchor
+} from './installation-model.mjs?v=0.94.0';
 
 let api,
   selected = '',
@@ -72,13 +73,55 @@ function refreshRouteLabel(group, points) {
   label.setAttribute('x', q.x);
   label.setAttribute('y', q.y);
 }
+export function routeDisplayGeometry(p, spec, geometry = routeGeometry(p, spec)) {
+  if (!geometry) return null;
+  const record = routeRecord(p, spec.id),
+    points = [...geometry.points],
+    interfaces = [];
+  let startProjected = false;
+  for (const end of ['start', 'end']) {
+    const from = end === 'start',
+      key = spec[from ? 'from' : 'to'],
+      offset = record[from ? 'startOffset' : 'endOffset'];
+    if (!key.startsWith('box:') || offset?.x || offset?.y) continue;
+    const component =
+        spec[from ? 'fromComponent' : 'toComponent'] ||
+        spec.connection?.[from ? 'fromComponent' : 'toComponent'],
+      port = spec[from ? 'fromPort' : 'toPort'],
+      anchor = component && port && perimeterAnchor(p, key.slice(4), component, port, true);
+    if (!anchor) continue;
+    // Retain the physical departure and all pivots; this extra segment is paint only.
+    if (from) {
+      interfaces.push([anchor, points[0]]);
+      points.unshift(anchor);
+      startProjected = true;
+    } else {
+      interfaces.push([points.at(-1), anchor]);
+      points.push(anchor);
+    }
+  }
+  return { ...geometry, points, physicalPoints: geometry.points, interfaces, startProjected };
+}
+function refreshRoutePaths(group, geometry) {
+  group
+    .querySelectorAll('[data-route-path]')
+    .forEach(el =>
+      el.setAttribute(
+        'd',
+        el.hasAttribute('data-route-interface')
+          ? geometry.interfaces.map(path).join(' ')
+          : path(geometry.physicalPoints)
+      )
+    );
+  group.querySelector('animateMotion')?.setAttribute('path', path(geometry.points));
+}
 export function routeLayer(p) {
   ensureInstallation(p);
   return specs(p)
     .filter(s => visible(p, s))
     .map(s => {
       const state = routeIssues(p, s),
-        g = state.geometry;
+        g = routeDisplayGeometry(p, s, state.geometry);
       if (!g) {
         const anchor = routeAnchor(p, s, 'start') || routeAnchor(p, s, 'end');
         if (!anchor) return '';
@@ -90,7 +133,8 @@ export function routeLayer(p) {
           (portType && portTypeColour(portType)) ||
           r.cableSnapshot?.color ||
           { data: '#458db9', power: '#d18c43', inject: '#bb6d4b', other: '#8a729a' }[s.kind],
-        d = path(g.points),
+        d = path(g.physicalPoints),
+        interfacePath = g.interfaces.map(path).join(' '),
         short = state.state === 'short',
         issues = state.issues,
         chosen = s.id === selected,
@@ -100,9 +144,9 @@ export function routeLayer(p) {
             ? `<text class="route-cable-label" x="${labelPoint.x}" y="${labelPoint.y}">${E(r.cableSnapshot.name)}</text>`
             : '',
         flow = p.installation.animate
-          ? `<circle r="2.5" fill="${colour}" class="route-pulse"><animateMotion dur="4s" repeatCount="indefinite" path="${d}"/></circle>`
+          ? `<circle r="2.5" fill="${colour}" class="route-pulse"><animateMotion dur="4s" repeatCount="indefinite" path="${path(g.points)}"/></circle>`
           : '';
-      return `<g class="physical-route ${s.kind} ${chosen ? 'selected' : ''} ${issues.length ? 'has-issues' : state.state === 'unknown' ? 'unknown' : 'valid'}" data-route="${E(s.id)}" tabindex="0" role="button" aria-label="${E(s.name)}${r.cableSnapshot ? ': ' + E(r.cableSnapshot.name) : ''}"><title>${E(s.name)}: ${issues.length ? issues.join('; ') : state.state === 'unknown' ? 'Physical cable length unknown' : 'Cable length valid'}</title><path class="route-hit" d="${d}" data-route-path="${E(s.id)}"/><path class="route-line" d="${d}" stroke="${colour}" data-route-path="${E(s.id)}"/>${label}${issues.length ? `<text class="route-alert" x="${g.points.at(-1).x * 100 + 8}" y="${g.points.at(-1).y * 100 - 8}">!<title>${E(issues.join('; '))}</title></text>` : ''}${flow}</g>`;
+      return `<g class="physical-route ${s.kind} ${chosen ? 'selected' : ''} ${issues.length ? 'has-issues' : state.state === 'unknown' ? 'unknown' : 'valid'}" data-route="${E(s.id)}" tabindex="0" role="button" aria-label="${E(s.name)}${r.cableSnapshot ? ': ' + E(r.cableSnapshot.name) : ''}"><title>${E(s.name)}: ${issues.length ? issues.join('; ') : state.state === 'unknown' ? 'Physical cable length unknown' : 'Cable length valid'}</title><path class="route-hit" d="${d}" data-route-path="${E(s.id)}"/><path class="route-line" d="${d}" stroke="${colour}" data-route-path="${E(s.id)}"/><path class="route-hit" d="${interfacePath}" data-route-path="${E(s.id)}" data-route-interface/><path class="route-interface-line" d="${interfacePath}" stroke="${colour}" data-route-path="${E(s.id)}" data-route-interface/>${label}${issues.length ? `<text class="route-alert" x="${g.points.at(-1).x * 100 + 8}" y="${g.points.at(-1).y * 100 - 8}">!<title>${E(issues.join('; '))}</title></text>` : ''}${flow}</g>`;
     })
     .join('');
 }
@@ -111,7 +155,7 @@ export function routeMarkers(p) {
     .filter(s => visible(p, s))
     .sort((a, b) => Number(a.id === selected) - Number(b.id === selected))
     .map(s => {
-      const g = routeGeometry(p, s);
+      const g = routeDisplayGeometry(p, s);
       if (!g) return '';
       const r = routeRecord(p, s.id),
         chosen = s.id === selected,
@@ -202,7 +246,7 @@ function refresh() {
   let rebuild = false;
   for (const s of list.filter(s => visible(p, s))) {
     const state = routeIssues(p, s),
-      g = state.geometry,
+      g = routeDisplayGeometry(p, s, state.geometry),
       group = layer.querySelector(`[data-route="${CSS.escape(s.id)}"]`);
     if (!g) {
       if (!group?.classList.contains('unrouted')) rebuild = true;
@@ -223,10 +267,8 @@ function refresh() {
       rebuild = true;
       continue;
     }
-    const d = path(g.points),
-      r = routeRecord(p, s.id);
-    group.querySelectorAll('[data-route-path]').forEach(el => el.setAttribute('d', d));
-    group.querySelector('animateMotion')?.setAttribute('path', d);
+    const r = routeRecord(p, s.id);
+    refreshRoutePaths(group, g);
     refreshRouteLabel(group, g.points);
     refreshMarkers(s, g, r);
     group.classList.toggle('has-issues', state.issues.length > 0);
@@ -253,12 +295,10 @@ function refresh() {
 function refreshDrag() {
   const p = api.getProject(),
     s = specs(p).find(x => x.id === drag.id),
-    g = s && routeGeometry(p, s),
+    g = s && routeDisplayGeometry(p, s),
     group = document.querySelector(`[data-route="${CSS.escape(drag.id)}"]`);
   if (!g || !group) return;
-  const d = path(g.points);
-  group.querySelectorAll('[data-route-path]').forEach(el => el.setAttribute('d', d));
-  group.querySelector('animateMotion')?.setAttribute('path', d);
+  refreshRoutePaths(group, g);
   refreshRouteLabel(group, g.points);
   refreshMarkers(s, g, routeRecord(p, drag.id));
   const read = document.querySelector('#route-length-live');
@@ -305,7 +345,7 @@ function nearbyRoutes(e, radius = 7.5) {
     q = { x: e.clientX, y: e.clientY };
   return specs(p).filter(s => {
     if (!visible(p, s)) return false;
-    const g = routeGeometry(p, s);
+    const g = routeDisplayGeometry(p, s);
     if (!g) return false;
     const points = g.points.map(screen),
       index = nearestIndex(points, q),
@@ -447,7 +487,11 @@ export function installRoutes(a) {
     api.transact(() => {
       const r = routeRecord(p, s.id);
       if (!r.points.length && p.installation.autoRoute) r.points.push(...g.points.slice(1, -1));
-      const idx = nearestIndex([g.points[0], ...r.points, g.points.at(-1)], q);
+      const display = routeDisplayGeometry(p, s, g),
+        idx = Math.max(
+          0,
+          Math.min(r.points.length, nearestIndex(display.points, q) - Number(display.startProjected))
+        );
       r.points.splice(idx, 0, { x: +q.x.toFixed(3), y: +q.y.toFixed(3) });
       pivotIndex = idx;
     });
