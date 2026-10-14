@@ -2,6 +2,16 @@
 
 Every release is captured by the builder's release smoke test (`automation/smoke.py --shots`): every page, every info tab and a mobile view. This branch is never deployed by Pages. Newest first.
 
+## [v0.94.0](v0.94.0/)
+
+14/10/2026 · [commit 4f68be5](https://github.com/connorturansky-svg/pixel-workbench/commit/4f68be5895098f44a24760a9f14074139c30a6f7) · [issue #66](https://github.com/connorturansky-svg/pixel-workbench/issues/66)
+
+> Attached room side and bottom port markers to their enclosure perimeter, moved labels to the box side and joined displayed cables to the exact markers without changing saved physical routes or cable measurements (suggested in #66).
+
+<a href="v0.94.0/01-workspace.png"><img src="v0.94.0/01-workspace.png" width="420" alt="v0.94.0 workspace"></a> <a href="v0.94.0/mobile.png"><img src="v0.94.0/mobile.png" width="240" alt="v0.94.0 mobile"></a>
+
+All shots: [workspace](v0.94.0/01-workspace.png) · [hardware](v0.94.0/02-hardware.png) · [presets](v0.94.0/03-presets.png) · [props](v0.94.0/04-props.png) · [guide](v0.94.0/05-guide.png) · [boxes](v0.94.0/06-boxes.png) · [standards](v0.94.0/07-standards.png) · [bom](v0.94.0/08-bom.png) · [suggest](v0.94.0/09-suggest.png) · [info arch](v0.94.0/info-arch.png) · [info how](v0.94.0/info-how.png) · [info keys](v0.94.0/info-keys.png) · [info new](v0.94.0/info-new.png) · [info suggest](v0.94.0/info-suggest.png) · [mobile](v0.94.0/mobile.png)
+
 ## [v0.93.0](v0.93.0/)
 
 13/10/2026 · [commit 44826e4](https://github.com/connorturansky-svg/pixel-workbench/commit/44826e4d04e70ab8df92161f40233bdae4bf71f3) · [issue #65](https://github.com/connorturansky-svg/pixel-workbench/issues/65)
