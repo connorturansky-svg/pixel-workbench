@@ -5,7 +5,7 @@ import {
   makeProp,
   PALETTE,
   clampPosition
-} from './layout-model.mjs?v=0.96.0';
+} from './layout-model.mjs?v=0.97.0';
 import {
   ensureInstallation,
   makeBox,
@@ -19,7 +19,7 @@ import {
   removePowerSupply,
   portTypeColour,
   connectionProblem
-} from './installation-model.mjs?v=0.96.0';
+} from './installation-model.mjs?v=0.97.0';
 import {
   routeLayer,
   routeMarkers,
@@ -28,21 +28,27 @@ import {
   installRoutes,
   refreshRoutes,
   refreshRouteInspector
-} from './installation-room.mjs?v=0.96.0';
+} from './installation-room.mjs?v=0.97.0';
 let api,
   chosen = '',
   propId = 'prop-smiley',
   showGrid = true,
   showPixelLines = true,
   zoom = 1,
+  cameraGutter = 0,
   drag = null,
   panDrag = null,
   roomWire = null,
   suppressPortClick = false,
   portPicker = '',
   viewport = { left: 0, top: 0 },
+  presentationState = null,
+  visualFrame = 0,
+  forceVisualScale = false,
   wheelGesture = null,
-  detailLevels = new Map();
+  detailLevels = new Map(),
+  nameMetrics = new Map(),
+  portCaptionWidths = new Map();
 const E = s =>
   String(s ?? '').replace(
     /[&<>"']/g,
@@ -56,6 +62,7 @@ const pick = (label, value, key, items) =>
 function restoreViewport() {
   const sc = document.querySelector('.room-scroll');
   if (sc) {
+    sc.querySelector('#room-canvas').style.margin = cameraGutter + 'px';
     sc.scrollLeft = viewport.left;
     sc.scrollTop = viewport.top;
   }
@@ -83,20 +90,23 @@ function setZoom(next, clientX, clientY) {
   const rect = sc.getBoundingClientRect(),
     x = clientX == null ? sc.clientWidth / 2 : clientX - rect.left,
     y = clientY == null ? sc.clientHeight / 2 : clientY - rect.top,
-    ratio = next / zoom;
+    ratio = next / zoom,
+    gutter = parseFloat(svg.style.margin) || 0;
   zoom = next;
   svg.style.width = svg.style.minWidth = zoom * 100 + '%';
-  sc.scrollLeft = (sc.scrollLeft + x) * ratio - x;
-  sc.scrollTop = (sc.scrollTop + y) * ratio - y;
+  sc.scrollLeft = (sc.scrollLeft + x - gutter) * ratio + gutter - x;
+  sc.scrollTop = (sc.scrollTop + y - gutter) * ratio + gutter - y;
   viewport = { left: sc.scrollLeft, top: sc.scrollTop };
   const read = document.querySelector('[data-room-zoom]');
   if (read) read.textContent = Math.round(zoom * 100) + '%';
-  requestAnimationFrame(updateVisualScale);
+  scheduleVisualScale();
 }
 function fitSite() {
   const sc = document.querySelector('.room-scroll'),
     svg = sc?.querySelector('#room-canvas');
   if (!sc || !svg) return;
+  cameraGutter = 0;
+  svg.style.margin = '0px';
   zoom = siteFitZoom(sc);
   svg.style.width = svg.style.minWidth = zoom * 100 + '%';
   const read = document.querySelector('[data-room-zoom]');
@@ -105,11 +115,56 @@ function fitSite() {
     sc.scrollLeft = Math.max(0, (sc.scrollWidth - sc.clientWidth) / 2);
     sc.scrollTop = Math.max(0, (sc.scrollHeight - sc.clientHeight) / 2);
     viewport = { left: sc.scrollLeft, top: sc.scrollTop };
-    updateVisualScale();
+    updateVisualScale(true);
   });
 }
 function fitSelected() {
-  fitBounds(componentView(true));
+  const sc = document.querySelector('.room-scroll'),
+    svg = sc?.querySelector('#room-canvas'),
+    owner = svg?.querySelector(`[data-room-node="${CSS.escape(chosen)}"]`),
+    view = componentView(true);
+  if (!owner || !view) return;
+  cameraGutter = Math.max(sc.clientWidth, sc.clientHeight);
+  svg.style.margin = cameraGutter + 'px';
+  setZoom(view.zoom);
+  let remaining = 6;
+  const frame = () => {
+    if (!owner.isConnected) return;
+    updateVisualScale(true);
+    const visible = [
+        ...owner.querySelectorAll('.selection-ring, .room-caption, .room-port-caption, .room-unconnected')
+      ].filter(el => getComputedStyle(el).visibility !== 'hidden' && el.getBoundingClientRect().width),
+      area = roomUsableArea(svg),
+      { ratio, dx, dy } = roomFrameAdjustment(
+        visible.map(el => el.getBoundingClientRect()),
+        area
+      );
+    if (ratio >= 0.99 && Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
+    if (ratio < 0.99 && remaining > 0) setZoom(zoom * ratio * 0.96);
+    else {
+      sc.scrollLeft += dx;
+      sc.scrollTop += dy;
+      viewport = { left: sc.scrollLeft, top: sc.scrollTop };
+    }
+    if (remaining-- > 0) requestAnimationFrame(frame);
+    else updateVisualScale(true);
+  };
+  requestAnimationFrame(frame);
+}
+export function roomFrameAdjustment(rects, area) {
+  const left = Math.min(...rects.map(r => r.left)),
+    right = Math.max(...rects.map(r => r.right)),
+    top = Math.min(...rects.map(r => r.top)),
+    bottom = Math.max(...rects.map(r => r.bottom));
+  return {
+    ratio: Math.min(
+      1,
+      (area.right - area.left - 32) / (right - left),
+      (area.bottom - area.top - 32) / (bottom - top)
+    ),
+    dx: (left + right - area.left - area.right) / 2,
+    dy: (top + bottom - area.top - area.bottom) / 2
+  };
 }
 function componentView(selected = false) {
   const p = api.getProject(),
@@ -152,8 +207,9 @@ function fitBounds(view) {
   if (!view || !sc || !svg) return;
   setZoom(view.zoom);
   requestAnimationFrame(() => {
-    sc.scrollLeft = (view.x / p.scene.width) * svg.clientWidth - sc.clientWidth / 2;
-    sc.scrollTop = (view.y / p.scene.depth) * svg.clientHeight - sc.clientHeight / 2;
+    const gutter = parseFloat(svg.style.margin) || 0;
+    sc.scrollLeft = gutter + (view.x / p.scene.width) * svg.clientWidth - sc.clientWidth / 2;
+    sc.scrollTop = gutter + (view.y / p.scene.depth) * svg.clientHeight - sc.clientHeight / 2;
     viewport = { left: sc.scrollLeft, top: sc.scrollTop };
     updateVisualScale();
   });
@@ -193,17 +249,27 @@ export function roomPresentationLayout(width, height, count, ports) {
     ports: ports.map(node => {
       const anchor = roomPortGeometry(width, height, node, ports, true),
         side = node.edge === 'left' || node.edge === 'right',
-        labelWidth = side ? 128 : Math.min(128, anchor.spacing - 12),
+        peers = ports.filter(port => port.edge === node.edge).sort((a, b) => a.t - b.t),
+        row = peers.indexOf(node) - (peers.length - 1) / 2,
+        labelWidth = side ? 96 : 64,
         labelHeight = 18,
-        labelX = side ? (node.edge === 'left' ? anchor.x - labelWidth - 8 : anchor.x + 8) : anchor.x + 6,
-        labelY = side ? anchor.y + 5 : node.edge === 'top' ? anchor.y - 26 : anchor.y + 8;
+        labelX = side
+          ? node.edge === 'left'
+            ? anchor.x - labelWidth - 10
+            : anchor.x + 10
+          : row * Math.max(70, anchor.spacing) - labelWidth / 2,
+        labelY = side
+          ? row * Math.max(20, anchor.spacing) - labelHeight / 2
+          : node.edge === 'top'
+            ? anchor.y - 28
+            : anchor.y + 10;
       return {
         ...anchor,
         labelX,
         labelY,
         labelWidth,
         labelHeight,
-        labelFits: anchor.spacing >= 28 && labelWidth >= 32
+        labelFits: anchor.spacing >= 6
       };
     })
   };
@@ -230,6 +296,304 @@ export function roomLineOverlapsBounds(a, b, bounds, gap = 3) {
   }
   return true;
 }
+function roomUsableArea(svg) {
+  const sc = svg.closest('.room-scroll'),
+    rect = sc.getBoundingClientRect(),
+    camera = sc.parentElement.querySelector('.room-camera')?.getBoundingClientRect();
+  return {
+    left: rect.left + 12,
+    right: rect.left + sc.clientWidth - 12,
+    top: Math.max(rect.top, camera?.bottom || rect.top) + 12,
+    bottom: rect.top + sc.clientHeight - 12
+  };
+}
+export function roomNamePositions(shell, width, height, gap = 10) {
+  const x = (shell.left + shell.right - width) / 2,
+    y = (shell.top + shell.bottom - height) / 2;
+  return [
+    { x, y: shell.bottom + gap },
+    { x, y: shell.top - height - gap },
+    { x: shell.right + gap, y },
+    { x: shell.left - width - gap, y }
+  ];
+}
+function placeRoomCaptions(svg, shells, lanes, reserved) {
+  const ns = 'http://www.w3.org/2000/svg',
+    area = roomUsableArea(svg),
+    matrices = new Map(),
+    names = new Map(entities(api.getProject()).map(item => [item.key, item.name])),
+    screenTransform = (el, x, y) => {
+      const parent = el.closest('[data-room-port]') || el.closest('[data-room-node]'),
+        m = matrices.get(parent).inverse().translate(x, y);
+      const value = `matrix(${m.a} ${m.b} ${m.c} ${m.d} ${m.e} ${m.f})`;
+      if (el.getAttribute('transform') !== value) el.setAttribute('transform', value);
+    },
+    boundsAt = (position, width, height) => ({
+      left: position.x,
+      top: position.y,
+      right: position.x + width,
+      bottom: position.y + height
+    }),
+    inside = b =>
+      b.left >= area.left && b.right <= area.right && b.top >= area.top && b.bottom <= area.bottom,
+    choose = (positions, width, height, cables = false) =>
+      positions
+        .map(position => ({ position, bounds: boundsAt(position, width, height) }))
+        .sort((a, b) => Number(inside(b.bounds)) - Number(inside(a.bounds)))
+        .find(
+          ({ bounds }) =>
+            !shells.some(shell => boundsOverlap(bounds, shell.bounds, 4)) &&
+            !reserved.some(other => boundsOverlap(bounds, other, 4)) &&
+            (!cables || !lanes.some(([a, b]) => roomLineOverlapsBounds(a, b, bounds, 1)))
+        );
+  const nearby = shells.filter(({ owner, bounds }) => {
+    const visible =
+      owner.classList.contains('chosen') ||
+      (bounds.left < area.right + 220 &&
+        bounds.right > area.left - 220 &&
+        bounds.top < area.bottom + 220 &&
+        bounds.bottom > area.top - 220);
+    owner.dataset.roomCaptions = String(visible);
+    return visible;
+  });
+  for (const { owner } of nearby) {
+    matrices.set(owner, owner.getScreenCTM());
+    for (const port of owner.querySelectorAll('[data-room-port]')) matrices.set(port, port.getScreenCTM());
+  }
+  for (const { owner, bounds: shell } of [...nearby].sort(
+    (a, b) => Number(b.owner.classList.contains('chosen')) - Number(a.owner.classList.contains('chosen'))
+  )) {
+    const text = owner.querySelector('.room-overview-label text, .room-object-label');
+    if (!text) continue;
+    let caption = text.closest('.room-caption');
+    if (!caption) {
+      caption = document.createElementNS(ns, 'g');
+      caption.classList.add('room-caption');
+      text.parentElement.insertBefore(caption, text);
+      caption.append(text);
+      owner.querySelector('.room-overview-label path')?.remove();
+    }
+    caption.style.visibility = 'visible';
+    owner.querySelector('.room-name-leader')?.setAttribute('visibility', 'hidden');
+    const limit = Math.max(80, Math.min(220, area.right - area.left - 24));
+    if (caption.dataset.wrapWidth !== String(limit)) {
+      screenTransform(caption, 0, 0);
+      text.style.fontSize = '15px';
+      text.setAttribute('text-anchor', 'start');
+      text.setAttribute('x', '0');
+      text.setAttribute('y', '12');
+      const name = names.get(owner.dataset.roomNode) || '',
+        key = `${limit}:${name}`;
+      let metrics = nameMetrics.get(key);
+      if (!metrics) {
+        const lines = [''];
+        for (const word of name.split(/\s+/)) {
+          const candidate = [lines.at(-1), word].filter(Boolean).join(' ');
+          text.textContent = candidate;
+          if (text.getComputedTextLength() <= limit) lines[lines.length - 1] = candidate;
+          else {
+            if (lines.at(-1)) lines.push('');
+            for (const char of word) {
+              text.textContent = lines.at(-1) + char;
+              if (text.getComputedTextLength() > limit && lines.at(-1)) lines.push('');
+              lines[lines.length - 1] += char;
+            }
+          }
+        }
+        metrics = { lines, width: 0, height: lines.length * 18 };
+      }
+      text.replaceChildren(
+        ...metrics.lines.map((line, index) => {
+          const span = document.createElementNS(ns, 'tspan');
+          span.setAttribute('x', '0');
+          span.setAttribute('dy', index ? '18' : '0');
+          span.textContent = line.trim();
+          return span;
+        })
+      );
+      if (!metrics.width) {
+        metrics.width = text.getBBox().width;
+        nameMetrics.set(key, metrics);
+      }
+      caption.dataset.width = metrics.width;
+      caption.dataset.height = metrics.height;
+      caption.dataset.wrapWidth = limit;
+    }
+    const width = +caption.dataset.width,
+      height = +caption.dataset.height,
+      positions = roomNamePositions(shell, width, height);
+    for (let row = 1; row <= shells.length + 4; row++)
+      positions.push({
+        x: positions[0].x,
+        y: Math.max(...shells.map(s => s.bounds.bottom)) + row * (height + 10)
+      });
+    const result = choose(positions, width, height);
+    if (!result) {
+      caption.style.visibility = 'hidden';
+      continue;
+    }
+    screenTransform(caption, result.position.x, result.position.y);
+    let leader = owner.querySelector('.room-name-leader');
+    if (!leader) {
+      leader = document.createElementNS(ns, 'path');
+      leader.classList.add('room-name-leader');
+      owner.append(leader);
+    }
+    leader.setAttribute('visibility', 'visible');
+    const end = {
+        x: Math.max(result.bounds.left, Math.min(result.bounds.right, (shell.left + shell.right) / 2)),
+        y: Math.max(result.bounds.top, Math.min(result.bounds.bottom, (shell.top + shell.bottom) / 2))
+      },
+      start = {
+        x: Math.max(shell.left, Math.min(shell.right, end.x)),
+        y: Math.max(shell.top, Math.min(shell.bottom, end.y))
+      };
+    screenTransform(leader, 0, 0);
+    leader.setAttribute('d', `M${start.x} ${start.y}L${end.x} ${end.y}`);
+    reserved.push(result.bounds);
+  }
+  for (const { owner, bounds: shell } of nearby) {
+    const ports = [...owner.querySelectorAll('[data-room-port]')].map(port => {
+      const m = matrices.get(port),
+        point = new DOMPoint(+port.dataset.anchorX, +port.dataset.anchorY).matrixTransform(m),
+        vector = {
+          left: [-1, 0],
+          right: [1, 0],
+          top: [0, -1],
+          bottom: [0, 1]
+        }[port.dataset.edge],
+        dx = m.a * vector[0] + m.c * vector[1],
+        dy = m.b * vector[0] + m.d * vector[1],
+        edge = Math.abs(dx) >= Math.abs(dy) ? (dx < 0 ? 'left' : 'right') : dy < 0 ? 'top' : 'bottom';
+      return { port, point, edge, dx, dy };
+    });
+    for (const node of ports) {
+      const { port, point, edge, dx, dy } = node,
+        text = port.querySelector('.room-port-label'),
+        rect = port.querySelector('.room-port-symbol');
+      if (!text) continue;
+      let caption = port.querySelector('.room-port-caption'),
+        leader = port.querySelector('.room-port-leader');
+      if (!caption) {
+        caption = document.createElementNS(ns, 'g');
+        caption.classList.add('room-port-caption');
+        caption.append(rect, text);
+        leader = document.createElementNS(ns, 'path');
+        leader.classList.add('room-port-leader');
+        port.prepend(leader);
+        port.append(caption);
+      }
+      const eligible = port.dataset.labelFits === 'true';
+      caption.style.visibility = eligible ? 'visible' : 'hidden';
+      leader.style.visibility = 'hidden';
+      port.dataset.labelVisible = String(eligible);
+      if (!eligible) continue;
+      if (!caption.dataset.width) {
+        screenTransform(caption, 0, 0);
+        text.style.fontSize = '12px';
+        text.dataset.fullText ??= text.textContent;
+        text.textContent = text.dataset.compact;
+        let width = portCaptionWidths.get(text.textContent);
+        if (!width) {
+          width = Math.max(48, text.getComputedTextLength() + 12);
+          portCaptionWidths.set(text.textContent, width);
+        }
+        caption.dataset.width = width;
+      }
+      const width = +caption.dataset.width,
+        height = 18,
+        side = edge === 'left' || edge === 'right',
+        peers = ports
+          .filter(p => p.edge === edge)
+          .sort((a, b) => (side ? a.point.y - b.point.y : a.point.x - b.point.x)),
+        row = peers.indexOf(node) - (peers.length - 1) / 2,
+        spacing = side ? 20 : Math.max(70, width + 6),
+        middle = side
+          ? (peers[0].point.y + peers.at(-1).point.y) / 2
+          : (peers[0].point.x + peers.at(-1).point.x) / 2,
+        positions = [];
+      for (let column = 0; column < 8; column++) {
+        positions.push(
+          side
+            ? {
+                x:
+                  edge === 'left'
+                    ? shell.left - width - 10 - column * (width + 8)
+                    : shell.right + 10 + column * (width + 8),
+                y:
+                  middle +
+                  row * Math.max(spacing, (shell.bottom - shell.top) / (peers.length + 1)) -
+                  height / 2
+              }
+            : {
+                x:
+                  middle +
+                  row * Math.max(spacing, (shell.right - shell.left) / (peers.length + 1)) -
+                  width / 2,
+                y: edge === 'top' ? shell.top - height - 10 - column * 24 : shell.bottom + 10 + column * 24
+              }
+        );
+      }
+      if (side) {
+        positions.push(
+          {
+            x: edge === 'right' ? shell.right - width : shell.left,
+            y: shell.bottom + 10 + peers.indexOf(node) * 22
+          },
+          {
+            x: edge === 'right' ? shell.right - width : shell.left,
+            y: shell.top - 28 - peers.indexOf(node) * 22
+          }
+        );
+      } else {
+        positions.push(
+          {
+            x: shell.right + 10 + peers.indexOf(node) * (width + 6),
+            y: edge === 'top' ? shell.top : shell.bottom - height
+          },
+          {
+            x: shell.left - width - 10 - peers.indexOf(node) * (width + 6),
+            y: edge === 'top' ? shell.top : shell.bottom - height
+          }
+        );
+      }
+      const result = choose(positions, width, height, true);
+      port.dataset.labelVisible = String(!!result);
+      caption.style.visibility = result ? 'visible' : 'hidden';
+      if (!result) continue;
+      rect.setAttribute('x', '0');
+      rect.setAttribute('y', '0');
+      rect.setAttribute('width', width);
+      rect.setAttribute('height', height);
+      text.setAttribute('x', width / 2);
+      text.setAttribute('y', '13');
+      screenTransform(caption, result.position.x, result.position.y);
+      const end = {
+          x: side
+            ? edge === 'left'
+              ? result.bounds.right
+              : result.bounds.left
+            : (result.bounds.left + result.bounds.right) / 2,
+          y: side
+            ? (result.bounds.top + result.bounds.bottom) / 2
+            : edge === 'top'
+              ? result.bounds.bottom
+              : result.bounds.top
+        },
+        distance = Math.min(
+          dx ? Math.abs(((dx > 0 ? shell.right + 6 : shell.left - 6) - point.x) / dx) : Infinity,
+          dy ? Math.abs(((dy > 0 ? shell.bottom + 6 : shell.top - 6) - point.y) / dy) : Infinity
+        ),
+        escape = { x: point.x + dx * distance, y: point.y + dy * distance },
+        bend = side ? { x: escape.x, y: end.y } : { x: end.x, y: escape.y },
+        inverse = matrices.get(port).inverse(),
+        points = [point, escape, bend, end].map(p => new DOMPoint(p.x, p.y).matrixTransform(inverse));
+      leader.setAttribute('d', points.map((p, index) => `${index ? 'L' : 'M'}${p.x} ${p.y}`).join(''));
+      leader.style.visibility = 'visible';
+      reserved.push(result.bounds);
+    }
+  }
+}
 function reserveRoomLabels(svg) {
   const shown = el => {
       const owner = el.closest('[data-room-node]'),
@@ -249,10 +613,20 @@ function reserveRoomLabels(svg) {
         style.display !== 'none' && style.visibility !== 'hidden' && el.getBoundingClientRect().width > 0
       );
     },
-    shells = [...svg.querySelectorAll('.room-box-shell')].map(el => ({
-      owner: el.closest('[data-room-node]'),
-      bounds: el.getBoundingClientRect()
-    })),
+    shells = [...svg.querySelectorAll('.selection-ring')].map(el => {
+      const owner = el.closest('[data-room-node]'),
+        shell = owner.querySelector('.room-box-shell');
+      if (shell) return { owner, bounds: shell.getBoundingClientRect() };
+      const rect = el.getBoundingClientRect(),
+        m = el.getScreenCTM(),
+        scale = Math.hypot(m.a, m.b),
+        x = (4 * (Math.abs(m.a) + Math.abs(m.c))) / scale,
+        y = (4 * (Math.abs(m.b) + Math.abs(m.d))) / scale;
+      return {
+        owner,
+        bounds: { left: rect.left + x, right: rect.right - x, top: rect.top + y, bottom: rect.bottom - y }
+      };
+    }),
     markers = [...svg.querySelectorAll('.room-port-tip')].map(el => el.getBoundingClientRect()),
     lanes = [];
   for (const path of svg.querySelectorAll('.route-line, .route-interface-line')) {
@@ -268,15 +642,16 @@ function reserveRoomLabels(svg) {
       previous = next;
     }
   }
-  const reserved = [],
-    texts = [
-      ...svg.querySelectorAll(
-        '.room-box-name, .room-component-label, .room-box-configuration, .room-port-label, ' +
-          '.room-overview-label text, .room-object-label, .room-object-detail, .route-cable-label'
-      )
-    ];
+  const reserved = [];
+  placeRoomCaptions(svg, shells, lanes, reserved);
+  const texts = [
+    ...svg.querySelectorAll(
+      '.room-box-name, .room-component-label, .room-box-configuration, .room-port-label, ' +
+        '.room-overview-label text, .room-object-label, .room-object-detail, .route-cable-label'
+    )
+  ];
   const candidates = texts
-    .filter(shown)
+    .filter(text => !text.closest('.room-caption, .room-port-caption') && shown(text))
     .map(text => {
       const port = text.closest('[data-room-port]');
       return {
@@ -303,22 +678,40 @@ function reserveRoomLabels(svg) {
     } else reserved.push(bounds);
     if (port) port.dataset.labelVisible = blocked ? 'false' : 'true';
   }
-  for (const port of svg.querySelectorAll('[data-room-port]')) {
-    const text = port.querySelector('.room-port-label');
-    if (
-      !text ||
-      text.style.visibility === 'hidden' ||
-      port.dataset.dense === 'true' ||
-      port.dataset.labelFits !== 'true'
-    )
-      port.dataset.labelVisible = 'false';
-  }
 }
-function updateVisualScale() {
+function scheduleVisualScale(force = false) {
+  forceVisualScale ||= force === true;
+  if (visualFrame) return;
+  visualFrame = requestAnimationFrame(() => {
+    visualFrame = 0;
+    updateVisualScale();
+  });
+}
+function updateVisualScale(force = false) {
+  force = force === true || forceVisualScale;
+  forceVisualScale = false;
+  if (visualFrame) cancelAnimationFrame(visualFrame);
+  visualFrame = 0;
   const svg = document.querySelector('#room-canvas'),
     matrix = svg?.getScreenCTM();
   if (!svg || !matrix) return;
-  const rootScale = Math.hypot(matrix.a, matrix.b) || 1;
+  const rootScale = Math.hypot(matrix.a, matrix.b) || 1,
+    scaleChanged = svg.dataset.roomScale !== String(rootScale),
+    sc = svg.closest('.room-scroll'),
+    geometry = chosen + JSON.stringify(api.getProject().scene.placements),
+    previous = presentationState;
+  if (
+    force !== true &&
+    previous?.svg === svg &&
+    previous.geometry === geometry &&
+    previous.scale === rootScale &&
+    previous.height === sc.clientHeight &&
+    Math.abs(previous.x - matrix.e) < 80 &&
+    Math.abs(previous.y - matrix.f) < 80
+  )
+    return;
+  presentationState = { svg, geometry, scale: rootScale, height: sc.clientHeight, x: matrix.e, y: matrix.f };
+  svg.dataset.roomScale = rootScale;
   for (const text of svg.querySelectorAll('[data-room-collision]')) {
     text.style.visibility = '';
     delete text.dataset.roomCollision;
@@ -346,8 +739,8 @@ function updateVisualScale() {
       heightScale: Math.hypot(transform.c, transform.d) || rootScale
     };
   });
-  svg.style.setProperty('--room-unit', 1 / rootScale);
-  for (const el of svg.querySelectorAll('[data-room-node]')) {
+  if (scaleChanged) svg.style.setProperty('--room-unit', 1 / rootScale);
+  for (const el of scaleChanged ? svg.querySelectorAll('[data-room-node]') : []) {
     const ring = el.querySelector('.selection-ring'),
       gap = 4 / rootScale;
     ring.dataset.footprintWidth ??= +ring.getAttribute('width') - 12;
@@ -375,8 +768,10 @@ function updateVisualScale() {
   const tips = new Map(
     [...svg.querySelectorAll('[data-room-port-tips]')].map(group => [group.dataset.roomPortTips, group])
   );
-  for (const { box, boxScale, heightScale, width, height, halfH, visible } of boxMetrics) {
+  for (const { box, boxScale, heightScale, width, height, visible } of boxMetrics) {
+    const entered = visible && box.dataset.inViewport !== 'true';
     box.dataset.inViewport = String(visible);
+    if (!scaleChanged && !entered) continue;
     const owner = box.closest('[data-room-node]'),
       key = owner.dataset.roomNode,
       ports = [...box.querySelectorAll('[data-room-port]')],
@@ -416,35 +811,15 @@ function updateVisualScale() {
     compact.dataset.fits = height * heightScale >= 84 ? 'true' : 'false';
     owner.dataset.roomCompactFits = compact.dataset.fits;
     compact.querySelector('.room-box-configuration')?.setAttribute('y', height / 2 - 9 / heightScale);
-    const badge = owner.querySelector('.room-overview-label');
-    if (badge) {
-      badge.querySelector('path').setAttribute('d', `M0 ${halfH / rootScale}v${6 / rootScale}`);
-      badge.querySelector('text').setAttribute('y', (halfH + 18) / rootScale);
-    }
     for (const port of ports) {
       const gap =
         +port.dataset.portSpacing *
         (port.dataset.edge === 'left' || port.dataset.edge === 'right' ? heightScale : boxScale);
-      port.dataset.dense = gap < 20 ? 'true' : 'false';
+      port.dataset.dense = gap < 6 ? 'true' : 'false';
       port.dataset.grouped = gap < 10 ? 'true' : 'false';
-      const placement = layout.ports[ports.indexOf(port)],
-        pillWidth = Math.max(0, placement.labelWidth) / boxScale,
-        pillHeight = placement.labelHeight / heightScale,
-        pillX = placement.labelX / boxScale,
-        pillY = placement.labelY / heightScale,
-        rect = port.querySelector('.room-port-symbol'),
-        label = port.querySelector('.room-port-label');
-      port.dataset.labelFits = level !== 'overview' && placement.labelFits ? 'true' : 'false';
+      const placement = layout.ports[ports.indexOf(port)];
+      port.dataset.labelFits = placement.labelFits ? 'true' : 'false';
       port.dataset.labelVisible = port.dataset.labelFits;
-      rect.setAttribute('x', pillX);
-      rect.setAttribute('y', pillY);
-      rect.setAttribute('width', pillWidth);
-      rect.setAttribute('height', pillHeight);
-      if (label) {
-        label.dataset.maxWidth = Math.max(0, pillWidth - 8 / boxScale);
-        label.setAttribute('x', pillX + pillWidth / 2);
-        label.setAttribute('y', pillY + pillHeight / 2 + 4 / heightScale);
-      }
     }
     for (const tip of tips.get(key)?.querySelectorAll('[data-room-port-proxy]') || []) {
       const port = ports.find(port => port.dataset.roomPort === tip.dataset.roomPortProxy);
@@ -452,6 +827,7 @@ function updateVisualScale() {
     }
     owner.dataset.roomTitleInside = 'false';
     for (const text of visible ? box.querySelectorAll('[data-max-width]') : []) {
+      if (text.classList.contains('room-port-label')) continue;
       text.dataset.fullText ??= text.textContent;
       const full = text.dataset.fullText,
         card = text.classList.contains('room-component-label')
@@ -521,17 +897,7 @@ function updateVisualScale() {
       if (primary && !text.closest('.room-box-equipment'))
         text.setAttribute('y', -height / 2 + 18 / heightScale);
       text.setAttribute('aria-label', full);
-      if (primary) {
-        const bounds = text.getBBox(),
-          fits =
-            text.style.visibility !== 'hidden' &&
-            !text.textContent.includes('…') &&
-            bounds.width <= width - 16 &&
-            bounds.y >= -height / 2 &&
-            bounds.y + bounds.height <= -height / 2 + 36;
-        owner.dataset.roomTitleInside = String(level === 'detail' && fits);
-        if (!fits) text.style.visibility = 'hidden';
-      }
+      if (primary) text.style.visibility = 'hidden';
     }
     for (const card of box.querySelectorAll('.room-component-card')) {
       const rect = card.querySelector('rect'),
@@ -738,8 +1104,19 @@ export function compactPortLabel(port) {
       ethernet: 'Eth',
       dmx: 'DMX'
     }[port.type],
-    number = port.id.match(/(\d+)$/)?.[1] || port.label.match(/\b(\d+)\b/)?.[1];
+    number = port.label.match(/\b(\d+)\b/)?.[1] || port.id.match(/(\d+)$/)?.[1];
   return role && number ? `${role} ${number}` : port.label;
+}
+export function compactPortLabels(ports) {
+  const names = ports.map(({ port }) => compactPortLabel(port)),
+    qualified = names.map((name, index) =>
+      names.filter(other => other === name).length > 1
+        ? `${ports[index].component.subname || ports[index].component.snapshot.name} · ${name}`
+        : name
+    );
+  return qualified.map((name, index) =>
+    qualified.filter(other => other === name).length > 1 ? `${name} (${index + 1})` : name
+  );
 }
 function boxVisual(box, w, h) {
   const scale = w / 400;
@@ -747,6 +1124,7 @@ function boxVisual(box, w, h) {
   h /= scale;
   const items = box.components,
     ports = exposedPorts(box),
+    portNames = compactPortLabels(ports),
     n = items.length,
     layout = roomPresentationLayout(w, h, n, ports),
     { cols, header, padding } = layout,
@@ -800,7 +1178,7 @@ function boxVisual(box, w, h) {
         label = port.label,
         textX = pillX + pillW / 2,
         textY = pillY + 14;
-      return `<g class="room-external-node" data-room-port="${E(box.id)}:${E(component.id)}:${E(port.id)}" data-edge="${E(edge)}" data-port-t="${t}" data-port-spacing="${spacing}" data-anchor-x="${x}" data-anchor-y="${y}" tabindex="0" role="button" aria-label="${E(box.name)} ${E(component.snapshot.name)} ${E(port.label)} ${E(port.type)} port"><rect class="room-port-symbol" x="${pillX}" y="${pillY}" width="${Math.max(0, pillW)}" height="20" rx="5" fill="#f9fbfa" stroke="${portTypeColour(port.type)}"/><circle class="room-port-dot" cx="${x}" cy="${y}" fill="${E(component.snapshot.color || '#4b8a76')}" stroke="${portTypeColour(port.type)}"/><title>${E(box.name)} → ${E(component.snapshot.name)}${component.subname ? ` (${E(component.subname)})` : ''} → ${E(port.label)} (${E(port.type)})</title>${labels ? `<text class="room-port-label" data-compact="${E(compactPortLabel(port))}" data-port-id="${E(port.id)}" data-max-width="${pillW - 8}" x="${textX}" y="${textY}" text-anchor="middle">${E(label)}</text>` : ''}</g>`;
+      return `<g class="room-external-node" data-room-port="${E(box.id)}:${E(component.id)}:${E(port.id)}" data-edge="${E(edge)}" data-port-t="${t}" data-port-spacing="${spacing}" data-anchor-x="${x}" data-anchor-y="${y}" tabindex="0" role="button" aria-label="${E(box.name)} ${E(component.snapshot.name)} ${E(port.label)} ${E(port.type)} port"><rect class="room-port-symbol" x="${pillX}" y="${pillY}" width="${Math.max(0, pillW)}" height="20" rx="5" fill="#f9fbfa" stroke="${portTypeColour(port.type)}"/><circle class="room-port-dot" cx="${x}" cy="${y}" fill="${E(component.snapshot.color || '#4b8a76')}" stroke="${portTypeColour(port.type)}"/><title>${E(box.name)} → ${E(component.snapshot.name)}${component.subname ? ` (${E(component.subname)})` : ''} → ${E(port.label)} (${E(port.type)})</title>${labels ? `<text class="room-port-label" data-compact="${E(portNames[index])}" data-port-id="${E(port.id)}" data-max-width="${pillW - 8}" x="${textX}" y="${textY}" text-anchor="middle">${E(label)}</text>` : ''}</g>`;
     })
     .join('');
   return `<g class="room-box-visual" data-component-count="${n}" data-cell-width="${cellW}" data-cell-height="${cellH}" transform="scale(${scale})">${internals}${nodes}</g>`;
@@ -897,10 +1275,10 @@ export function installRoom(a) {
       e.target.closest('.physical-route') &&
       e.target.closest('.physical-route') !== e.relatedTarget?.closest?.('.physical-route')
     )
-      requestAnimationFrame(updateVisualScale);
+      scheduleVisualScale(true);
     const port = roomPortTarget(e.target),
       component = e.target.closest('[data-room-label-details]');
-    tracePort(port?.dataset.roomPort);
+    tracePort(port?.dataset.roomPort || roomPortTarget(document.activeElement)?.dataset.roomPort);
     const inspector = document.querySelector('.room-inspector .inspector-body');
     if (!inspector || (!port && !component)) return;
     let details = inspector.querySelector('.room-label-details');
@@ -919,10 +1297,10 @@ export function installRoom(a) {
       e.target.closest('.physical-route') &&
       e.target.closest('.physical-route') !== e.relatedTarget?.closest?.('.physical-route')
     )
-      requestAnimationFrame(updateVisualScale);
+      scheduleVisualScale(true);
   });
   document.addEventListener('focusout', e => {
-    if (e.target.closest('.physical-route')) requestAnimationFrame(updateVisualScale);
+    if (e.target.closest('.physical-route')) scheduleVisualScale(true);
   });
   document.addEventListener('pointerup', up);
   document.addEventListener('pointercancel', up);
@@ -1437,6 +1815,7 @@ function up(ev) {
     panDrag.sc.classList.remove('panning');
     viewport = { left: panDrag.sc.scrollLeft, top: panDrag.sc.scrollTop };
     panDrag = null;
+    scheduleVisualScale(true);
     return;
   }
   if (roomWire?.pointer === ev.pointerId && !drag) {
@@ -1472,7 +1851,7 @@ function up(ev) {
     }
     refreshRouteInspector();
     api.refreshRoomSummary();
-    requestAnimationFrame(updateVisualScale);
+    scheduleVisualScale();
   } else api.render();
   api.save();
 }
@@ -1491,7 +1870,7 @@ function wheel(ev) {
 function rememberViewport(ev) {
   if (ev.target.matches?.('.room-scroll')) {
     viewport = { left: ev.target.scrollLeft, top: ev.target.scrollTop };
-    requestAnimationFrame(updateVisualScale);
+    scheduleVisualScale();
   }
 }
 function key(ev) {

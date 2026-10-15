@@ -90,6 +90,7 @@
   {"issue":65,"version":"0.93.0","title":"make labels readable and meaningful","outcome":"shipped","at":"2026-10-13T20:11:46Z","runs":1,"model":"gpt-6.1-sol","credits":50.56,"tokensIn":1500000,"tokensCached":1400000,"tokensOut":19600,"seconds":627},
   {"issue":66,"version":"0.94.0","title":"make every visible port belong to its box","outcome":"shipped","at":"2026-10-14T06:48:41Z","runs":1,"model":"gpt-6.1-sol","credits":37.83,"tokensIn":821000,"tokensCached":761900,"tokensOut":15400,"seconds":413},
   {"issue":67,"version":"0.95.0","title":"fix room layout","outcome":"shipped","at":"2026-10-15T09:02:04Z","runs":1,"model":"gpt-6.1-sol","credits":48.0,"tokensIn":1200000,"tokensCached":1100000,"tokensOut":20100,"seconds":887},
-  {"issue":68,"version":"0.96.0","title":"1. Restore identification and reveal detail earlier","outcome":"shipped","at":"2026-10-15T10:39:59Z","runs":1,"model":"gpt-6.1-sol","credits":31.92,"tokensIn":693500,"tokensCached":632800,"tokensOut":10400,"seconds":440}
+  {"issue":68,"version":"0.96.0","title":"1. Restore identification and reveal detail earlier","outcome":"shipped","at":"2026-10-15T10:39:59Z","runs":1,"model":"gpt-6.1-sol","credits":31.92,"tokensIn":693500,"tokensCached":632800,"tokensOut":10400,"seconds":440},
+  {"issue":69,"version":"0.97.0","title":"1. Restore identification and reveal detail earlier","outcome":"shipped","at":"2026-10-15T14:24:18Z","runs":1,"model":"gpt-6.1-sol","credits":78.18,"tokensIn":2400000,"tokensCached":2300000,"tokensOut":33300,"seconds":986}
  ]
 }

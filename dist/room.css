@@ -64,6 +64,7 @@
   aspect-ratio: auto;
   height: auto;
   touch-action: none;
+  overflow: visible;
 }
 .room-camera {
   position: absolute;
@@ -539,8 +540,27 @@
 .room-object[data-room-title-inside='true'] .room-overview-label {
   display: none;
 }
-.room-object[data-room-detail='overview'] .room-port-label {
+.room-caption text {
+  stroke-width: 2px;
+}
+.room-object[data-room-captions='false']
+  :is(
+    .room-caption,
+    .room-object-label,
+    .room-overview-label,
+    .room-name-leader,
+    .room-port-caption,
+    .room-port-leader
+  ) {
   display: none;
+}
+.room-name-leader,
+.room-port-leader {
+  fill: none;
+  stroke: #597a70;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
 }
 #room-wire-preview {
   fill: none;
@@ -891,7 +911,6 @@
 .room-external-node[data-grouped='true']:focus-visible .room-port-dot {
   r: calc(4px * var(--room-unit, 1));
 }
-.room-object[data-room-detail='overview'] .room-port-symbol,
 .room-external-node[data-dense='true'] .room-port-symbol,
 .room-external-node[data-dense='true'] .room-port-label {
   display: none;
