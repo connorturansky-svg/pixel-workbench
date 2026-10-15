@@ -2,6 +2,16 @@
 
 Every release is captured by the builder's release smoke test (`automation/smoke.py --shots`): every page, every info tab and a mobile view. This branch is never deployed by Pages. Newest first.
 
+## [v0.95.0](v0.95.0/)
+
+15/10/2026 · [commit 4357177](https://github.com/connorturansky-svg/pixel-workbench/commit/4357177262e37ae33afca072efdcea755eb0d43a) · [issue #67](https://github.com/connorturansky-svg/pixel-workbench/issues/67)
+
+> Coordinated room box title and content space with exterior port labels, suppressed crowded labels and overview count badges, and replaced unreadable component mosaics with the existing equipment symbol without changing physical geometry or exact cable endpoints (suggested in #67).
+
+<a href="v0.95.0/01-workspace.png"><img src="v0.95.0/01-workspace.png" width="420" alt="v0.95.0 workspace"></a> <a href="v0.95.0/mobile.png"><img src="v0.95.0/mobile.png" width="240" alt="v0.95.0 mobile"></a>
+
+All shots: [workspace](v0.95.0/01-workspace.png) · [hardware](v0.95.0/02-hardware.png) · [presets](v0.95.0/03-presets.png) · [props](v0.95.0/04-props.png) · [guide](v0.95.0/05-guide.png) · [boxes](v0.95.0/06-boxes.png) · [standards](v0.95.0/07-standards.png) · [bom](v0.95.0/08-bom.png) · [suggest](v0.95.0/09-suggest.png) · [info arch](v0.95.0/info-arch.png) · [info how](v0.95.0/info-how.png) · [info keys](v0.95.0/info-keys.png) · [info new](v0.95.0/info-new.png) · [info suggest](v0.95.0/info-suggest.png) · [mobile](v0.95.0/mobile.png)
+
 ## [v0.94.0](v0.94.0/)
 
 14/10/2026 · [commit 4f68be5](https://github.com/connorturansky-svg/pixel-workbench/commit/4f68be5895098f44a24760a9f14074139c30a6f7) · [issue #66](https://github.com/connorturansky-svg/pixel-workbench/issues/66)
