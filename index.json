@@ -2232,5 +2232,31 @@
    "mobile.png"
   ],
   "error": ""
+ },
+ {
+  "version": "v0.96.0",
+  "date": "15/10/2026",
+  "commit": "e3c674b260991c537373e670f6eb8c4ec31727ea",
+  "issue": 68,
+  "changelog": "Kept overview box names visible during selection and revealed component tiles, hardware symbols, names and exact port detail independently at smaller projected sizes, without changing enclosure footprints or cable geometry (suggested in #68).",
+  "status": "ok",
+  "shots": [
+   "01-workspace.png",
+   "02-hardware.png",
+   "03-presets.png",
+   "04-props.png",
+   "05-guide.png",
+   "06-boxes.png",
+   "07-standards.png",
+   "08-bom.png",
+   "09-suggest.png",
+   "info-arch.png",
+   "info-how.png",
+   "info-keys.png",
+   "info-new.png",
+   "info-suggest.png",
+   "mobile.png"
+  ],
+  "error": ""
  }
 ]

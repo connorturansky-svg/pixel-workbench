@@ -2,6 +2,16 @@
 
 Every release is captured by the builder's release smoke test (`automation/smoke.py --shots`): every page, every info tab and a mobile view. This branch is never deployed by Pages. Newest first.
 
+## [v0.96.0](v0.96.0/)
+
+15/10/2026 · [commit e3c674b](https://github.com/connorturansky-svg/pixel-workbench/commit/e3c674b260991c537373e670f6eb8c4ec31727ea) · [issue #68](https://github.com/connorturansky-svg/pixel-workbench/issues/68)
+
+> Kept overview box names visible during selection and revealed component tiles, hardware symbols, names and exact port detail independently at smaller projected sizes, without changing enclosure footprints or cable geometry (suggested in #68).
+
+<a href="v0.96.0/01-workspace.png"><img src="v0.96.0/01-workspace.png" width="420" alt="v0.96.0 workspace"></a> <a href="v0.96.0/mobile.png"><img src="v0.96.0/mobile.png" width="240" alt="v0.96.0 mobile"></a>
+
+All shots: [workspace](v0.96.0/01-workspace.png) · [hardware](v0.96.0/02-hardware.png) · [presets](v0.96.0/03-presets.png) · [props](v0.96.0/04-props.png) · [guide](v0.96.0/05-guide.png) · [boxes](v0.96.0/06-boxes.png) · [standards](v0.96.0/07-standards.png) · [bom](v0.96.0/08-bom.png) · [suggest](v0.96.0/09-suggest.png) · [info arch](v0.96.0/info-arch.png) · [info how](v0.96.0/info-how.png) · [info keys](v0.96.0/info-keys.png) · [info new](v0.96.0/info-new.png) · [info suggest](v0.96.0/info-suggest.png) · [mobile](v0.96.0/mobile.png)
+
 ## [v0.95.0](v0.95.0/)
 
 15/10/2026 · [commit 4357177](https://github.com/connorturansky-svg/pixel-workbench/commit/4357177262e37ae33afca072efdcea755eb0d43a) · [issue #67](https://github.com/connorturansky-svg/pixel-workbench/issues/67)
