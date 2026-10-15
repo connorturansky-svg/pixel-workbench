@@ -478,9 +478,9 @@
 }
 .room-component-icon {
   font-size: min(22px, calc(22px * var(--room-unit, 1)));
-  paint-order: stroke;
-  stroke: #153d36;
-  stroke-width: calc(1px * var(--room-unit, 1));
+  fill: #193f39;
+  stroke: none;
+  pointer-events: none;
 }
 .room-component-card rect {
   vector-effect: non-scaling-stroke;
@@ -536,8 +536,7 @@
   stroke: #f9fbfa;
   stroke-width: calc(2px * var(--room-unit, 1));
 }
-.room-object[data-room-detail='detail'] .room-overview-label,
-.room-object[data-room-detail='equipment'][data-room-compact-fits='true'] .room-overview-label {
+.room-object[data-room-title-inside='true'] .room-overview-label {
   display: none;
 }
 .room-object[data-room-detail='overview'] .room-port-label {

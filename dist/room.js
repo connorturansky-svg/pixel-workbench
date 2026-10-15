@@ -5,7 +5,7 @@ import {
   makeProp,
   PALETTE,
   clampPosition
-} from './layout-model.mjs?v=0.95.0';
+} from './layout-model.mjs?v=0.96.0';
 import {
   ensureInstallation,
   makeBox,
@@ -19,7 +19,7 @@ import {
   removePowerSupply,
   portTypeColour,
   connectionProblem
-} from './installation-model.mjs?v=0.95.0';
+} from './installation-model.mjs?v=0.96.0';
 import {
   routeLayer,
   routeMarkers,
@@ -28,7 +28,7 @@ import {
   installRoutes,
   refreshRoutes,
   refreshRouteInspector
-} from './installation-room.mjs?v=0.95.0';
+} from './installation-room.mjs?v=0.96.0';
 let api,
   chosen = '',
   propId = 'prop-smiley',
@@ -170,12 +170,11 @@ function zoomStep(next, clientX, clientY, gesture = null) {
 export function roomDetailPolicy({ width, height, cellWidth, cellHeight }, previous = 'overview') {
   const detailed = previous === 'detail',
     equipment = previous !== 'overview',
-    readable =
-      height >= (detailed ? 120 : 140) &&
-      cellWidth >= (detailed ? 76 : 88) &&
-      cellHeight >= (detailed ? 50 : 58) &&
-      (width / 400) * 36 >= (detailed ? 24 : 28);
-  if (width >= (detailed ? 240 : 280) && readable) return 'detail';
+    tiles =
+      height >= (detailed ? 64 : 72) &&
+      cellWidth >= (detailed ? 28 : 32) &&
+      cellHeight >= (detailed ? 20 : 24);
+  if (width >= (detailed ? 104 : 120) && tiles) return 'detail';
   return width >= (equipment ? 92 : 108) ? 'equipment' : 'overview';
 }
 export function roomPresentationLayout(width, height, count, ports) {
@@ -231,7 +230,7 @@ export function roomLineOverlapsBounds(a, b, bounds, gap = 3) {
   }
   return true;
 }
-function reserveRoomLabels(svg, allowCollapse = true) {
+function reserveRoomLabels(svg) {
   const shown = el => {
       const owner = el.closest('[data-room-node]'),
         box = owner?.querySelector('.room-box-visual'),
@@ -242,9 +241,7 @@ function reserveRoomLabels(svg, allowCollapse = true) {
         (el.closest('.room-box-internals') && owner.dataset.roomDetail !== 'detail') ||
         (el.closest('.room-box-equipment') &&
           (owner.dataset.roomDetail !== 'equipment' || owner.dataset.roomCompactFits !== 'true')) ||
-        (el.closest('.room-overview-label') &&
-          (owner.dataset.roomDetail === 'detail' ||
-            (owner.dataset.roomCompactFits === 'true' && owner.dataset.roomDetail === 'equipment')))
+        (el.closest('.room-overview-label') && owner.dataset.roomTitleInside === 'true')
       )
         return false;
       const style = getComputedStyle(el);
@@ -272,34 +269,37 @@ function reserveRoomLabels(svg, allowCollapse = true) {
     }
   }
   const reserved = [],
-    collapsed = new Set(),
     texts = [
       ...svg.querySelectorAll(
         '.room-box-name, .room-component-label, .room-box-configuration, .room-port-label, ' +
           '.room-overview-label text, .room-object-label, .room-object-detail, .route-cable-label'
       )
     ];
-  const candidates = texts.filter(shown).map(text => {
-    const port = text.closest('[data-room-port]');
-    return {
-      text,
-      port,
-      bounds: (port?.querySelector('.room-port-symbol') || text).getBoundingClientRect(),
-      owner: text.closest('[data-room-node]'),
-      internal: !!text.closest('.room-box-internals, .room-box-equipment')
-    };
-  });
-  for (const { text, port, bounds, owner, internal } of candidates) {
+  const candidates = texts
+    .filter(shown)
+    .map(text => {
+      const port = text.closest('[data-room-port]');
+      return {
+        text,
+        port,
+        bounds: (port?.querySelector('.room-port-symbol') || text).getBoundingClientRect(),
+        owner: text.closest('[data-room-node]'),
+        internal: !!text.closest('.room-box-internals, .room-box-equipment'),
+        primary: text.classList.contains('room-box-name') || !!text.closest('.room-overview-label')
+      };
+    })
+    .sort((a, b) => Number(b.primary) - Number(a.primary));
+  for (const { text, port, bounds, owner, internal, primary } of candidates) {
     const blocked =
-      reserved.some(b => boundsOverlap(bounds, b)) ||
-      shells.some(shell => (!internal || shell.owner !== owner) && boundsOverlap(bounds, shell.bounds)) ||
-      (!internal &&
-        (markers.some(b => boundsOverlap(bounds, b)) ||
-          lanes.some(([a, b]) => roomLineOverlapsBounds(a, b, bounds))));
+      !primary &&
+      (reserved.some(b => boundsOverlap(bounds, b)) ||
+        shells.some(shell => (!internal || shell.owner !== owner) && boundsOverlap(bounds, shell.bounds)) ||
+        (!internal &&
+          (markers.some(b => boundsOverlap(bounds, b)) ||
+            lanes.some(([a, b]) => roomLineOverlapsBounds(a, b, bounds)))));
     if (blocked) {
       text.style.visibility = 'hidden';
       text.dataset.roomCollision = 'true';
-      if (text.classList.contains('room-component-label')) collapsed.add(owner);
     } else reserved.push(bounds);
     if (port) port.dataset.labelVisible = blocked ? 'false' : 'true';
   }
@@ -312,19 +312,6 @@ function reserveRoomLabels(svg, allowCollapse = true) {
       port.dataset.labelFits !== 'true'
     )
       port.dataset.labelVisible = 'false';
-  }
-  if (allowCollapse && collapsed.size) {
-    for (const owner of collapsed) {
-      owner.dataset.roomDetail = 'equipment';
-      detailLevels.set(owner.dataset.roomNode, 'equipment');
-    }
-    for (const text of svg.querySelectorAll('[data-room-collision]')) {
-      text.style.visibility = '';
-      delete text.dataset.roomCollision;
-    }
-    for (const port of svg.querySelectorAll('[data-room-port]'))
-      port.dataset.labelVisible = port.dataset.labelFits;
-    reserveRoomLabels(svg, false);
   }
 }
 function updateVisualScale() {
@@ -428,7 +415,6 @@ function updateVisualScale() {
     const compact = box.querySelector('.room-box-equipment');
     compact.dataset.fits = height * heightScale >= 84 ? 'true' : 'false';
     owner.dataset.roomCompactFits = compact.dataset.fits;
-    compact.querySelector('.room-box-name')?.setAttribute('y', -height / 2 + 19 / heightScale);
     compact.querySelector('.room-box-configuration')?.setAttribute('y', height / 2 - 9 / heightScale);
     const badge = owner.querySelector('.room-overview-label');
     if (badge) {
@@ -439,8 +425,8 @@ function updateVisualScale() {
       const gap =
         +port.dataset.portSpacing *
         (port.dataset.edge === 'left' || port.dataset.edge === 'right' ? heightScale : boxScale);
-      port.dataset.dense = level === 'overview' || gap < 20 ? 'true' : 'false';
-      port.dataset.grouped = level === 'overview' || gap < 10 ? 'true' : 'false';
+      port.dataset.dense = gap < 20 ? 'true' : 'false';
+      port.dataset.grouped = gap < 10 ? 'true' : 'false';
       const placement = layout.ports[ports.indexOf(port)],
         pillWidth = Math.max(0, placement.labelWidth) / boxScale,
         pillHeight = placement.labelHeight / heightScale,
@@ -464,6 +450,7 @@ function updateVisualScale() {
       const port = ports.find(port => port.dataset.roomPort === tip.dataset.roomPortProxy);
       tip.dataset.grouped = port?.dataset.grouped || 'false';
     }
+    owner.dataset.roomTitleInside = 'false';
     for (const text of visible ? box.querySelectorAll('[data-max-width]') : []) {
       text.dataset.fullText ??= text.textContent;
       const full = text.dataset.fullText,
@@ -477,11 +464,24 @@ function updateVisualScale() {
       text.style.fontSize = font + 'px';
       if (card || primary) {
         if (card) text.setAttribute('y', +card.getAttribute('y') + font + 3);
-        const count = card
-          ? Math.min(3, Math.floor((+card.getAttribute('height') - 6) / (font * 1.2)))
-          : (text.closest('.room-box-equipment') ? height * heightScale >= 112 : 36 * heightScale >= 40)
-            ? 2
-            : 1;
+        const iconSize = card
+            ? Math.max(
+                0,
+                Math.min(
+                  22,
+                  +card.getAttribute('width') * boxScale - 12,
+                  +card.getAttribute('height') * heightScale - 12
+                )
+              )
+            : 0,
+          count = card
+            ? Math.min(
+                3,
+                Math.floor((+card.getAttribute('height') - (iconSize + 10) / heightScale) / (font * 1.2))
+              )
+            : (text.closest('.room-box-equipment') ? height * heightScale >= 112 : 36 * heightScale >= 40)
+              ? 2
+              : 1;
         text.replaceChildren(
           ...componentLines(full, characters, Math.max(1, count)).map((value, index) => {
             const line = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
@@ -492,6 +492,16 @@ function updateVisualScale() {
           })
         );
         text.style.visibility = count > 0 && characters >= 4 ? 'visible' : 'hidden';
+        if (card) {
+          const bounds = text.getBBox(),
+            fits =
+              bounds.x >= +card.getAttribute('x') &&
+              bounds.y >= +card.getAttribute('y') &&
+              bounds.x + bounds.width <= +card.getAttribute('x') + +card.getAttribute('width') &&
+              bounds.y + bounds.height <=
+                +card.getAttribute('y') + +card.getAttribute('height') - (iconSize + 6) / heightScale;
+          if (!fits || text.textContent.includes('…')) text.style.visibility = 'hidden';
+        }
       } else {
         const value = full;
         text.textContent =
@@ -511,33 +521,39 @@ function updateVisualScale() {
       if (primary && !text.closest('.room-box-equipment'))
         text.setAttribute('y', -height / 2 + 18 / heightScale);
       text.setAttribute('aria-label', full);
-    }
-    if (level === 'detail') {
-      const names = [...box.querySelectorAll('.room-component-label')],
-        readable = names.every(text => {
-          const bounds = text.getBBox(),
-            card = text.closest('.room-component-card')?.querySelector('rect'),
-            fits =
-              !card ||
-              (bounds.x >= +card.getAttribute('x') &&
-                bounds.y >= +card.getAttribute('y') &&
-                bounds.x + bounds.width <= +card.getAttribute('x') + +card.getAttribute('width') &&
-                bounds.y + bounds.height <= +card.getAttribute('y') + +card.getAttribute('height'));
-          return (
-            fits &&
+      if (primary) {
+        const bounds = text.getBBox(),
+          fits =
             text.style.visibility !== 'hidden' &&
             !text.textContent.includes('…') &&
-            componentLines(
-              text.dataset.fullText || text.textContent,
-              Math.max(1, Math.floor(+text.dataset.maxWidth / ((14 / boxScale) * 0.62))),
-              3
-            ).every(line => !line.includes('…'))
-          );
-        });
-      if (!readable) {
-        owner.dataset.roomDetail = 'equipment';
-        detailLevels.set(key, 'equipment');
+            bounds.width <= width - 16 &&
+            bounds.y >= -height / 2 &&
+            bounds.y + bounds.height <= -height / 2 + 36;
+        owner.dataset.roomTitleInside = String(level === 'detail' && fits);
+        if (!fits) text.style.visibility = 'hidden';
       }
+    }
+    for (const card of box.querySelectorAll('.room-component-card')) {
+      const rect = card.querySelector('rect'),
+        icon = card.querySelector('.room-component-icon'),
+        name = card.querySelector('.room-component-label'),
+        size = Math.max(
+          0,
+          Math.min(
+            22,
+            +rect.getAttribute('width') * boxScale - 12,
+            +rect.getAttribute('height') * heightScale - 12
+          )
+        ),
+        named = name && name.style.visibility !== 'hidden';
+      icon.style.fontSize = size / boxScale + 'px';
+      icon.setAttribute(
+        'y',
+        +rect.getAttribute('y') +
+          (named
+            ? +rect.getAttribute('height') - (size / 2 + 4) / heightScale
+            : +rect.getAttribute('height') / 2)
+      );
     }
   }
   reserveRoomLabels(svg);
@@ -748,7 +764,7 @@ function boxVisual(box, w, h) {
         ? 'NO ACTIVE EDGE PORTS'
         : `${n} COMPONENT${n === 1 ? '' : 'S'}`;
   const summary = `${n} component${n === 1 ? '' : 's'} · ${ports.length} port${ports.length === 1 ? '' : 's'}`,
-    equipment = `<g class="room-box-equipment">${labels ? `<text class="room-box-name" data-max-width="${w - 16}" x="0" text-anchor="middle" fill="white" font-weight="700">${E(box.name)}</text><text class="room-box-configuration" data-max-width="${w - 16}" x="0" text-anchor="middle" fill="#d7ebe4">${E(summary)}</text>` : ''}</g><g class="room-equipment-symbol" aria-hidden="true"><rect x="-11" y="-10" width="22" height="20" rx="2"/><path d="M-6 -5H3M-6 0H3M-6 5H3"/><circle cx="7" cy="5" r="1"/></g>`;
+    equipment = `<g class="room-box-equipment">${labels ? `<text class="room-box-configuration" data-max-width="${w - 16}" x="0" text-anchor="middle" fill="#d7ebe4">${E(summary)}</text>` : ''}</g><g class="room-equipment-symbol" aria-hidden="true"><rect x="-11" y="-10" width="22" height="20" rx="2"/><path d="M-6 -5H3M-6 0H3M-6 5H3"/><circle cx="7" cy="5" r="1"/></g>`;
   const internals = `<rect class="room-box-shell" x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="4" fill="#193f39" stroke="#4f806a"/><title>${E(box.name)} · ${E(summary)}</title>${equipment}<g class="room-box-internals">${labels ? `<text class="room-box-name" data-max-width="${w - 16}" data-characters="${box.name.length}" x="${-w / 2 + 8}" y="${-h / 2 + 15}" fill="white" font-weight="700">${E(box.name)}</text><text class="room-box-configuration" data-max-width="${w - 16}" x="${-w / 2 + 8}" y="${-h / 2 + 29}" fill="#d7ebe4">${E(configuration)}</text>` : ''}${items
     .map((part, i) => {
       const x = -w / 2 + padding + (i % cols) * cellW,
@@ -765,7 +781,7 @@ function boxVisual(box, w, h) {
           cy = y + (cellH - labelHeight) / 2;
         return `<g data-room-button="${E(part.id)}" data-button-size="${E(part.buttonSize)}" data-room-label-details="${E(details)}" tabindex="0" role="group" aria-label="${E(details)}"><g class="room-button-symbol" transform="translate(${cx} ${cy}) scale(${scale}) translate(-50 -51)"><rect x="22" y="38" width="56" height="42" rx="8" fill="#505c58" stroke="#243a34" stroke-width="1.5"/><ellipse cx="50" cy="40" rx="23" ry="18" fill="${E(c)}" stroke="${part.buttonType === 'illuminated' ? '#fff3ad' : '#d7dfdc'}" stroke-width="${part.buttonType === 'illuminated' ? 4 : 2}"/><ellipse cx="50" cy="36" rx="13" ry="8" fill="#ffffff55"/></g>${labels ? `<g><rect class="room-button-label-surface" x="${x + 4}" y="${y + cellH - 19}" width="${cellW - 8}" height="20" rx="2" fill="#f9fbfa"/><text class="room-component-label" data-max-width="${cellW - 8}" data-characters="${(part.subname || shortName).length}" x="${cx}" y="${y + cellH - 3}" text-anchor="middle" fill="white">${E(part.subname || shortName)}</text></g>` : ''}<title>${E(details)} · ${E(part.buttonColour || 'Custom')} · ${E(part.buttonSize)}</title></g>`;
       }
-      return `<g class="room-component-card" tabindex="0" role="group" data-room-label-details="${E(details)}" aria-label="${E(details)}"><rect x="${x + 2}" y="${y + 2}" width="${cellW - 4}" height="${cellH - 4}" rx="2" fill="#f9fbfa" stroke="${E(c)}" stroke-width="2"/>${labels ? `<text class="room-component-label" data-max-width="${cellW - 12}" x="${x + 6}" y="${y + 17}">${E(name)}</text>` : ''}<title>${E(details)}</title></g>`;
+      return `<g class="room-component-card" tabindex="0" role="group" data-room-label-details="${E(details)}" aria-label="${E(details)}"><rect x="${x + 2}" y="${y + 2}" width="${cellW - 4}" height="${cellH - 4}" rx="2" fill="#f9fbfa" stroke="${E(c)}" stroke-width="2"/><text class="room-component-icon" x="${x + cellW / 2}" y="${y + cellH / 2}" text-anchor="middle" dominant-baseline="central" aria-hidden="true">${E(part.snapshot.icon)}</text>${labels ? `<text class="room-component-label" data-max-width="${cellW - 12}" x="${x + 6}" y="${y + 17}">${E(name)}</text>` : ''}<title>${E(details)}</title></g>`;
     })
     .join(
       ''

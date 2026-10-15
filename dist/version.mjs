@@ -1,10 +1,10 @@
 export const ABOUT =
   'Pixel Workbench is a device-local planner for 12 V pixel systems built on Baldrick controllers and FPP. Use it to lay out a room, size power and injection, design controller boxes and produce a wiring guide, bill of materials and channel CSV. Calculations are planning estimates. Confirm ratings and wiring against the actual equipment.';
-export const APP_VERSION = '0.95.0';
+export const APP_VERSION = '0.96.0';
 export const ARCHITECTURE_NOTES = [
   'Room presentation uses roomPresentationLayout for the enclosure title/content grid and exterior port label areas. roomPortGeometry supplies unchanged exact perimeter markers to drawing, overlay pointer targets, wire previews and paint-only cable extensions. Physical departures, saved pivots, dimensions and cable quantities remain separate and unchanged; deliberately offset open ends retain their physical coordinates.',
   'Room labels reserve screen-space bounds against other visible labels, enclosure shells, exact markers and displayed cable segments. Exterior port labels sit beside departure lanes and hide completely if the full label or reserved area cannot fit; hit testing uses the same visible surfaces. Full identities remain available through exact markers, the inspector and the existing Ports control. Cable names are offset from their paths and remain conditional on hover, focus or selection.',
-  'Room component detail requires sufficient projected content-cell space and fully readable, bounded names at 14 screen pixels. If any name cannot fit, the entire mosaic gives way to the existing equipment symbol and a short summary where space permits. Overview hides individual port labels, component counts and numbered edge badges. The title/content grid, screen-space reservations and semantic detail decisions are transient and never enter saved project geometry.',
+  'Room component tiles and their existing hardware symbols appear when projected cells reach 32 by 24 screen pixels, with lower exit thresholds for stable transitions. Each bounded 14-pixel component name reveals independently; a long or crowded name never collapses the collection. Exact port markers depend on edge spacing, not component names. Port labels retain their independent spacing and collision checks. Component content replaces the equipment summary immediately. The title/content grid, screen-space reservations and semantic detail decisions are transient and never enter saved project geometry.',
   'Room cables retain world-space geometry and saved endpoint offsets. Screen-sized endpoint/pivot markers use a separate overlay above equipment; exact port tips remain interactive above it. Transparent hit regions are separate from paint. Screen-space proximity checks offer an exact-connection chooser for overlapping cable targets without moving paths. Nonzero saved endpoint offsets remain deliberate open ends, shown with dashed markers and accessible unconnected descriptions.',
   'Box builder side-panel toggles retain session-only visibility independently for the hardware library and box/component inspector. Hidden panels leave the grid and keyboard navigation; responsive columns give the space to the editor. Toggling updates the existing DOM and redraws schematic wires without changing project data, canvas zoom, selection or panel contents.',
   'Box builder Port list reads the same exact installation connections and edge-port mappings as Schematic. Compatible internal links are validated before atomic replacement and both endpoint dropdowns derive from one saved link. Generated edge mappings stay fixed; activation is shared with Schematic and Room layout. Room-connected endpoints are read-only in the list. Native component and edge disclosures retain session-only expansion state.',
@@ -14,7 +14,7 @@ export const ARCHITECTURE_NOTES = [
   'Room layout adds blank controller boxes or saved box templates through the existing project transaction. Template instances reuse installation-model copying of hardware, exact ports and internal links; ensureScene keeps measured enclosure sizes, and the new box is selected at the room centre. Templates remain in the shared device-local library.',
   'Room camera Fit all frames the rotated footprints of visible room entities, including configured boxes, field devices and pixel groups. Zoom steps pause at the all-object overview when zooming out and the selected-object view when zooming in. Wheel gestures resume after a 250 ms pause or direction change; each zoom-button activation is a new step. Camera changes never alter placements or cable measurements.',
   'Room port symbols, wiring previews and measured cable anchors share roomPortGeometry, with an explicit presentation mode for visible perimeter markers and unchanged physical mode for measurements, including box rotation. A tip layer keeps perimeter dots visible and selectable above neighbouring object drawings, forwarding interaction to their original keyboard-accessible exact ports and following movement. Automatic routes check endpoint enclosures and padded obstacles, retain clear direct paths and use outward box departures plus nearby clear grid cells for detours; unavailable paths show warning markers without crossing wires. Manual pivots and the Auto route off setting retain user control.',
-  'Room box names appear where their screen-space bounds are clear when Labels is on. Full component names must fit their content cells without shrinking screen-sized text or showing partial cards. The inspector retains full configuration at every scale. The dashed selection outline has a screen-sized gap and does not represent an enclosure or change its measured footprint.',
+  'With Labels on, primary room box names reserve space before other labels and are not suppressed by selection, markers or cables. Overview and equipment names remain outside; detail uses a bounded internal title only when it fits, otherwise retaining the external name without duplicates. Component names must fit individually without shrinking screen-sized text. Labels off hides names but keeps component symbols and exact markers. The inspector retains full identities at every scale. The dashed selection outline has a screen-sized gap and does not represent an enclosure or change its measured footprint.',
   'installation-room shows a hovered, focused or selected route’s assigned cable snapshot name beside its longest segment when Labels is on. Labels follow route and pivot movement with screen-sized text on a light text surface; they do not change geometry, measurements or saved cable assignments.',
   'The native Project summary disclosure starts closed on each load and keeps its open/closed state across page renders in the current session. Its coloured bars distinguish statistics, not warning severity; project notifications remain separate and visible.',
   'A static, no-build web app: plain ES modules, HTML and CSS served from dist/. Pushing to main publishes dist/ to GitHub Pages through the Actions workflow.',
@@ -30,6 +30,13 @@ export const ARCHITECTURE_NOTES = [
   'version.mjs is the single source for the version, changelog, help text and shortcuts. info.mjs renders the i dialog.'
 ];
 export const CHANGELOG = [
+  {
+    version: '0.96.0',
+    date: '15/10/2026',
+    items: [
+      'Kept overview box names visible during selection and revealed component tiles, hardware symbols, names and exact port detail independently at smaller projected sizes, without changing enclosure footprints or cable geometry (suggested in #68).'
+    ]
+  },
   {
     version: '0.95.0',
     date: '15/10/2026',
@@ -767,6 +774,10 @@ export const HOW_TO_USE = [
   [
     'Connect field devices',
     'In Room layout, add a field device from the searchable library. Click a coloured node on a box edge, then click the field device or pixel group. The node identifies its box, internal component and exact port.'
+  ],
+  [
+    'Reveal room box detail',
+    'With Labels on, box names stay outside at overview scale, including selected boxes. Zooming reveals solid component tiles and hardware symbols first; each component name appears only when it fits, independently of individual port markers and spaced port labels. Component content replaces the summary, and a fitting internal box title replaces its external name without duplicates. Detail uses projected sizes rather than a universal zoom percentage: larger or less crowded enclosures reveal detail earlier. Labels off hides names while preserving symbols and exact endpoints. Full identities remain available by focusing components or using the inspector and Ports control.'
   ],
   [
     'Inspect cable warnings',
