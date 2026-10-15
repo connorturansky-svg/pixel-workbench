@@ -391,6 +391,13 @@
 .room-port-symbol {
   stroke-width: 2;
 }
+.room-external-node[data-label-visible='false'] .room-port-symbol {
+  visibility: hidden;
+  pointer-events: none;
+}
+.room-external-node[data-label-visible='false'] .room-port-label {
+  display: none;
+}
 .room-port-hit {
   fill: transparent;
   stroke: transparent;
@@ -704,6 +711,7 @@
   stroke-width: 3;
 }
 .route-cable-label {
+  transform: translateY(calc(-8px * var(--room-unit, 1)));
   fill: var(--ink);
   font-size: calc(12px * var(--room-unit, 1));
   font-weight: 700;
@@ -957,11 +965,6 @@
 }
 .room-unconnected text {
   font-size: calc(14px * var(--room-unit, 1));
-}
-.room-object[data-room-detail='detail']
-  .room-external-node[data-dense='false']:is(:hover, :focus-visible)
-  .room-port-label {
-  display: block;
 }
 .physical-route.has-issues :is(.route-line, .route-interface-line) {
   stroke-dasharray: 9 4;
