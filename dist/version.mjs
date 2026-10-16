@@ -1,7 +1,8 @@
 export const ABOUT =
   'Pixel Workbench is a device-local planner for 12 V pixel systems built on Baldrick controllers and FPP. Use it to lay out a room, size power and injection, design controller boxes and produce a wiring guide, bill of materials and channel CSV. Calculations are planning estimates. Confirm ratings and wiring against the actual equipment.';
-export const APP_VERSION = '0.97.0';
+export const APP_VERSION = '0.98.0';
 export const ARCHITECTURE_NOTES = [
+  'Room component tiles use their configured snapshot colour as a solid fill, retaining the existing fallback. Luminance selects black or white names and symbols for contrast; hover and keyboard focus change only the border, and box selection keeps its separate outline. Zoom visibility, layout and saved settings are unchanged.',
   'Room presentation uses roomPresentationLayout for the enclosure title/content grid and exterior port label areas. roomPortGeometry supplies unchanged exact perimeter markers to drawing, overlay pointer targets, wire previews and paint-only cable extensions. Physical departures, saved pivots, dimensions and cable quantities remain separate and unchanged; deliberately offset open ends retain their physical coordinates.',
   'Room names wrap in dedicated screen-space areas with a 10-pixel footprint gap and try nearby alternatives before hiding. Selected names reserve space first. Exterior port callouts reveal independently from component detail at six-pixel marker spacing, expand into ordered readable rows and use configuration-derived unique compact identifiers. Leaders associate each callout with its unchanged exact marker; full identities remain in inspection controls. Reservations avoid equipment, other labels and displayed cable lanes.',
   'Room decoration metrics are transient: name wrapping and compact-port widths are cached across renders, screen transforms are read before caption writes, and queued paints coalesce. Ordinary panning retains world-anchored captions between 80-pixel viewport refreshes and refreshes alternatives on release; fitting forces fresh decoration bounds. None of these caches enters project storage.',
@@ -31,6 +32,13 @@ export const ARCHITECTURE_NOTES = [
   'version.mjs is the single source for the version, changelog, help text and shortcuts. info.mjs renders the i dialog.'
 ];
 export const CHANGELOG = [
+  {
+    version: '0.98.0',
+    date: '16/10/2026',
+    items: [
+      'Restored solid configured colours on room component tiles with contrasting names and symbols, retaining their fills during focus and selection at every component-detail scale (suggested in #70).'
+    ]
+  },
   {
     version: '0.97.0',
     date: '15/10/2026',
@@ -785,7 +793,7 @@ export const HOW_TO_USE = [
   ],
   [
     'Reveal room box detail',
-    'With Labels on, equipment names wrap outside their footprints with breathing room and try alternative positions when crowded; selected names take priority. Individual port callouts appear independently of component detail, using unique compact identifiers and leaders to their exact markers. Full names remain available by focusing components or using the inspector and Ports control. Fit selected frames the enclosure, external names and port interface with padding below the camera controls. Detail depends on projected spacing, not a universal zoom percentage. Labels off hides names while preserving symbols and exact endpoints.'
+    'With Labels on, equipment names wrap outside their footprints with breathing room and try alternative positions when crowded; selected names take priority. Component tiles use their configured solid colours with contrasting symbols and names whenever visible; selecting a box preserves those fills and adds a separate outline. Individual port callouts appear independently of component detail, using unique compact identifiers and leaders to their exact markers. Full names remain available by focusing components or using the inspector and Ports control. Fit selected frames the enclosure, external names and port interface with padding below the camera controls. Detail depends on projected spacing, not a universal zoom percentage. Labels off hides names while preserving symbols and exact endpoints.'
   ],
   [
     'Inspect cable warnings',

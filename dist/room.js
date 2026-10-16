@@ -5,7 +5,7 @@ import {
   makeProp,
   PALETTE,
   clampPosition
-} from './layout-model.mjs?v=0.97.0';
+} from './layout-model.mjs?v=0.98.0';
 import {
   ensureInstallation,
   makeBox,
@@ -19,7 +19,7 @@ import {
   removePowerSupply,
   portTypeColour,
   connectionProblem
-} from './installation-model.mjs?v=0.97.0';
+} from './installation-model.mjs?v=0.98.0';
 import {
   routeLayer,
   routeMarkers,
@@ -28,7 +28,7 @@ import {
   installRoutes,
   refreshRoutes,
   refreshRouteInspector
-} from './installation-room.mjs?v=0.97.0';
+} from './installation-room.mjs?v=0.98.0';
 let api,
   chosen = '',
   propId = 'prop-smiley',
@@ -1118,6 +1118,14 @@ export function compactPortLabels(ports) {
     qualified.filter(other => other === name).length > 1 ? `${name} (${index + 1})` : name
   );
 }
+function componentInk(colour) {
+  const channels = colour.match(/[0-9a-f]{2}/gi).map(channel => {
+    const value = parseInt(channel, 16) / 255;
+    return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+  });
+  const luminance = channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+  return luminance > 0.179 ? '#000000' : '#ffffff';
+}
 function boxVisual(box, w, h) {
   const scale = w / 400;
   w /= scale;
@@ -1159,7 +1167,7 @@ function boxVisual(box, w, h) {
           cy = y + (cellH - labelHeight) / 2;
         return `<g data-room-button="${E(part.id)}" data-button-size="${E(part.buttonSize)}" data-room-label-details="${E(details)}" tabindex="0" role="group" aria-label="${E(details)}"><g class="room-button-symbol" transform="translate(${cx} ${cy}) scale(${scale}) translate(-50 -51)"><rect x="22" y="38" width="56" height="42" rx="8" fill="#505c58" stroke="#243a34" stroke-width="1.5"/><ellipse cx="50" cy="40" rx="23" ry="18" fill="${E(c)}" stroke="${part.buttonType === 'illuminated' ? '#fff3ad' : '#d7dfdc'}" stroke-width="${part.buttonType === 'illuminated' ? 4 : 2}"/><ellipse cx="50" cy="36" rx="13" ry="8" fill="#ffffff55"/></g>${labels ? `<g><rect class="room-button-label-surface" x="${x + 4}" y="${y + cellH - 19}" width="${cellW - 8}" height="20" rx="2" fill="#f9fbfa"/><text class="room-component-label" data-max-width="${cellW - 8}" data-characters="${(part.subname || shortName).length}" x="${cx}" y="${y + cellH - 3}" text-anchor="middle" fill="white">${E(part.subname || shortName)}</text></g>` : ''}<title>${E(details)} · ${E(part.buttonColour || 'Custom')} · ${E(part.buttonSize)}</title></g>`;
       }
-      return `<g class="room-component-card" tabindex="0" role="group" data-room-label-details="${E(details)}" aria-label="${E(details)}"><rect x="${x + 2}" y="${y + 2}" width="${cellW - 4}" height="${cellH - 4}" rx="2" fill="#f9fbfa" stroke="${E(c)}" stroke-width="2"/><text class="room-component-icon" x="${x + cellW / 2}" y="${y + cellH / 2}" text-anchor="middle" dominant-baseline="central" aria-hidden="true">${E(part.snapshot.icon)}</text>${labels ? `<text class="room-component-label" data-max-width="${cellW - 12}" x="${x + 6}" y="${y + 17}">${E(name)}</text>` : ''}<title>${E(details)}</title></g>`;
+      return `<g class="room-component-card" style="--room-component-ink:${componentInk(c)};--room-component-fill:${E(c)}" tabindex="0" role="group" data-room-label-details="${E(details)}" aria-label="${E(details)}"><rect x="${x + 2}" y="${y + 2}" width="${cellW - 4}" height="${cellH - 4}" rx="2" fill="${E(c)}" stroke="${E(c)}" stroke-width="2"/><text class="room-component-icon" x="${x + cellW / 2}" y="${y + cellH / 2}" text-anchor="middle" dominant-baseline="central" aria-hidden="true">${E(part.snapshot.icon)}</text>${labels ? `<text class="room-component-label" data-max-width="${cellW - 12}" x="${x + 6}" y="${y + 17}">${E(name)}</text>` : ''}<title>${E(details)}</title></g>`;
     })
     .join(
       ''

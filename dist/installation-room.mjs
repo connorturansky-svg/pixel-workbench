@@ -9,7 +9,7 @@ import {
   deleteRoute,
   portTypeColour,
   perimeterAnchor
-} from './installation-model.mjs?v=0.97.0';
+} from './installation-model.mjs?v=0.98.0';
 
 let api,
   selected = '',

@@ -483,6 +483,12 @@
   stroke: none;
   pointer-events: none;
 }
+.room-component-card :is(.room-component-label, .room-component-icon) {
+  fill: var(--room-component-ink);
+}
+.room-component-card .room-component-label {
+  stroke: var(--room-component-fill);
+}
 .room-component-card rect {
   vector-effect: non-scaling-stroke;
 }
@@ -494,7 +500,7 @@
   outline: none;
 }
 .room-component-card:is(:hover, :focus-visible) rect {
-  stroke: #193f39;
+  stroke: var(--room-component-ink);
   stroke-width: 3;
 }
 .room-label-details {
