@@ -3,12 +3,6 @@
  "windowHours": 24,
  "builds": [
   {
-   "at": "2026-10-15T09:02:04Z",
-   "issue": 67,
-   "credits": 48.0,
-   "outcome": "shipped"
-  },
-  {
    "at": "2026-10-15T10:39:59Z",
    "issue": 68,
    "credits": 31.92,
@@ -27,5 +21,5 @@
    "outcome": "shipped"
   }
  ],
- "updated": "2026-10-16T07:49:30Z"
+ "updated": "2026-10-16T09:03:40Z"
 }
