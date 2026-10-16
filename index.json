@@ -2284,5 +2284,31 @@
    "mobile.png"
   ],
   "error": ""
+ },
+ {
+  "version": "v0.98.0",
+  "date": "16/10/2026",
+  "commit": "ae1daa9d3d4b3f0baa073e39327485e58e8076bd",
+  "issue": 70,
+  "changelog": "Restored solid configured colours on room component tiles with contrasting names and symbols, retaining their fills during focus and selection at every component-detail scale (suggested in #70).",
+  "status": "ok",
+  "shots": [
+   "01-workspace.png",
+   "02-hardware.png",
+   "03-presets.png",
+   "04-props.png",
+   "05-guide.png",
+   "06-boxes.png",
+   "07-standards.png",
+   "08-bom.png",
+   "09-suggest.png",
+   "info-arch.png",
+   "info-how.png",
+   "info-keys.png",
+   "info-new.png",
+   "info-suggest.png",
+   "mobile.png"
+  ],
+  "error": ""
  }
 ]
