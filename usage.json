@@ -1,13 +1,6 @@
 {
  "limit": 5000,
  "windowHours": 24,
- "builds": [
-  {
-   "at": "2026-10-16T07:48:04Z",
-   "issue": 70,
-   "credits": 22.03,
-   "outcome": "shipped"
-  }
- ],
- "updated": "2026-10-16T14:28:38Z"
+ "builds": [],
+ "updated": "2026-10-17T14:03:44Z"
 }
